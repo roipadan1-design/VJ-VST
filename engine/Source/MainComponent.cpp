@@ -2,50 +2,6 @@
 
 using namespace juce::gl;
 
-namespace
-{
-    const char* vertexShaderSource = R"(
-        attribute vec2 position;
-        void main()
-        {
-            gl_Position = vec4 (position, 0.0, 1.0);
-        }
-    )";
-
-    const char* fragmentShaderSource = R"(
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
-
-        uniform float time;
-        uniform vec2  resolution;
-        uniform float level;
-        uniform float bass;
-        uniform float mid;
-        uniform float high;
-        uniform float beatPhase;
-
-        void main()
-        {
-            vec2 uv = (gl_FragCoord.xy - 0.5 * resolution) / min (resolution.x, resolution.y);
-            float d = length (uv);
-
-            float rings = sin (d * (20.0 + bass * 40.0) - time * (1.0 + mid * 4.0));
-            float flash = pow (max (0.0, 1.0 - beatPhase * 4.0), 4.0) * 0.6;
-
-            float brightness = 0.5 + 0.5 * rings;
-            brightness *= 0.3 + 0.7 * level;
-
-            vec3 col = vec3 (brightness * (0.5 + high * 0.5),
-                              brightness * 0.6,
-                              brightness * (0.9 - bass * 0.3));
-            col += flash;
-
-            gl_FragColor = vec4 (col, 1.0);
-        }
-    )";
-}
-
 MainComponent::MainComponent()
 {
     setSize (1280, 720);
@@ -67,58 +23,37 @@ MainComponent::~MainComponent()
     shutdownOpenGL();
 }
 
-void MainComponent::createShaders()
+juce::File MainComponent::getShadersDirectory() const
 {
-    auto newShader = std::make_unique<juce::OpenGLShaderProgram> (openGLContext);
-    juce::String statusText;
-
-    if (newShader->addVertexShader (juce::OpenGLHelpers::translateVertexShaderToV3 (vertexShaderSource))
-        && newShader->addFragmentShader (juce::OpenGLHelpers::translateFragmentShaderToV3 (fragmentShaderSource))
-        && newShader->link())
-    {
-        shaderProgram.reset (newShader.release());
-
-        uniformTime.reset       (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "time"));
-        uniformResolution.reset (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "resolution"));
-        uniformLevel.reset      (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "level"));
-        uniformBass.reset       (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "bass"));
-        uniformMid.reset        (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "mid"));
-        uniformHigh.reset       (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "high"));
-        uniformBeatPhase.reset  (new juce::OpenGLShaderProgram::Uniform (*shaderProgram, "beatPhase"));
-
-        positionAttribute = glGetAttribLocation (shaderProgram->getProgramID(), "position");
-    }
-    else
-    {
-        statusText = newShader->getLastError();
-        DBG (statusText);
-        jassertfalse;
-    }
+    return juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+             .getParentDirectory()
+             .getChildFile ("Shaders");
 }
 
 void MainComponent::initialise()
 {
-    createShaders();
+    auto shaderFile = getShadersDirectory().getChildFile ("Poly Star.fs");
 
-    glGenBuffers (1, &vertexBuffer);
-    glBindBuffer (GL_ARRAY_BUFFER, vertexBuffer);
+    if (! isfShader.loadFromFile (shaderFile))
+    {
+        DBG ("ISF load failed: " << isfShader.getLastError());
+        jassertfalse;
+        return;
+    }
 
-    static const GLfloat quad[] = { -1.0f, -1.0f,  1.0f, -1.0f,  -1.0f, 1.0f,  1.0f, 1.0f };
-    glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
-    glBindBuffer (GL_ARRAY_BUFFER, 0);
+    if (! isfShader.compile (openGLContext))
+    {
+        DBG ("ISF compile failed: " << isfShader.getLastError());
+        jassertfalse;
+        return;
+    }
 
     startTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
 }
 
 void MainComponent::shutdown()
 {
-    if (vertexBuffer != 0)
-    {
-        glDeleteBuffers (1, &vertexBuffer);
-        vertexBuffer = 0;
-    }
-
-    shaderProgram.reset();
+    isfShader.releaseGLObjects();
 }
 
 void MainComponent::render()
@@ -132,34 +67,10 @@ void MainComponent::render()
                 juce::roundToInt (desktopScale * (float) getWidth()),
                 juce::roundToInt (desktopScale * (float) getHeight()));
 
-    if (shaderProgram == nullptr)
-        return;
+    auto time = (float) (juce::Time::getMillisecondCounterHiRes() * 0.001 - startTime);
 
-    shaderProgram->use();
-
-    if (uniformTime != nullptr)
-        uniformTime->set ((float) (juce::Time::getMillisecondCounterHiRes() * 0.001 - startTime));
-
-    if (uniformResolution != nullptr)
-        uniformResolution->set ((float) getWidth(), (float) getHeight());
-
-    if (uniformLevel != nullptr)     uniformLevel->set (level.load());
-    if (uniformBass != nullptr)      uniformBass->set (bass.load());
-    if (uniformMid != nullptr)       uniformMid->set (mid.load());
-    if (uniformHigh != nullptr)      uniformHigh->set (high.load());
-    if (uniformBeatPhase != nullptr) uniformBeatPhase->set (beatPhase.load());
-
-    if (positionAttribute >= 0)
-    {
-        glBindBuffer (GL_ARRAY_BUFFER, vertexBuffer);
-        glEnableVertexAttribArray ((GLuint) positionAttribute);
-        glVertexAttribPointer ((GLuint) positionAttribute, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
-
-        glDisableVertexAttribArray ((GLuint) positionAttribute);
-        glBindBuffer (GL_ARRAY_BUFFER, 0);
-    }
+    isfShader.render (openGLContext, time, getWidth(), getHeight(),
+                       level.load(), bass.load(), mid.load(), high.load(), beatPhase.load());
 }
 
 void MainComponent::paint (juce::Graphics&) {}

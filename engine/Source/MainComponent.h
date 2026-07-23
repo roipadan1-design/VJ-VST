@@ -1,11 +1,11 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ISFShader.h"
 
-// Phase 0 spike: proves the pipe M4L -> OSC -> render engine works.
-// Listens for /audio/level, /audio/bass, /audio/mid, /audio/high, /audio/beatphase
-// on UDP port 9000 and drives a single reactive GLSL shader with them.
-// Press F to toggle real OS-level fullscreen (the Phase 0 success criterion).
+// Phase 1: real ISF shader hosting. Listens for /audio/level, /audio/bass,
+// /audio/mid, /audio/high, /audio/beatphase on UDP port 9000 and drives
+// whichever ISF shader is currently loaded. Press F for real OS fullscreen.
 class MainComponent : public juce::OpenGLAppComponent,
                        private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
 {
@@ -23,22 +23,12 @@ public:
 
 private:
     void oscMessageReceived (const juce::OSCMessage& message) override;
-    void createShaders();
+    juce::File getShadersDirectory() const;
 
     juce::OSCReceiver oscReceiver;
     static constexpr int oscPort = 9000;
 
-    std::unique_ptr<juce::OpenGLShaderProgram> shaderProgram;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformTime;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformResolution;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformLevel;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformBass;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformMid;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformHigh;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformBeatPhase;
-
-    unsigned int vertexBuffer = 0;
-    int positionAttribute = -1;
+    ISFShader isfShader;
 
     std::atomic<float> level { 0.0f };
     std::atomic<float> bass  { 0.0f };
