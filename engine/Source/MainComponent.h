@@ -1,11 +1,12 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ISFShader.h"
+#include "PresetManager.h"
 
-// Phase 1: real ISF shader hosting. Listens for /audio/level, /audio/bass,
-// /audio/mid, /audio/high, /audio/beatphase on UDP port 9000 and drives
-// whichever ISF shader is currently loaded. Press F for real OS fullscreen.
+// Phase 1: ISF shader hosting + preset switching. Listens for /audio/level,
+// /audio/bass, /audio/mid, /audio/high, /audio/beatphase, and /preset/select,
+// /preset/next, /preset/previous on UDP port 9000. Press F for real OS
+// fullscreen, Left/Right arrows to switch presets locally.
 class MainComponent : public juce::OpenGLAppComponent,
                        private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
 {
@@ -23,18 +24,22 @@ public:
 
 private:
     void oscMessageReceived (const juce::OSCMessage& message) override;
-    juce::File getShadersDirectory() const;
+    juce::File getEngineDirectory() const;
 
     juce::OSCReceiver oscReceiver;
     static constexpr int oscPort = 9000;
 
-    ISFShader isfShader;
+    PresetManager presetManager;
 
     std::atomic<float> level { 0.0f };
     std::atomic<float> bass  { 0.0f };
     std::atomic<float> mid   { 0.0f };
     std::atomic<float> high  { 0.0f };
     std::atomic<float> beatPhase { 0.0f };
+
+    std::atomic<int> pendingPresetSelect { -1 };
+    std::atomic<bool> pendingNext { false };
+    std::atomic<bool> pendingPrevious { false };
 
     double startTime = 0.0;
 

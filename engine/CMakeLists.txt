@@ -23,13 +23,18 @@ target_sources(VJEngine PRIVATE
     Source/Main.cpp
     Source/MainComponent.cpp
     Source/ISFShader.cpp
+    Source/Preset.cpp
+    Source/PresetManager.cpp
 )
 
 add_custom_command(TARGET VJEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
         "$<TARGET_FILE_DIR:VJEngine>/Shaders"
-    COMMENT "Copying Shaders/ next to the built executable"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/Presets"
+        "$<TARGET_FILE_DIR:VJEngine>/Presets"
+    COMMENT "Copying Shaders/ and Presets/ next to the built executable"
 )
 
 target_compile_definitions(VJEngine PRIVATE
