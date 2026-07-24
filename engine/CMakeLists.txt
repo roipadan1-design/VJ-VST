@@ -25,6 +25,16 @@ target_sources(VJEngine PRIVATE
     Source/ISFShader.cpp
     Source/Preset.cpp
     Source/PresetManager.cpp
+    Source/SpoutSender.cpp
+)
+
+set(VJ_SPOUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Spout")
+
+add_library(SpoutLibrary SHARED IMPORTED)
+set_target_properties(SpoutLibrary PROPERTIES
+    IMPORTED_IMPLIB "${VJ_SPOUT_DIR}/lib/SpoutLibrary.lib"
+    IMPORTED_LOCATION "${VJ_SPOUT_DIR}/bin/SpoutLibrary.dll"
+    INTERFACE_INCLUDE_DIRECTORIES "${VJ_SPOUT_DIR}/include"
 )
 
 add_custom_command(TARGET VJEngine POST_BUILD
@@ -34,7 +44,10 @@ add_custom_command(TARGET VJEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Presets"
         "$<TARGET_FILE_DIR:VJEngine>/Presets"
-    COMMENT "Copying Shaders/ and Presets/ next to the built executable"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${VJ_SPOUT_DIR}/bin/SpoutLibrary.dll"
+        "$<TARGET_FILE_DIR:VJEngine>/SpoutLibrary.dll"
+    COMMENT "Copying Shaders/, Presets/, and SpoutLibrary.dll next to the built executable"
 )
 
 target_compile_definitions(VJEngine PRIVATE
@@ -51,4 +64,5 @@ target_link_libraries(VJEngine PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
+    SpoutLibrary
 )

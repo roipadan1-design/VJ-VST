@@ -1,0 +1,9 @@
+Spout2 SDK (SpoutLibrary) - BSD-2-Clause
+Copyright (c) 2016-2025, Lynn Jarvis. All rights reserved.
+https://github.com/leadedge/Spout2
+
+Prebuilt binaries redistributed here (SpoutLibrary.h/.lib/.dll, /MD runtime,
+release 2.007.017) from:
+https://github.com/leadedge/Spout2/releases/download/2.007.017/Spout-SDK-binaries_2-007-017_1.zip
+
+See the upstream repository for full source and license text.

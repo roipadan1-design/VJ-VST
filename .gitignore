@@ -4,3 +4,4 @@ engine/build/
 *.ilk
 *.exp
 *.lib
+!engine/ThirdParty/**/*.lib

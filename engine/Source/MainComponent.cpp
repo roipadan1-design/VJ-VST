@@ -34,11 +34,15 @@ void MainComponent::initialise()
     presetManager.scanPresets (engineDir.getChildFile ("Presets"), engineDir.getChildFile ("Shaders"));
     presetManager.selectPreset (0, openGLContext);
 
+    if (! spoutSender.initialise ("VJ Engine"))
+        DBG ("VJEngine: Spout sender unavailable - continuing without Spout output");
+
     startTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
 }
 
 void MainComponent::shutdown()
 {
+    spoutSender.shutdown();
     presetManager.releaseGLObjects();
 }
 
@@ -71,6 +75,10 @@ void MainComponent::render()
 
     presetManager.render (openGLContext, time, physicalWidth, physicalHeight,
                           level.load(), bass.load(), mid.load(), high.load(), beatPhase.load());
+
+    // presetManager.render() leaves the default framebuffer (0) holding this
+    // frame's final image - share it as-is, no extra copy/blit needed.
+    spoutSender.sendFrame (0, physicalWidth, physicalHeight);
 }
 
 void MainComponent::paint (juce::Graphics&) {}

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "PresetManager.h"
+#include "SpoutSender.h"
 
 // Phase 1: ISF shader hosting + preset switching. Listens for /audio/level,
 // /audio/bass, /audio/mid, /audio/high, /audio/beatphase, and /preset/select,
@@ -30,6 +31,7 @@ private:
     static constexpr int oscPort = 9000;
 
     PresetManager presetManager;
+    SpoutSender spoutSender;
 
     std::atomic<float> level { 0.0f };
     std::atomic<float> bass  { 0.0f };
