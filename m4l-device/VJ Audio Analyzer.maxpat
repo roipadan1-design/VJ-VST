@@ -118,7 +118,7 @@
 			{ "box" : { "id" : "obj-39", "maxclass" : "comment", "text" : "VJ Audio Analyzer - M4L Audio Effect. Analyzes level/bass/mid/high + Live's beat phase, sends OSC to 127.0.0.1:9000 for the VJ Engine render process. Audio passes through unaffected (plugin~ -> plugout~). Toggle freezes/resumes analysis; auto-starts on load. Preset Select/Next/Prev drive the VJ Engine's active preset over the same OSC connection. Front end is in Presentation mode (right-click the device title, or the view icon, to switch between Presentation and the raw patch shown here).", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 40.0, 690.0, 900.0, 45.0 ] } },
 
 			{ "box" : { "id" : "obj-110", "maxclass" : "comment", "text" : "Preset Select", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 20.0, 150.0, 20.0 ] } },
-			{ "box" : { "id" : "obj-111", "maxclass" : "number", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "", "bang" ], "patching_rect" : [ 1200.0, 60.0, 50.0, 22.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 175.0, 50.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-111", "maxclass" : "live.numbox", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "", "bang" ], "parameter_enable" : 1, "parameter_longname" : "Preset Select", "parameter_shortname" : "Preset", "parameter_type" : 0, "parameter_mmin" : 0.0, "parameter_mmax" : 31.0, "parameter_unitstyle" : 0, "patching_rect" : [ 1200.0, 60.0, 50.0, 22.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 175.0, 50.0, 20.0 ], "saved_attribute_attributes" : { "valueof" : { "parameter_longname" : "Preset Select", "parameter_shortname" : "Preset", "parameter_type" : 0, "parameter_mmin" : 0.0, "parameter_mmax" : 31.0, "parameter_unitstyle" : 0, "parameter_enum" : [ ] } } } },
 			{ "box" : { "id" : "obj-112", "maxclass" : "newobj", "text" : "prepend /preset/select", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1200.0, 100.0, 160.0, 22.0 ] } },
 			{ "box" : { "id" : "obj-113", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1200.0, 140.0, 50.0, 22.0 ] } },
 
@@ -132,7 +132,14 @@
 			{ "box" : { "id" : "obj-119", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1390.0, 140.0, 50.0, 22.0 ] } },
 			{ "box" : { "id" : "obj-121", "maxclass" : "comment", "text" : "Prev", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1390.0, 40.0, 40.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 110.0, 159.0, 40.0, 14.0 ] } },
 
-			{ "box" : { "id" : "obj-122", "maxclass" : "comment", "text" : "Preset", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 40.0, 60.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 159.0, 60.0, 14.0 ] } }
+			{ "box" : { "id" : "obj-122", "maxclass" : "comment", "text" : "Preset", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 40.0, 60.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 159.0, 60.0, 14.0 ] } },
+
+			{ "box" : { "id" : "obj-123", "maxclass" : "comment", "text" : "Onset (Bass Transient) - not yet consumed by the VJ Engine, infrastructure for future use", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 220.0, 300.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-124", "maxclass" : "newobj", "text" : "> 0.3", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1200.0, 250.0, 60.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-125", "maxclass" : "newobj", "text" : "change", "numinlets" : 1, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1200.0, 290.0, 60.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-126", "maxclass" : "newobj", "text" : "select 1", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "bang" ], "patching_rect" : [ 1200.0, 330.0, 60.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-127", "maxclass" : "message", "text" : "/audio/onset", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1200.0, 370.0, 100.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-128", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1200.0, 410.0, 50.0, 22.0 ] } }
 		],
 		"lines" : [
 			{ "patchline" : { "source" : [ "obj-1", 0 ], "destination" : [ "obj-2", 0 ] } },
@@ -241,7 +248,15 @@
 			{ "patchline" : { "source" : [ "obj-117", 0 ], "destination" : [ "obj-118", 0 ] } },
 			{ "patchline" : { "source" : [ "obj-118", 0 ], "destination" : [ "obj-119", 0 ] } },
 			{ "patchline" : { "source" : [ "obj-119", 0 ], "destination" : [ "obj-40", 0 ] } },
-			{ "patchline" : { "source" : [ "obj-119", 1 ], "destination" : [ "obj-40", 0 ] } }
+			{ "patchline" : { "source" : [ "obj-119", 1 ], "destination" : [ "obj-40", 0 ] } },
+
+			{ "patchline" : { "source" : [ "obj-25", 0 ], "destination" : [ "obj-124", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-124", 0 ], "destination" : [ "obj-125", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-125", 0 ], "destination" : [ "obj-126", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-126", 0 ], "destination" : [ "obj-127", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-127", 0 ], "destination" : [ "obj-128", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-128", 0 ], "destination" : [ "obj-40", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-128", 1 ], "destination" : [ "obj-40", 0 ] } }
 		],
 		"parameters" : 		{
 			"parameterbanks" : 			{
