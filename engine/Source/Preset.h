@@ -12,9 +12,23 @@ struct AudioMapping
     float offset = 0.0f;
 };
 
-// One visual preset: which ISF shader to load, static parameter overrides
-// (values that differ from the shader's own ISF DEFAULTs), and optional
-// audio-reactive mappings per parameter.
+// One stage of an effectChain preset: its own ISF effect shader (expected to
+// declare a standard "inputImage" sampler2D input), param overrides, and
+// audio-reactive mappings - same shape as the top-level Preset fields, just
+// scoped to this one stage.
+struct EffectStageConfig
+{
+    juce::String shaderFile;
+    juce::NamedValueSet paramOverrides;
+    std::map<juce::String, AudioMapping> audioMappings;
+};
+
+// One visual preset. Either:
+//  - a single ISF shader ("shader" field) - the original Phase 1 model, or
+//  - an ordered chain of ISF effect shaders ("effectChain" field) fed by the
+//    currently loaded video (see VideoPlayer/EffectChain) - for layered,
+//    toggleable video-glitch presets.
+// A preset can't usefully declare both; if it does, effectChain wins.
 struct Preset
 {
     juce::String name;
@@ -22,6 +36,15 @@ struct Preset
     juce::NamedValueSet paramOverrides;
     std::map<juce::String, AudioMapping> audioMappings;
 
+    juce::Array<EffectStageConfig> effectChain;
+
+    bool isEffectChain() const noexcept { return ! effectChain.isEmpty(); }
+
     // Parses a preset .json file. On failure, ok() is false and getError() explains why.
     static Preset loadFromFile (const juce::File& jsonFile, bool& ok, juce::String& error);
 };
+
+// Shared by PresetManager and EffectChain: maps an AudioMapping::source
+// name to its current value. Returns 0 for an unrecognised name.
+float resolveAudioMappingSource (const juce::String& source,
+                                  float level, float bass, float mid, float high, float beatphase);

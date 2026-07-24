@@ -26,6 +26,8 @@ target_sources(VJEngine PRIVATE
     Source/Preset.cpp
     Source/PresetManager.cpp
     Source/SpoutSender.cpp
+    Source/VideoPlayer.cpp
+    Source/EffectChain.cpp
 )
 
 set(VJ_SPOUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Spout")

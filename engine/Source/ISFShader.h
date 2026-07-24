@@ -47,11 +47,22 @@ public:
     // GL context is (re)created. Returns false and fills getLastError() on failure.
     bool compile (juce::OpenGLContext& context);
 
-    // Runs every pass (allocating/resizing FBOs as needed) and leaves the
-    // default framebuffer bound with the final pass's image on screen.
+    // Runs every pass (allocating/resizing FBOs as needed).
+    //
+    // externalImageTexture, if non-zero, is bound to the ISF input named
+    // exactly "inputImage" (the standard ISF convention for an effect's
+    // main image input) instead of the black placeholder - this is how a
+    // loaded video frame, or a previous EffectChain stage's output, feeds
+    // in as this shader's source image.
+    //
+    // finalTargetFbo selects where the shader's last pass renders to
+    // (default 0 = the default framebuffer/screen, as before). EffectChain
+    // uses a non-zero value to redirect a non-final chain stage into its
+    // own ping-pong buffer instead of the screen.
     void render (juce::OpenGLContext& context,
                  float timeSeconds, int pixelWidth, int pixelHeight,
-                 float level, float bass, float mid, float high, float beatphase);
+                 float level, float bass, float mid, float high, float beatphase,
+                 unsigned int externalImageTexture = 0, unsigned int finalTargetFbo = 0);
 
     void releaseGLObjects();
 
@@ -80,7 +91,8 @@ private:
     void ensureRenderTarget (RenderTarget& rt, int width, int height, bool persistent);
     void ensureBlackPlaceholderTexture();
     void runPass (int passIndex, int mainWidth, int mainHeight,
-                  float timeSeconds, float level, float bass, float mid, float high, float beatphase);
+                  float timeSeconds, float level, float bass, float mid, float high, float beatphase,
+                  unsigned int externalImageTexture, unsigned int finalTargetFbo);
 
     juce::String rawBody;      // GLSL source after the JSON header comment
     juce::var headerJson;

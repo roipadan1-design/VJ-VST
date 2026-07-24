@@ -1,0 +1,23 @@
+{
+    "name": "Video Glitch Chain (drag a video onto the window)",
+    "effectChain": [
+        {
+            "shader": "Glitch/RGBShift.fs",
+            "params": { "amount": 0.008 },
+            "audioMappings": {
+                "amount": { "source": "high", "scale": 0.02, "offset": 0.005 }
+            }
+        },
+        {
+            "shader": "Glitch/BlockGlitch.fs",
+            "params": { "intensity": 0.25, "blockCount": 32 },
+            "audioMappings": {
+                "intensity": { "source": "bass", "scale": 0.5, "offset": 0.15 }
+            }
+        },
+        {
+            "shader": "Glitch/ScanlineJitter.fs",
+            "params": { "jitterAmount": 0.015, "lineDensity": 160 }
+        }
+    ]
+}

@@ -349,7 +349,8 @@ void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, boo
 }
 
 void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
-                          float timeSeconds, float level, float bass, float mid, float high, float beatphase)
+                          float timeSeconds, float level, float bass, float mid, float high, float beatphase,
+                          unsigned int externalImageTexture, unsigned int finalTargetFbo)
 {
     auto& pass = passes.getReference (passIndex);
     bool isLastPass = (passIndex == passes.size() - 1);
@@ -372,7 +373,7 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
     }
     else
     {
-        glBindFramebuffer (GL_FRAMEBUFFER, 0);
+        glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
     }
 
     glViewport (0, 0, targetWidth, targetHeight);
@@ -400,8 +401,17 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
         if (uniform == nullptr)
             continue;
 
+        // Standard ISF convention: an effect's main image input is named
+        // "inputImage". That's the one slot an external source (a loaded
+        // video frame, or the previous EffectChain stage's output) binds to
+        // - anything else stays the black placeholder (no real multi-image
+        // input support yet, documented scope limit as before).
+        auto boundTexture = (externalImageTexture != 0 && input.name == "inputImage")
+                                 ? externalImageTexture
+                                 : blackPlaceholderTexture;
+
         glActiveTexture (GL_TEXTURE0 + textureUnit);
-        glBindTexture (GL_TEXTURE_2D, blackPlaceholderTexture);
+        glBindTexture (GL_TEXTURE_2D, boundTexture);
         uniform->set (textureUnit);
         ++textureUnit;
     }
@@ -472,7 +482,8 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
 }
 
 void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth, int pixelHeight,
-                         float level, float bass, float mid, float high, float beatphase)
+                         float level, float bass, float mid, float high, float beatphase,
+                         unsigned int externalImageTexture, unsigned int finalTargetFbo)
 {
     if (program == nullptr || passes.isEmpty())
         return;
@@ -480,7 +491,8 @@ void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth,
     ensureBlackPlaceholderTexture();
 
     for (int i = 0; i < passes.size(); ++i)
-        runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase);
+        runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase,
+                 externalImageTexture, finalTargetFbo);
 
     glBindFramebuffer (GL_FRAMEBUFFER, 0);
     glViewport (0, 0, pixelWidth, pixelHeight);
