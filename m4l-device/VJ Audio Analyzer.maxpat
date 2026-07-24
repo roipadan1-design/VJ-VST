@@ -9,10 +9,10 @@
 			"modernui" : 1
 		},
 		"classnamespace" : "dsp.audioeffect",
-		"rect" : [ 60.0, 60.0, 1180.0, 900.0 ],
+		"rect" : [ 60.0, 60.0, 1560.0, 900.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 1,
-		"openrect" : [ 0.0, 0.0, 300.0, 170.0 ],
+		"openrect" : [ 0.0, 0.0, 300.0, 210.0 ],
 		"default_fontsize" : 12.0,
 		"default_fontface" : 0,
 		"default_fontname" : "Arial",
@@ -115,7 +115,24 @@
 			{ "box" : { "id" : "obj-99", "maxclass" : "comment", "text" : "Beat", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 240.0, 780.0, 40.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 174.0, 24.0, 50.0, 14.0 ] } },
 			{ "box" : { "id" : "obj-102", "maxclass" : "comment", "text" : "Freeze", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 290.0, 780.0, 50.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 240.0, 24.0, 50.0, 14.0 ] } },
 
-			{ "box" : { "id" : "obj-39", "maxclass" : "comment", "text" : "VJ Audio Analyzer - M4L Audio Effect. Analyzes level/bass/mid/high + Live's beat phase, sends OSC to 127.0.0.1:9000 for the VJ Engine render process. Audio passes through unaffected (plugin~ -> plugout~). Toggle freezes/resumes analysis; auto-starts on load. Front end is in Presentation mode (right-click the device title, or the view icon, to switch between Presentation and the raw patch shown here).", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 40.0, 690.0, 900.0, 45.0 ] } }
+			{ "box" : { "id" : "obj-39", "maxclass" : "comment", "text" : "VJ Audio Analyzer - M4L Audio Effect. Analyzes level/bass/mid/high + Live's beat phase, sends OSC to 127.0.0.1:9000 for the VJ Engine render process. Audio passes through unaffected (plugin~ -> plugout~). Toggle freezes/resumes analysis; auto-starts on load. Preset Select/Next/Prev drive the VJ Engine's active preset over the same OSC connection. Front end is in Presentation mode (right-click the device title, or the view icon, to switch between Presentation and the raw patch shown here).", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 40.0, 690.0, 900.0, 45.0 ] } },
+
+			{ "box" : { "id" : "obj-110", "maxclass" : "comment", "text" : "Preset Select", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 20.0, 150.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-111", "maxclass" : "number", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "", "bang" ], "patching_rect" : [ 1200.0, 60.0, 50.0, 22.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 175.0, 50.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-112", "maxclass" : "newobj", "text" : "prepend /preset/select", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1200.0, 100.0, 160.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-113", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1200.0, 140.0, 50.0, 22.0 ] } },
+
+			{ "box" : { "id" : "obj-114", "maxclass" : "button", "numinlets" : 1, "numoutlets" : 1, "outlettype" : [ "bang" ], "patching_rect" : [ 1280.0, 60.0, 20.0, 20.0 ], "presentation" : 1, "presentation_rect" : [ 80.0, 175.0, 20.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-115", "maxclass" : "message", "text" : "/preset/next", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1280.0, 100.0, 110.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-116", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1280.0, 140.0, 50.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-120", "maxclass" : "comment", "text" : "Next", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1280.0, 40.0, 40.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 80.0, 159.0, 40.0, 14.0 ] } },
+
+			{ "box" : { "id" : "obj-117", "maxclass" : "button", "numinlets" : 1, "numoutlets" : 1, "outlettype" : [ "bang" ], "patching_rect" : [ 1390.0, 60.0, 20.0, 20.0 ], "presentation" : 1, "presentation_rect" : [ 110.0, 175.0, 20.0, 20.0 ] } },
+			{ "box" : { "id" : "obj-118", "maxclass" : "message", "text" : "/preset/previous", "numinlets" : 2, "numoutlets" : 1, "outlettype" : [ "" ], "patching_rect" : [ 1390.0, 100.0, 145.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-119", "maxclass" : "newobj", "text" : "t b l", "numinlets" : 1, "numoutlets" : 2, "outlettype" : [ "bang", "" ], "patching_rect" : [ 1390.0, 140.0, 50.0, 22.0 ] } },
+			{ "box" : { "id" : "obj-121", "maxclass" : "comment", "text" : "Prev", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1390.0, 40.0, 40.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 110.0, 159.0, 40.0, 14.0 ] } },
+
+			{ "box" : { "id" : "obj-122", "maxclass" : "comment", "text" : "Preset", "numinlets" : 1, "numoutlets" : 0, "patching_rect" : [ 1200.0, 40.0, 60.0, 14.0 ], "presentation" : 1, "presentation_rect" : [ 14.0, 159.0, 60.0, 14.0 ] } }
 		],
 		"lines" : [
 			{ "patchline" : { "source" : [ "obj-1", 0 ], "destination" : [ "obj-2", 0 ] } },
@@ -209,7 +226,22 @@
 			{ "patchline" : { "source" : [ "obj-74", 0 ], "destination" : [ "obj-75", 0 ] } },
 			{ "patchline" : { "source" : [ "obj-75", 0 ], "destination" : [ "obj-76", 0 ] } },
 			{ "patchline" : { "source" : [ "obj-75", 0 ], "destination" : [ "obj-78", 0 ] } },
-			{ "patchline" : { "source" : [ "obj-76", 0 ], "destination" : [ "obj-77", 0 ] } }
+			{ "patchline" : { "source" : [ "obj-76", 0 ], "destination" : [ "obj-77", 0 ] } },
+
+			{ "patchline" : { "source" : [ "obj-111", 0 ], "destination" : [ "obj-112", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-112", 0 ], "destination" : [ "obj-113", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-113", 0 ], "destination" : [ "obj-40", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-113", 1 ], "destination" : [ "obj-40", 0 ] } },
+
+			{ "patchline" : { "source" : [ "obj-114", 0 ], "destination" : [ "obj-115", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-115", 0 ], "destination" : [ "obj-116", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-116", 0 ], "destination" : [ "obj-40", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-116", 1 ], "destination" : [ "obj-40", 0 ] } },
+
+			{ "patchline" : { "source" : [ "obj-117", 0 ], "destination" : [ "obj-118", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-118", 0 ], "destination" : [ "obj-119", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-119", 0 ], "destination" : [ "obj-40", 0 ] } },
+			{ "patchline" : { "source" : [ "obj-119", 1 ], "destination" : [ "obj-40", 0 ] } }
 		],
 		"parameters" : 		{
 			"parameterbanks" : 			{
