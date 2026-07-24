@@ -14,6 +14,7 @@ using namespace juce::gl;
 #pragma comment(lib, "mfplat.lib")
 #pragma comment(lib, "mfreadwrite.lib")
 #pragma comment(lib, "mfuuid.lib")
+#pragma comment(lib, "mf.lib") // MFEnumDeviceSources (camera device enumeration)
 #pragma comment(lib, "ole32.lib")
 
 using Microsoft::WRL::ComPtr;
@@ -27,13 +28,50 @@ namespace
     }
 
     constexpr DWORD videoStreamIndex = (DWORD) MF_SOURCE_READER_FIRST_VIDEO_STREAM;
+
+    // DBG()/OutputDebugString only reaches an attached debugger, and this
+    // is a standalone .exe with none attached in normal use - camera-open
+    // failures in particular are worth writing somewhere a user (or a
+    // script checking after the fact) can actually read, since "device
+    // busy" / "permission denied" / "no such device" all fail the same way
+    // (silently, engine keeps running on the black placeholder) without this.
+    void logDiagnostic (const juce::String& message)
+    {
+        auto logFile = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                           .getSiblingFile ("VJEngine.log");
+        logFile.appendText (juce::Time::getCurrentTime().toString (true, true, true, true) + "  " + message + "\n");
+        DBG (message);
+    }
+
+    juce::String hresultToString (HRESULT hr)
+    {
+        return "0x" + juce::String::toHexString ((juce::int64) hr);
+    }
+
+    juce::String subtypeToString (const GUID& g)
+    {
+        if (g == MFVideoFormat_RGB32) return "RGB32";
+        if (g == MFVideoFormat_RGB24) return "RGB24";
+        if (g == MFVideoFormat_YUY2)  return "YUY2";
+        if (g == MFVideoFormat_NV12)  return "NV12";
+        if (g == MFVideoFormat_MJPG)  return "MJPG";
+        if (g == MFVideoFormat_I420)  return "I420";
+        if (g == MFVideoFormat_H264)  return "H264";
+
+        OLECHAR guidStr[40] {};
+        StringFromGUID2 (g, guidStr, 40);
+        return juce::String (guidStr);
+    }
 }
 
 class VideoPlayer::DecodeThread : public juce::Thread
 {
 public:
-    DecodeThread (VideoPlayer& ownerIn, juce::File fileIn)
-        : juce::Thread ("VideoDecode"), owner (ownerIn), file (std::move (fileIn))
+    // cameraDeviceIndexIn = -1 means "file mode" (use fileIn); >= 0 means
+    // "camera mode" (open that capture device, fileIn is ignored).
+    DecodeThread (VideoPlayer& ownerIn, juce::File fileIn, int cameraDeviceIndexIn)
+        : juce::Thread ("VideoDecode"), owner (ownerIn), file (std::move (fileIn)),
+          cameraDeviceIndex (cameraDeviceIndexIn)
     {
     }
 
@@ -51,16 +89,28 @@ public:
 
         ComPtr<IMFSourceReader> reader;
         int width = 0, height = 0;
+        juce::String sourceDescription = isCameraMode() ? ("camera device " + juce::String (cameraDeviceIndex))
+                                                          : file.getFullPathName();
 
-        if (! openReader (reader) || ! queryFrameSize (reader.Get(), width, height) || width <= 0 || height <= 0)
+        if (! openReader (reader))
         {
-            DBG ("VideoPlayer: failed to open/read " << file.getFullPathName());
+            logDiagnostic ("openReader() failed for " + sourceDescription);
             if (comInitialisedHere) CoUninitialize();
             return;
         }
 
+        if (! queryFrameSize (reader.Get(), width, height) || width <= 0 || height <= 0)
+        {
+            logDiagnostic ("queryFrameSize() failed for " + sourceDescription + " (got " + juce::String (width) + "x" + juce::String (height) + ")");
+            if (comInitialisedHere) CoUninitialize();
+            return;
+        }
+
+        logDiagnostic ("opened " + sourceDescription + " at " + juce::String (width) + "x" + juce::String (height) + ", starting decode loop");
+
         std::vector<uint8_t> frameBuffer ((size_t) width * (size_t) height * 4);
         double playbackStartMs = juce::Time::getMillisecondCounterHiRes();
+        int samplesReceived = 0;
 
         while (! threadShouldExit())
         {
@@ -72,17 +122,38 @@ public:
                                            &streamIndex, &flags, &timestamp, sample.GetAddressOf());
 
             if (FAILED (hr))
+            {
+                logDiagnostic ("ReadSample failed for " + sourceDescription + ": " + hresultToString (hr)
+                                + " (after " + juce::String (samplesReceived) + " sample(s))");
                 break;
+            }
 
             if ((flags & MF_SOURCE_READERF_ENDOFSTREAM) != 0)
             {
+                // A live capture device isn't expected to hit end-of-stream -
+                // if it does (device unplugged, etc.), treat it as gone
+                // rather than looping forever on a dead source.
+                if (isCameraMode())
+                    break;
+
                 seekToStart (reader.Get());
                 playbackStartMs = juce::Time::getMillisecondCounterHiRes();
                 continue;
             }
 
             if (sample == nullptr)
+            {
+                // Common for capture devices: a "stream tick" with no actual
+                // sample data this pass. Log the first couple so a dead
+                // camera (endless empty ticks) is visible, without spamming.
+                if (isCameraMode() && samplesReceived == 0 && flags != 0)
+                    logDiagnostic ("ReadSample returned null sample, flags=" + hresultToString ((HRESULT) flags));
                 continue;
+            }
+
+            if (samplesReceived == 0)
+                logDiagnostic ("first sample received from " + sourceDescription);
+            ++samplesReceived;
 
             copySampleToFrameBuffer (sample.Get(), width, height, frameBuffer);
             owner.pushFrame (frameBuffer.data(), width, height);
@@ -102,32 +173,198 @@ public:
     }
 
 private:
+    bool isCameraMode() const noexcept { return cameraDeviceIndex >= 0; }
+
     bool openReader (ComPtr<IMFSourceReader>& reader)
     {
         ComPtr<IMFAttributes> attributes;
         MFCreateAttributes (attributes.GetAddressOf(), 1);
 
         // Without this, SetCurrentMediaType() below fails to convert most
-        // compressed sources (e.g. H.264, which decodes natively to NV12)
-        // to RGB32 - this attribute is what allows the source reader to
-        // insert Media Foundation's video processor to do that conversion.
+        // compressed/YUV sources (H.264 files, or a webcam's native MJPEG/
+        // YUY2) to RGB32 - this attribute is what allows the source reader
+        // to insert Media Foundation's video processor to do that conversion.
         attributes->SetUINT32 (MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
 
-        auto hr = MFCreateSourceReaderFromURL (file.getFullPathName().toWideCharPointer(),
-                                                attributes.Get(), reader.GetAddressOf());
-        if (FAILED (hr) || reader == nullptr)
-            return false;
+        HRESULT hr;
+
+        if (isCameraMode())
+        {
+            ComPtr<IMFMediaSource> cameraSource;
+            if (! openCameraMediaSource (cameraDeviceIndex, cameraSource))
+                return false;
+
+            hr = MFCreateSourceReaderFromMediaSource (cameraSource.Get(), attributes.Get(), reader.GetAddressOf());
+            if (FAILED (hr) || reader == nullptr)
+            {
+                logDiagnostic ("MFCreateSourceReaderFromMediaSource failed: " + hresultToString (hr));
+                return false;
+            }
+        }
+        else
+        {
+            hr = MFCreateSourceReaderFromURL (file.getFullPathName().toWideCharPointer(),
+                                               attributes.Get(), reader.GetAddressOf());
+            if (FAILED (hr) || reader == nullptr)
+            {
+                logDiagnostic ("MFCreateSourceReaderFromURL failed: " + hresultToString (hr));
+                return false;
+            }
+        }
 
         reader->SetStreamSelection ((DWORD) MF_SOURCE_READER_ALL_STREAMS, FALSE);
         reader->SetStreamSelection (videoStreamIndex, TRUE);
 
         ComPtr<IMFMediaType> outputType;
-        MFCreateMediaType (outputType.GetAddressOf());
-        outputType->SetGUID (MF_MT_MAJOR_TYPE, MFMediaType_Video);
-        outputType->SetGUID (MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+
+        if (isCameraMode())
+        {
+            // Capture devices need a fully-specified output type (frame
+            // size/rate cloned from one of the device's own native types) -
+            // empirically, a bare major+subtype request with no frame size
+            // "succeeds" (SetCurrentMediaType returns S_OK) but the device
+            // then only ever delivers STREAMTICK markers, never a real
+            // sample, at least on the UVC webcam this was tested against
+            // at its 1920x1080 native resolution. Requesting a modest
+            // resolution native type instead fixed it.
+            if (! chooseCameraOutputType (reader.Get(), outputType))
+            {
+                logDiagnostic ("chooseCameraOutputType found no usable native media type");
+                return false;
+            }
+        }
+        else
+        {
+            MFCreateMediaType (outputType.GetAddressOf());
+            outputType->SetGUID (MF_MT_MAJOR_TYPE, MFMediaType_Video);
+            outputType->SetGUID (MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+        }
 
         hr = reader->SetCurrentMediaType (videoStreamIndex, nullptr, outputType.Get());
+        if (FAILED (hr))
+            logDiagnostic ("SetCurrentMediaType(RGB32) failed: " + hresultToString (hr) + (isCameraMode() ? " (camera)" : " (file)"));
+
         return SUCCEEDED (hr);
+    }
+
+    // Picks one of the capture device's own native media types - preferring
+    // the largest that's still <= 1280x720, falling back to the smallest
+    // available if the device has nothing that small - clones ALL of its
+    // attributes (frame size, frame rate, interlace mode, etc.) and only
+    // swaps MF_MT_SUBTYPE to RGB32. This is the standard robust pattern for
+    // capture devices; unlike file playback, an underspecified output type
+    // can silently negotiate to a resolution the device can't actually
+    // stream in real time.
+    static bool chooseCameraOutputType (IMFSourceReader* reader, ComPtr<IMFMediaType>& outputType)
+    {
+        ComPtr<IMFMediaType> chosenNative;
+        UINT64 chosenArea = 0;
+        constexpr UINT64 preferredMaxArea = 1280ull * 720ull;
+
+        for (DWORD i = 0; ; ++i)
+        {
+            ComPtr<IMFMediaType> nativeType;
+            auto hr = reader->GetNativeMediaType (videoStreamIndex, i, nativeType.GetAddressOf());
+
+            if (hr == MF_E_NO_MORE_TYPES || FAILED (hr))
+                break;
+
+            UINT32 w = 0, h = 0;
+            if (FAILED (MFGetAttributeSize (nativeType.Get(), MF_MT_FRAME_SIZE, &w, &h)) || w == 0 || h == 0)
+                continue;
+
+            GUID subtype {};
+            nativeType->GetGUID (MF_MT_SUBTYPE, &subtype);
+            logDiagnostic ("  native type " + juce::String ((int) i) + ": " + juce::String ((int) w) + "x" + juce::String ((int) h)
+                            + " subtype=" + subtypeToString (subtype));
+
+            UINT64 area = (UINT64) w * (UINT64) h;
+            bool withinPreferred = area <= preferredMaxArea;
+            bool chosenWithinPreferred = chosenArea != 0 && chosenArea <= preferredMaxArea;
+
+            bool takeIt = chosenNative == nullptr
+                        || (withinPreferred && ! chosenWithinPreferred)
+                        || (withinPreferred && chosenWithinPreferred && area > chosenArea)
+                        || (! withinPreferred && ! chosenWithinPreferred && area < chosenArea);
+
+            if (takeIt)
+            {
+                chosenNative = nativeType;
+                chosenArea = area;
+            }
+        }
+
+        if (chosenNative == nullptr)
+            return false;
+
+        ComPtr<IMFMediaType> newType;
+        if (FAILED (MFCreateMediaType (newType.GetAddressOf())))
+            return false;
+
+        chosenNative->CopyAllItems (newType.Get());
+        newType->SetGUID (MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+
+        outputType = newType;
+        return true;
+    }
+
+    // Enumerates Media Foundation video capture devices and activates the
+    // one at deviceIndex (0 = first, matching what most webcam-picker UIs
+    // call "default"). Same pattern used by numerous native MF capture
+    // samples: enumerate via MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP,
+    // ActivateObject() the chosen IMFActivate to get a real IMFMediaSource.
+    static bool openCameraMediaSource (int deviceIndex, ComPtr<IMFMediaSource>& outSource)
+    {
+        ComPtr<IMFAttributes> enumAttributes;
+        MFCreateAttributes (enumAttributes.GetAddressOf(), 1);
+        enumAttributes->SetGUID (MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+
+        IMFActivate** devices = nullptr;
+        UINT32 count = 0;
+
+        auto hr = MFEnumDeviceSources (enumAttributes.Get(), &devices, &count);
+        if (FAILED (hr))
+        {
+            logDiagnostic ("MFEnumDeviceSources failed: " + hresultToString (hr));
+            return false;
+        }
+
+        if (count == 0)
+        {
+            logDiagnostic ("MFEnumDeviceSources found 0 capture devices");
+            return false;
+        }
+
+        bool ok = false;
+
+        if (deviceIndex >= 0 && (UINT32) deviceIndex < count)
+        {
+            IMFMediaSource* source = nullptr;
+            auto activateHr = devices[deviceIndex]->ActivateObject (IID_PPV_ARGS (&source));
+
+            if (SUCCEEDED (activateHr))
+            {
+                outSource.Attach (source);
+                ok = true;
+            }
+            else
+            {
+                logDiagnostic ("ActivateObject failed for camera device " + juce::String (deviceIndex)
+                                + ": " + hresultToString (activateHr)
+                                + " (" + juce::String ((int) count) + " device(s) found - likely in use by another app, or blocked by Windows camera privacy settings)");
+            }
+        }
+        else
+        {
+            logDiagnostic ("camera device index " + juce::String (deviceIndex) + " out of range ("
+                            + juce::String ((int) count) + " found)");
+        }
+
+        for (UINT32 i = 0; i < count; ++i)
+            devices[i]->Release();
+
+        CoTaskMemFree (devices);
+        return ok;
     }
 
     static bool queryFrameSize (IMFSourceReader* reader, int& width, int& height)
@@ -211,6 +448,7 @@ private:
 
     VideoPlayer& owner;
     juce::File file;
+    int cameraDeviceIndex = -1;
 };
 
 VideoPlayer::VideoPlayer() = default;
@@ -224,7 +462,15 @@ void VideoPlayer::load (const juce::File& file)
 {
     close();
 
-    decodeThread = std::make_unique<DecodeThread> (*this, file);
+    decodeThread = std::make_unique<DecodeThread> (*this, file, -1);
+    decodeThread->startThread();
+}
+
+void VideoPlayer::openCamera (int deviceIndex)
+{
+    close();
+
+    decodeThread = std::make_unique<DecodeThread> (*this, juce::File(), deviceIndex);
     decodeThread->startThread();
 }
 

@@ -1,0 +1,12 @@
+{
+    "name": "Video Datamosh (drag a video onto the window)",
+    "effectChain": [
+        {
+            "shader": "Glitch/Datamosh.fs",
+            "params": { "freeze": 0.0, "motionSmear": 0.6, "dragAmount": 0.02 },
+            "audioMappings": {
+                "freeze": { "source": "beatphase", "scale": 0.8, "offset": 0.0 }
+            }
+        }
+    ]
+}

@@ -234,6 +234,12 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
         return true;
     }
 
+    if (textChar == 'c' || textChar == 'C')
+    {
+        videoPlayer.openCamera (0); // safe from the message thread, see VideoPlayer::openCamera
+        return true;
+    }
+
     return false;
 }
 
@@ -300,6 +306,18 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             setFullscreen (message[0].getInt32() != 0);
         else
             toggleFullscreen();
+        return;
+    }
+
+    if (address == "/camera/open")
+    {
+        int deviceIndex = 0;
+        if (message.size() > 0 && message[0].isFloat32())
+            deviceIndex = (int) message[0].getFloat32();
+        else if (message.size() > 0 && message[0].isInt32())
+            deviceIndex = message[0].getInt32();
+
+        videoPlayer.openCamera (deviceIndex);
         return;
     }
 

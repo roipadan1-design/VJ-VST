@@ -8,13 +8,14 @@
 // Phase 1: ISF shader hosting + preset switching. Listens for /audio/level,
 // /audio/bass, /audio/mid, /audio/high, /audio/beatphase, /preset/select,
 // /preset/next, /preset/previous, /display/select, /display/next,
-// /display/previous, /fullscreen, and /effect/toggle on UDP port 9000.
-// Press F for real OS fullscreen on whichever monitor the window is
-// currently on, [ and ] to move the window (and fullscreen state, if
-// active) to the previous/next monitor, Left/Right arrows to switch
-// presets locally, 1-9 to toggle effect-chain stages on/off live. Drag a
-// video file (MP4/etc) onto the window to load it as the ISF "inputImage"
-// source for effect-chain presets (e.g. the Glitch chain).
+// /display/previous, /fullscreen, /effect/toggle, and /camera/open on UDP
+// port 9000. Press F for real OS fullscreen on whichever monitor the
+// window is currently on, [ and ] to move the window (and fullscreen
+// state, if active) to the previous/next monitor, Left/Right arrows to
+// switch presets locally, 1-9 to toggle effect-chain stages on/off live,
+// C to open the default webcam. Drag a video file (MP4/etc) onto the
+// window to load it as the ISF "inputImage" source for effect-chain
+// presets (e.g. the Glitch chain) - a live camera feed works the same way.
 class MainComponent : public juce::OpenGLAppComponent,
                        public juce::FileDragAndDropTarget,
                        private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>

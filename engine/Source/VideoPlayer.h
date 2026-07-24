@@ -3,10 +3,11 @@
 #include <JuceHeader.h>
 
 // Decodes a video file (MP4/H.264 and anything else Windows Media Foundation
-// already ships codecs for) on a background thread, using Media Foundation's
-// synchronous Source Reader, and uploads decoded frames to a GL texture for
-// the render thread to sample as the ISF "inputImage" input. Loops forever -
-// this is a VJ source loop, not a general-purpose media player.
+// already ships codecs for) OR a live capture device (webcam) on a
+// background thread, using Media Foundation's synchronous Source Reader,
+// and uploads decoded frames to a GL texture for the render thread to
+// sample as the ISF "inputImage" input. File playback loops forever - this
+// is a VJ source, not a general-purpose media player.
 //
 // Deliberately native Media Foundation rather than a third-party decoder:
 // Windows already ships the codecs (H.264/HEVC/etc via MF Transforms), so
@@ -33,6 +34,13 @@ public:
     // again to switch files - any previous decode thread is stopped first.
     // Must be called from the message thread (drag-and-drop callback).
     void load (const juce::File& file);
+
+    // Starts decoding a live capture device (webcam) instead of a file -
+    // deviceIndex follows Media Foundation's video-capture-device
+    // enumeration order (0 = first/default camera). Same threading rules
+    // as load(). Logs and leaves the previous source (if any) stopped, with
+    // nothing loaded, if the device can't be opened.
+    void openCamera (int deviceIndex = 0);
 
     void close();
 
