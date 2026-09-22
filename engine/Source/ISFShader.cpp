@@ -182,7 +182,7 @@ juce::String ISFShader::buildFragmentShaderSource() const
     src << "uniform float TIME;\n";
     src << "uniform vec2 RENDERSIZE;\n";
     src << "uniform int PASSINDEX;\n";
-    src << "uniform float level;\nuniform float bass;\nuniform float mid;\nuniform float high;\nuniform float beatphase;\n";
+    src << "uniform float level;\nuniform float bass;\nuniform float mid;\nuniform float high;\nuniform float beatphase;\nuniform float onset;\n";
 
     for (auto& input : inputs)
     {
@@ -255,6 +255,7 @@ bool ISFShader::compile (juce::OpenGLContext& context)
     uniformMid.reset        (new juce::OpenGLShaderProgram::Uniform (*program, "mid"));
     uniformHigh.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "high"));
     uniformBeatPhase.reset  (new juce::OpenGLShaderProgram::Uniform (*program, "beatphase"));
+    uniformOnset.reset      (new juce::OpenGLShaderProgram::Uniform (*program, "onset"));
 
     inputUniforms.clear();
     for (auto& input : inputs)
@@ -349,7 +350,7 @@ void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, boo
 }
 
 void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
-                          float timeSeconds, float level, float bass, float mid, float high, float beatphase,
+                          float timeSeconds, float level, float bass, float mid, float high, float beatphase, float onset,
                           unsigned int externalImageTexture, unsigned int finalTargetFbo)
 {
     auto& pass = passes.getReference (passIndex);
@@ -388,6 +389,7 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
     if (uniformMid != nullptr)        uniformMid->set (mid);
     if (uniformHigh != nullptr)       uniformHigh->set (high);
     if (uniformBeatPhase != nullptr)  uniformBeatPhase->set (beatphase);
+    if (uniformOnset != nullptr)      uniformOnset->set (onset);
 
     int textureUnit = 0;
 
@@ -482,7 +484,7 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
 }
 
 void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth, int pixelHeight,
-                         float level, float bass, float mid, float high, float beatphase,
+                         float level, float bass, float mid, float high, float beatphase, float onset,
                          unsigned int externalImageTexture, unsigned int finalTargetFbo)
 {
     if (program == nullptr || passes.isEmpty())
@@ -491,7 +493,7 @@ void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth,
     ensureBlackPlaceholderTexture();
 
     for (int i = 0; i < passes.size(); ++i)
-        runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase,
+        runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase, onset,
                  externalImageTexture, finalTargetFbo);
 
     glBindFramebuffer (GL_FRAMEBUFFER, 0);
@@ -531,5 +533,6 @@ void ISFShader::releaseGLObjects()
     uniformMid.reset();
     uniformHigh.reset();
     uniformBeatPhase.reset();
+    uniformOnset.reset();
     program.reset();
 }

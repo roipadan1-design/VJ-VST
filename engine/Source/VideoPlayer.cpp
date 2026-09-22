@@ -1,4 +1,5 @@
 #include "VideoPlayer.h"
+#include "Diagnostics.h"
 
 using namespace juce::gl;
 
@@ -28,20 +29,6 @@ namespace
     }
 
     constexpr DWORD videoStreamIndex = (DWORD) MF_SOURCE_READER_FIRST_VIDEO_STREAM;
-
-    // DBG()/OutputDebugString only reaches an attached debugger, and this
-    // is a standalone .exe with none attached in normal use - camera-open
-    // failures in particular are worth writing somewhere a user (or a
-    // script checking after the fact) can actually read, since "device
-    // busy" / "permission denied" / "no such device" all fail the same way
-    // (silently, engine keeps running on the black placeholder) without this.
-    void logDiagnostic (const juce::String& message)
-    {
-        auto logFile = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
-                           .getSiblingFile ("VJEngine.log");
-        logFile.appendText (juce::Time::getCurrentTime().toString (true, true, true, true) + "  " + message + "\n");
-        DBG (message);
-    }
 
     juce::String hresultToString (HRESULT hr)
     {
@@ -106,7 +93,10 @@ public:
             return;
         }
 
-        logDiagnostic ("opened " + sourceDescription + " at " + juce::String (width) + "x" + juce::String (height) + ", starting decode loop");
+        const int fallbackStride = queryStride (reader.Get());
+
+        logDiagnostic ("opened " + sourceDescription + " at " + juce::String (width) + "x" + juce::String (height)
+                        + " (fallback stride " + juce::String (fallbackStride) + "), starting decode loop");
 
         std::vector<uint8_t> frameBuffer ((size_t) width * (size_t) height * 4);
         double playbackStartMs = juce::Time::getMillisecondCounterHiRes();
@@ -155,7 +145,7 @@ public:
                 logDiagnostic ("first sample received from " + sourceDescription);
             ++samplesReceived;
 
-            copySampleToFrameBuffer (sample.Get(), width, height, frameBuffer);
+            copySampleToFrameBuffer (sample.Get(), width, height, fallbackStride, frameBuffer);
             owner.pushFrame (frameBuffer.data(), width, height);
 
             // Pace playback to the source's own timestamps (100ns units) -
@@ -382,6 +372,27 @@ private:
         return true;
     }
 
+    // MF_MT_DEFAULT_STRIDE is the row pitch the video processor MFT actually
+    // produces for its RGB32 output - not necessarily width*4. Widths that
+    // aren't a multiple of the decoder's internal alignment (16 pixels is a
+    // common requirement) get padded, and assuming a tightly-packed stride
+    // in that case reads each row a few bytes into the next, which
+    // accumulates into a diagonal shear across the frame. Returns 0 if the
+    // attribute isn't present (some sources don't set it); callers should
+    // fall back to width*4 in that case.
+    static int queryStride (IMFSourceReader* reader)
+    {
+        ComPtr<IMFMediaType> currentType;
+        if (FAILED (reader->GetCurrentMediaType (videoStreamIndex, currentType.GetAddressOf())))
+            return 0;
+
+        UINT32 stride = 0;
+        if (FAILED (currentType->GetUINT32 (MF_MT_DEFAULT_STRIDE, &stride)))
+            return 0;
+
+        return (int) stride;
+    }
+
     static void seekToStart (IMFSourceReader* reader)
     {
         PROPVARIANT var;
@@ -399,7 +410,7 @@ private:
     // "should be bottom-up for GL" assumption one might reach for) produced
     // a vertically-flipped image, so row order is NOT reversed - Lock2D's
     // scanline0/pitch already lines up directly with what glTexImage2D wants.
-    static void copySampleToFrameBuffer (IMFSample* sample, int width, int height, std::vector<uint8_t>& frameBuffer)
+    static void copySampleToFrameBuffer (IMFSample* sample, int width, int height, int fallbackStride, std::vector<uint8_t>& frameBuffer)
     {
         ComPtr<IMFMediaBuffer> buffer;
         if (FAILED (sample->ConvertToContiguousBuffer (buffer.GetAddressOf())))
@@ -427,17 +438,21 @@ private:
             }
         }
 
-        // Fallback for buffers that don't support IMF2DBuffer: assume a
-        // tightly packed, top-down RGB32 layout (already contiguous, so a
-        // single memcpy would do, but keep the loop for symmetry/clarity).
+        // Fallback for buffers that don't support IMF2DBuffer: use the
+        // stride Media Foundation actually reported (MF_MT_DEFAULT_STRIDE),
+        // not width*4 - some sources pad each row to the decoder's internal
+        // alignment (e.g. a 1080px-wide frame padded to 1088), and copying
+        // with an assumed tightly-packed stride reads a few bytes into the
+        // next row each time, producing a diagonal shear across the frame.
         BYTE* data = nullptr;
         DWORD maxLen = 0, curLen = 0;
+        const size_t srcStride = fallbackStride > 0 ? (size_t) fallbackStride : rowBytes;
 
         if (SUCCEEDED (buffer->Lock (&data, &maxLen, &curLen)))
         {
             for (int row = 0; row < height; ++row)
             {
-                auto* src = data + (size_t) row * rowBytes;
+                auto* src = data + (size_t) row * srcStride;
                 auto* dst = frameBuffer.data() + (size_t) row * rowBytes;
                 std::memcpy (dst, src, rowBytes);
             }

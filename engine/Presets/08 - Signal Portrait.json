@@ -1,0 +1,33 @@
+{
+    "name": "Signal Portrait (load Media/revenant_portrait.mp4)",
+    "effectChain": [
+        {
+            "shader": "Glitch/EdgeEtch.fs",
+            "params": { "threshold": 0.18, "glow": 0.35, "darkness": 0.65 },
+            "audioMappings": {
+                "glow": { "source": "high", "scale": 0.45, "offset": 0.35 }
+            }
+        },
+        {
+            "shader": "Glitch/ChromaSmear.fs",
+            "params": { "amount": 0.005, "angle": 0.52 },
+            "audioMappings": {
+                "amount": { "source": "high", "scale": 0.014, "offset": 0.003 }
+            }
+        },
+        {
+            "shader": "Glitch/SignalDrop.fs",
+            "params": { "intensity": 0.1, "barCount": 10.0, "speed": 0.6 },
+            "audioMappings": {
+                "intensity": { "source": "bass", "scale": 0.5, "offset": 0.05 }
+            }
+        },
+        {
+            "shader": "Glitch/Datamosh.fs",
+            "params": { "freeze": 0.0, "motionSmear": 0.25, "dragAmount": 0.010 },
+            "audioMappings": {
+                "motionSmear": { "source": "onset", "scale": 0.65, "offset": 0.15 }
+            }
+        }
+    ]
+}

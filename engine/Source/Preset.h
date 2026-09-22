@@ -7,7 +7,7 @@
 // parameter whose useful range is 0..10.
 struct AudioMapping
 {
-    juce::String source; // "level", "bass", "mid", "high", "beatphase"
+    juce::String source; // "level", "bass", "mid", "high", "beatphase", "onset"
     float scale = 1.0f;
     float offset = 0.0f;
 };
@@ -47,4 +47,4 @@ struct Preset
 // Shared by PresetManager and EffectChain: maps an AudioMapping::source
 // name to its current value. Returns 0 for an unrecognised name.
 float resolveAudioMappingSource (const juce::String& source,
-                                  float level, float bass, float mid, float high, float beatphase);
+                                  float level, float bass, float mid, float high, float beatphase, float onset);

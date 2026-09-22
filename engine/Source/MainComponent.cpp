@@ -1,8 +1,10 @@
 #include "MainComponent.h"
+#include "Diagnostics.h"
 
 using namespace juce::gl;
 
-MainComponent::MainComponent()
+MainComponent::MainComponent (int oscPortIn)
+    : oscPort (oscPortIn)
 {
     setSize (1280, 720);
     // Deliberately NOT forcing a Core profile: defaultGLVersion gives the GPU's newest
@@ -34,7 +36,11 @@ void MainComponent::initialise()
     presetManager.scanPresets (engineDir.getChildFile ("Presets"), engineDir.getChildFile ("Shaders"));
     presetManager.selectPreset (0, openGLContext);
 
-    if (! spoutSender.initialise ("VJ Engine"))
+    // Distinct Spout sender name when running on a non-default port, so a
+    // second simultaneous instance doesn't collide with the first's sender.
+    auto spoutName = oscPort == 9000 ? juce::String ("VJ Engine") : ("VJ Engine (" + juce::String (oscPort) + ")");
+
+    if (! spoutSender.initialise (spoutName))
         DBG ("VJEngine: Spout sender unavailable - continuing without Spout output");
 
     // Figure out which physical monitor we actually started on, so [ and ]
@@ -55,6 +61,7 @@ void MainComponent::initialise()
     }
 
     startTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    fpsWindowStartSeconds = startTime;
 }
 
 void MainComponent::shutdown()
@@ -83,6 +90,22 @@ void MainComponent::render()
     if (requestedStageToggle >= 0)
         presetManager.toggleEffectStage (requestedStageToggle);
 
+    auto requestedTransitionDuration = pendingTransitionDurationMs.exchange (-1.0f);
+    if (requestedTransitionDuration >= 0.0f)
+        presetManager.setTransitionDuration (requestedTransitionDuration);
+
+    {
+        juce::Array<PendingEffectParam> paramsToApply;
+
+        {
+            const juce::ScopedLock lock (pendingEffectParamsLock);
+            paramsToApply.swapWith (pendingEffectParams);
+        }
+
+        for (auto& param : paramsToApply)
+            presetManager.setEffectParam (param.stageIndex, param.name, param.value);
+    }
+
     auto desktopScale = (float) openGLContext.getRenderingScale();
     juce::OpenGLHelpers::clear (juce::Colours::black);
 
@@ -92,17 +115,80 @@ void MainComponent::render()
     auto physicalWidth  = juce::roundToInt (desktopScale * (float) getWidth());
     auto physicalHeight = juce::roundToInt (desktopScale * (float) getHeight());
 
-    auto time = (float) (juce::Time::getMillisecondCounterHiRes() * 0.001 - startTime);
+    auto nowSeconds = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    auto time = (float) (nowSeconds - startTime);
+
+    ++fpsFrameCount;
+    auto fpsWindowElapsed = nowSeconds - fpsWindowStartSeconds;
+
+    if (fpsWindowElapsed >= fpsLogIntervalSeconds)
+    {
+        auto fps = fpsFrameCount / fpsWindowElapsed;
+        logDiagnostic ("FPS: " + juce::String (fps, 1) + " (preset '" + presetManager.getCurrentName() + "')");
+        fpsFrameCount = 0;
+        fpsWindowStartSeconds = nowSeconds;
+    }
+
+    auto elapsedSinceOnset = nowSeconds - lastOnsetTime.load();
+    auto onset = (float) juce::jlimit (0.0, 1.0, 1.0 - elapsedSinceOnset / onsetPulseDurationSeconds);
 
     videoPlayer.updateGLTexture();
 
     presetManager.render (openGLContext, time, physicalWidth, physicalHeight,
-                          level.load(), bass.load(), mid.load(), high.load(), beatPhase.load(),
+                          level.load(), bass.load(), mid.load(), high.load(), beatPhase.load(), onset,
                           videoPlayer.getTextureID());
 
     // presetManager.render() leaves the default framebuffer (0) holding this
     // frame's final image - share it as-is, no extra copy/blit needed.
     spoutSender.sendFrame (0, physicalWidth, physicalHeight);
+
+    if (pendingSnapshot.exchange (false))
+        captureSnapshot (physicalWidth, physicalHeight);
+}
+
+void MainComponent::captureSnapshot (int pixelWidth, int pixelHeight)
+{
+    // Reads back whatever presetManager.render() just left in the default
+    // framebuffer - same image spoutSender just sent, just written to disk
+    // instead of shared over Spout. glReadPixels gives rows bottom-to-top;
+    // juce::Image is top-to-bottom, so each row is copied in reverse order.
+    juce::Image image (juce::Image::ARGB, pixelWidth, pixelHeight, false);
+    juce::HeapBlock<unsigned char> pixels ((size_t) pixelWidth * (size_t) pixelHeight * 4);
+    glReadPixels (0, 0, pixelWidth, pixelHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels.getData());
+
+    juce::Image::BitmapData bitmap (image, juce::Image::BitmapData::writeOnly);
+    for (int y = 0; y < pixelHeight; ++y)
+    {
+        auto* srcRow = pixels.getData() + (size_t) (pixelHeight - 1 - y) * (size_t) pixelWidth * 4;
+        auto* dstRow = bitmap.getLinePointer (y);
+
+        for (int x = 0; x < pixelWidth; ++x)
+        {
+            auto* src = srcRow + x * 4;
+            auto* dst = dstRow + x * 4;
+            // src is RGBA; JUCE's native ARGB pixel order on little-endian is BGRA in memory.
+            dst[0] = src[2];
+            dst[1] = src[1];
+            dst[2] = src[0];
+            dst[3] = src[3];
+        }
+    }
+
+    auto outFile = getEngineDirectory().getChildFile ("VJEngine_snapshot.png");
+    juce::PNGImageFormat pngFormat;
+    juce::FileOutputStream stream (outFile);
+
+    if (stream.openedOk())
+    {
+        stream.setPosition (0);
+        stream.truncate();
+        pngFormat.writeImageToStream (image, stream);
+        logDiagnostic ("Snapshot written to " + outFile.getFullPathName());
+    }
+    else
+    {
+        logDiagnostic ("Snapshot failed: could not open " + outFile.getFullPathName() + " for writing");
+    }
 }
 
 void MainComponent::paint (juce::Graphics&) {}
@@ -277,6 +363,63 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         return;
     }
 
+    if (address == "/effect/param")
+    {
+        if (message.size() >= 3 && message[1].isString())
+        {
+            auto& stageArg = message[0];
+            auto& valueArg = message[2];
+
+            if ((stageArg.isFloat32() || stageArg.isInt32())
+                && (valueArg.isFloat32() || valueArg.isInt32()))
+            {
+                auto stageIndex = stageArg.isFloat32() ? (int) stageArg.getFloat32() : stageArg.getInt32();
+                auto value = valueArg.isFloat32() ? valueArg.getFloat32() : (float) valueArg.getInt32();
+
+                logDiagnostic ("effect/param received: stage=" + juce::String (stageIndex)
+                               + " param=" + message[1].getString() + " value=" + juce::String (value));
+
+                const juce::ScopedLock lock (pendingEffectParamsLock);
+                pendingEffectParams.add ({ stageIndex, message[1].getString(), value });
+            }
+        }
+        return;
+    }
+
+    if (address == "/debug/snapshot")
+    {
+        pendingSnapshot = true;
+        return;
+    }
+
+    if (address == "/video/load")
+    {
+        if (message.size() > 0 && message[0].isString())
+        {
+            juce::File file (message[0].getString());
+            if (isSupportedVideoFile (file) && file.existsAsFile())
+                loadVideoFile (file);
+            else
+                logDiagnostic ("video/load: not a valid video file - " + message[0].getString());
+        }
+        return;
+    }
+
+    if (address == "/preset/transitionduration")
+    {
+        float ms = 0.0f;
+        if (message.size() > 0 && message[0].isFloat32())
+            ms = message[0].getFloat32();
+        else if (message.size() > 0 && message[0].isInt32())
+            ms = (float) message[0].getInt32();
+        else
+            return;
+
+        logDiagnostic ("preset/transitionduration received: " + juce::String (ms) + "ms");
+        pendingTransitionDurationMs = ms;
+        return;
+    }
+
     if (address == "/display/next")
     {
         moveToDisplay (currentDisplayIndex + 1);
@@ -306,6 +449,12 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             setFullscreen (message[0].getInt32() != 0);
         else
             toggleFullscreen();
+        return;
+    }
+
+    if (address == "/audio/onset")
+    {
+        lastOnsetTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
         return;
     }
 

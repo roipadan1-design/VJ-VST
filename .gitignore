@@ -5,3 +5,8 @@ engine/build/
 *.exp
 *.lib
 !engine/ThirdParty/**/*.lib
+engine/soak_test_output.log
+
+# runtime logs
+engine/engine_stdout.log
+engine/*.log

@@ -39,13 +39,26 @@ public:
     bool isStageBypassed (int index) const;
     void toggleStageBypassed (int index);
 
+    // Live per-parameter control (OSC /effect/param, or eventually M4L knobs) -
+    // same effect as a preset's "params" override, just settable at any time
+    // rather than only at load. No-op if index is out of range. Note: if the
+    // current preset's JSON also declares an audioMappings entry for this
+    // parameter name, that mapping recomputes and overwrites the value every
+    // frame in render() - this only "sticks" for parameters left unmapped.
+    void setStageParam (int index, const juce::String& name, const juce::var& value);
+
     // sourceImageTexture feeds stage 0's inputImage (typically a VideoPlayer
     // frame). If every stage is bypassed, renders sourceImageTexture
     // straight through via a trivial passthrough draw, so toggling all
     // stages off still shows the video instead of a black screen.
+    //
+    // finalTargetFbo selects where the chain's visible output lands (default
+    // 0 = the default framebuffer/screen). PresetManager redirects this to an
+    // offscreen FBO while crossfading between two presets.
     void render (juce::OpenGLContext& context, unsigned int sourceImageTexture,
                  float timeSeconds, int pixelWidth, int pixelHeight,
-                 float level, float bass, float mid, float high, float beatphase);
+                 float level, float bass, float mid, float high, float beatphase, float onset,
+                 unsigned int finalTargetFbo = 0);
 
     void releaseGLObjects();
 
@@ -57,7 +70,7 @@ private:
     };
 
     void ensureTarget (PingPongTarget& t, int width, int height);
-    void drawPassthrough (juce::OpenGLContext& context, unsigned int sourceTexture, int pixelWidth, int pixelHeight);
+    void drawPassthrough (juce::OpenGLContext& context, unsigned int sourceTexture, int pixelWidth, int pixelHeight, unsigned int finalTargetFbo);
     void ensurePassthroughResources (juce::OpenGLContext& context);
 
     juce::OwnedArray<ISFShader> stages;

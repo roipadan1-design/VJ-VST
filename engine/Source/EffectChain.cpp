@@ -1,4 +1,5 @@
 #include "EffectChain.h"
+#include "Diagnostics.h"
 
 using namespace juce::gl;
 
@@ -22,7 +23,7 @@ bool EffectChain::load (const juce::Array<EffectStageConfig>& stageConfigs,
 
         if (! shader->loadFromFile (shaderFile))
         {
-            DBG ("EffectChain: could not load stage shader '" << config.shaderFile << "': " << shader->getLastError());
+            logDiagnostic ("EffectChain: could not load stage shader '" + config.shaderFile + "': " + shader->getLastError());
             stages.clear();
             configs.clear();
             stageBypassed.clear();
@@ -31,7 +32,7 @@ bool EffectChain::load (const juce::Array<EffectStageConfig>& stageConfigs,
 
         if (! shader->compile (context))
         {
-            DBG ("EffectChain: could not compile stage shader '" << config.shaderFile << "': " << shader->getLastError());
+            logDiagnostic ("EffectChain: could not compile stage shader '" + config.shaderFile + "': " + shader->getLastError());
             stages.clear();
             configs.clear();
             stageBypassed.clear();
@@ -72,6 +73,12 @@ void EffectChain::toggleStageBypassed (int index)
 {
     if (juce::isPositiveAndBelow (index, stageBypassed.size()))
         stageBypassed.set (index, ! stageBypassed[index]);
+}
+
+void EffectChain::setStageParam (int index, const juce::String& name, const juce::var& value)
+{
+    if (juce::isPositiveAndBelow (index, stages.size()))
+        stages[index]->setValue (name, value);
 }
 
 void EffectChain::ensureTarget (PingPongTarget& t, int width, int height)
@@ -132,7 +139,7 @@ void EffectChain::ensurePassthroughResources (juce::OpenGLContext& context)
 
     if (! newProgram->addVertexShader (vertexSrc) || ! newProgram->addFragmentShader (fragmentSrc) || ! newProgram->link())
     {
-        DBG ("EffectChain: passthrough shader failed to build: " << newProgram->getLastError());
+        logDiagnostic ("EffectChain: passthrough shader failed to build: " + newProgram->getLastError());
         return;
     }
 
@@ -148,14 +155,14 @@ void EffectChain::ensurePassthroughResources (juce::OpenGLContext& context)
     }
 }
 
-void EffectChain::drawPassthrough (juce::OpenGLContext& context, unsigned int sourceTexture, int pixelWidth, int pixelHeight)
+void EffectChain::drawPassthrough (juce::OpenGLContext& context, unsigned int sourceTexture, int pixelWidth, int pixelHeight, unsigned int finalTargetFbo)
 {
     ensurePassthroughResources (context);
 
     if (passthroughProgram == nullptr)
         return;
 
-    glBindFramebuffer (GL_FRAMEBUFFER, 0);
+    glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
     glViewport (0, 0, pixelWidth, pixelHeight);
 
     passthroughProgram->use();
@@ -181,7 +188,8 @@ void EffectChain::drawPassthrough (juce::OpenGLContext& context, unsigned int so
 
 void EffectChain::render (juce::OpenGLContext& context, unsigned int sourceImageTexture,
                            float timeSeconds, int pixelWidth, int pixelHeight,
-                           float level, float bass, float mid, float high, float beatphase)
+                           float level, float bass, float mid, float high, float beatphase, float onset,
+                           unsigned int finalTargetFbo)
 {
     juce::Array<int> activeIndices;
     for (int i = 0; i < stages.size(); ++i)
@@ -190,7 +198,7 @@ void EffectChain::render (juce::OpenGLContext& context, unsigned int sourceImage
 
     if (activeIndices.isEmpty())
     {
-        drawPassthrough (context, sourceImageTexture, pixelWidth, pixelHeight);
+        drawPassthrough (context, sourceImageTexture, pixelWidth, pixelHeight, finalTargetFbo);
         return;
     }
 
@@ -206,21 +214,21 @@ void EffectChain::render (juce::OpenGLContext& context, unsigned int sourceImage
 
         for (auto& mappingEntry : config.audioMappings)
         {
-            auto raw = resolveAudioMappingSource (mappingEntry.second.source, level, bass, mid, high, beatphase);
+            auto raw = resolveAudioMappingSource (mappingEntry.second.source, level, bass, mid, high, beatphase, onset);
             shader->setValue (mappingEntry.first, raw * mappingEntry.second.scale + mappingEntry.second.offset);
         }
 
         if (isLastActive)
         {
             shader->render (context, timeSeconds, pixelWidth, pixelHeight,
-                            level, bass, mid, high, beatphase, currentInput, 0);
+                            level, bass, mid, high, beatphase, onset, currentInput, finalTargetFbo);
         }
         else
         {
             auto& target = targets[pingIndex];
             ensureTarget (target, pixelWidth, pixelHeight);
             shader->render (context, timeSeconds, pixelWidth, pixelHeight,
-                            level, bass, mid, high, beatphase, currentInput, target.fbo);
+                            level, bass, mid, high, beatphase, onset, currentInput, target.fbo);
             currentInput = target.texture;
             pingIndex = 1 - pingIndex;
         }

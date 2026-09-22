@@ -12,12 +12,30 @@ public:
 
     void initialise (const juce::String& commandLine) override
     {
-        mainWindow.reset (new MainWindow (getApplicationName()));
-
-        // Optional: "VJ Engine.exe <video file>" preloads a video without
-        // needing a GUI drag - handy for scripted testing/automation as well
-        // as everyday use.
         auto args = juce::StringArray::fromTokens (commandLine, true);
+
+        // Optional: "--osc-port <N>" runs this instance on a different OSC
+        // port than the 9000 default, so a second instance can run
+        // alongside the first instead of both silently binding the same
+        // port (see MainComponent's constructor comment).
+        int oscPort = 9000;
+
+        for (int i = 0; i < args.size(); ++i)
+        {
+            if (args[i] == "--osc-port" && i + 1 < args.size())
+            {
+                oscPort = args[i + 1].getIntValue();
+                args.remove (i + 1);
+                args.remove (i);
+                break;
+            }
+        }
+
+        mainWindow.reset (new MainWindow (getApplicationName(), oscPort));
+
+        // Optional: "VJ Engine.exe [--osc-port N] <video file>" preloads a
+        // video without needing a GUI drag - handy for scripted
+        // testing/automation as well as everyday use.
         if (! args.isEmpty())
         {
             juce::File videoFile (args[0].unquoted());
@@ -42,13 +60,13 @@ public:
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        explicit MainWindow (juce::String name)
+        MainWindow (juce::String name, int oscPort)
             : DocumentWindow (name,
                                juce::Colours::black,
                                DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar (true);
-            setContentOwned (new MainComponent(), true);
+            setContentOwned (new MainComponent (oscPort), true);
             setResizable (true, true);
             centreWithSize (1280, 720);
             setVisible (true);

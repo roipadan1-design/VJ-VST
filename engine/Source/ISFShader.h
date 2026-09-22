@@ -7,7 +7,7 @@
 // Supports: INPUTS (float/bool/long/point2D/color/image), multi-pass PASSES
 // with named TARGET buffers and PERSISTENT (ping-pong feedback) buffers,
 // PASSINDEX, and our own audio-reactive uniforms (level/bass/mid/high/
-// beatphase) alongside the ISF-standard ones (TIME, RENDERSIZE,
+// beatphase/onset) alongside the ISF-standard ones (TIME, RENDERSIZE,
 // isf_FragNormCoord).
 //
 // NOT supported yet (real-world ISF effects sometimes need these):
@@ -61,7 +61,7 @@ public:
     // own ping-pong buffer instead of the screen.
     void render (juce::OpenGLContext& context,
                  float timeSeconds, int pixelWidth, int pixelHeight,
-                 float level, float bass, float mid, float high, float beatphase,
+                 float level, float bass, float mid, float high, float beatphase, float onset,
                  unsigned int externalImageTexture = 0, unsigned int finalTargetFbo = 0);
 
     void releaseGLObjects();
@@ -91,7 +91,7 @@ private:
     void ensureRenderTarget (RenderTarget& rt, int width, int height, bool persistent);
     void ensureBlackPlaceholderTexture();
     void runPass (int passIndex, int mainWidth, int mainHeight,
-                  float timeSeconds, float level, float bass, float mid, float high, float beatphase,
+                  float timeSeconds, float level, float bass, float mid, float high, float beatphase, float onset,
                   unsigned int externalImageTexture, unsigned int finalTargetFbo);
 
     juce::String rawBody;      // GLSL source after the JSON header comment
@@ -103,7 +103,7 @@ private:
 
     std::unique_ptr<juce::OpenGLShaderProgram> program;
     std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformTime, uniformRenderSize, uniformPassIndex;
-    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformLevel, uniformBass, uniformMid, uniformHigh, uniformBeatPhase;
+    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformLevel, uniformBass, uniformMid, uniformHigh, uniformBeatPhase, uniformOnset;
     juce::OwnedArray<juce::OpenGLShaderProgram::Uniform> inputUniforms;  // parallel to `inputs`
     juce::OwnedArray<juce::OpenGLShaderProgram::Uniform> targetUniforms; // one per unique TARGET name referenced
     juce::StringArray targetUniformNames;                                // parallel to targetUniforms

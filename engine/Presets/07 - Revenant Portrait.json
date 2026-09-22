@@ -1,0 +1,26 @@
+{
+    "name": "Revenant Portrait (load Media/revenant_portrait.mp4)",
+    "effectChain": [
+        {
+            "shader": "Glitch/RGBShift.fs",
+            "params": { "amount": 0.003 },
+            "audioMappings": {
+                "amount": { "source": "high", "scale": 0.02, "offset": 0.002 }
+            }
+        },
+        {
+            "shader": "Glitch/ScanlineJitter.fs",
+            "params": { "jitterAmount": 0.004, "lineDensity": 220 },
+            "audioMappings": {
+                "jitterAmount": { "source": "onset", "scale": 0.12, "offset": 0.004 }
+            }
+        },
+        {
+            "shader": "Glitch/BlockGlitch.fs",
+            "params": { "intensity": 0.0, "blockCount": 24 },
+            "audioMappings": {
+                "intensity": { "source": "bass", "scale": 0.4, "offset": 0.0 }
+            }
+        }
+    ]
+}

@@ -94,12 +94,13 @@ Preset Preset::loadFromFile (const juce::File& jsonFile, bool& ok, juce::String&
 }
 
 float resolveAudioMappingSource (const juce::String& source,
-                                  float level, float bass, float mid, float high, float beatphase)
+                                  float level, float bass, float mid, float high, float beatphase, float onset)
 {
     if (source == "level")     return level;
     if (source == "bass")      return bass;
     if (source == "mid")       return mid;
     if (source == "high")      return high;
     if (source == "beatphase") return beatphase;
+    if (source == "onset")     return onset;
     return 0.0f;
 }

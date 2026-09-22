@@ -1,0 +1,19 @@
+{
+    "name": "Kaleido Mosaic (drag a video onto the window)",
+    "effectChain": [
+        {
+            "shader": "Glitch/Pixelate.fs",
+            "params": { "blockSize": 6 },
+            "audioMappings": {
+                "blockSize": { "source": "bass", "scale": 40.0, "offset": 4.0 }
+            }
+        },
+        {
+            "shader": "Glitch/Kaleidoscope.fs",
+            "params": { "segments": 8, "twist": 0.0 },
+            "audioMappings": {
+                "twist": { "source": "beatphase", "scale": 6.28318, "offset": -3.14159 }
+            }
+        }
+    ]
+}
