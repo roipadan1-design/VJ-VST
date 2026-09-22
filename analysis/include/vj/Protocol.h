@@ -12,7 +12,7 @@
 // well under 1200 bytes. Continuous features are latest-wins snapshots;
 // events carry an ID and an age so the engine can de-duplicate and expire them.
 //
-//   /v2/hello    i sourceId  s role  s name  i protocolVersion
+//   /v2/hello    i sourceId  s role  s name  i protocolVersion  [i replyPort]
 //   /v2/frame    i sourceId  s role  i seq  i flags
 //                f levelRel f levelAbs f levelDb
 //                f bassRel f midRel f highRel  f bassAbs f midAbs f highAbs
@@ -27,6 +27,11 @@
 //   /v2/preset     i index         /v2/preset/next    /v2/preset/previous
 //   /v2/blackout   i on(0/1)       /v2/trigger        (manual "user" hit)
 //   /v2/transition f milliseconds
+//
+// Status (engine -> every client that sent a replyPort in /v2/hello, 5 Hz):
+//   /v2/status   i presetIndex  s presetName  i numPresets  i blackout  f fps
+//                f bpm  i followingHost  i demo  f renderScale
+//   /v2/presets  s name x numPresets (every ~2 s)
 namespace vj::protocol
 {
 
@@ -90,7 +95,7 @@ private:
     bool overflow = false;
 };
 
-std::string_view encodeHello (OscWriter&, int32_t sourceId, int role, std::string_view name);
+std::string_view encodeHello (OscWriter&, int32_t sourceId, int role, std::string_view name, int replyPort = 0);
 std::string_view encodeFrame (OscWriter&, int32_t sourceId, int role, int32_t seq,
                               const FeatureFrame&, const Transport&);
 std::string_view encodeSpectrum (OscWriter&, int32_t sourceId, int32_t seq, const FeatureFrame&);

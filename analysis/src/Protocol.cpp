@@ -79,13 +79,15 @@ std::string_view onsetTypeName (OnsetRegion r) noexcept
     return "bassTransient";
 }
 
-std::string_view encodeHello (OscWriter& w, int32_t sourceId, int role, std::string_view name)
+std::string_view encodeHello (OscWriter& w, int32_t sourceId, int role, std::string_view name, int replyPort)
 {
     w.begin ("/v2/hello");
     w.addInt (sourceId);
     w.addString (roleNames[clampRole (role)]);
     w.addString (name);
     w.addInt (version);
+    if (replyPort > 0)
+        w.addInt (replyPort);
     return w.finish();
 }
 

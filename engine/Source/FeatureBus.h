@@ -35,6 +35,10 @@ public:
     void setDemoEnabled (bool shouldBeEnabled) noexcept { demoEnabled = shouldBeEnabled; }
     bool isDemoEnabled() const noexcept { return demoEnabled; }
 
+    // Local UDP ports that asked for engine status (5th /v2/hello argument),
+    // seen within the last 3 s.
+    juce::Array<int> getReplyPorts (double nowSeconds) const;
+
     // For the status log: "2 sources: mix (analyze_wav), kick (VJ Analyzer)".
     juce::String describeSources (double nowSeconds) const;
 
@@ -80,6 +84,7 @@ private:
 
     mutable juce::CriticalSection lock;
     std::map<int, Source> sources;
+    std::map<int, double> replyPorts; // port -> last hello time
     juce::Array<PendingEvent> pending;
     double lastImpactTime = -1000.0;
 

@@ -24,6 +24,7 @@
 // file onto the window to use it as the video input.
 class MainComponent : public juce::OpenGLAppComponent,
                        public juce::FileDragAndDropTarget,
+                       private juce::Timer,
                        private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
 {
 public:
@@ -54,6 +55,23 @@ public:
 
 private:
     void oscMessageReceived (const juce::OSCMessage& message) override;
+
+    // Status back-channel: every 200 ms tell each subscribed client (plugin
+    // UIs) what is on screen - /v2/status and, when it changes, /v2/presets.
+    void timerCallback() override;
+    juce::OSCSender statusSender;
+    std::atomic<float> measuredFps { 0.0f };
+    std::atomic<float> clockBpm { 120.0f };
+    std::atomic<bool> clockFollowing { false };
+    int statusTick = 0;
+
+    // Adaptive quality (Q key cycles Auto / 100 / 75 / 50 %, OSC /v2/quality <0=auto|scale>).
+    void updateAdaptiveQuality (double now);
+    std::atomic<float> qualitySetting { 0.0f }; // 0 = auto
+    float autoScale = 1.0f;
+    int qualityFrames = 0, stableSeconds = 0;
+    double qualityWindowStart = 0.0, qualityHoldUntil = 0.0;
+    int lastSwitchCount = 0;
     juce::File getEngineDirectory() const;
 
     void moveToDisplay (int displayIndex);

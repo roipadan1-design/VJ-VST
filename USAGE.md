@@ -1,131 +1,136 @@
-# VJ Engine - Usage
+# VJ VST - Usage (v2)
 
-Quick reference for running a session. Written from the actual code/patch,
-not aspirational - if something here stops matching reality, the code is
-the source of truth.
+Technical reference, written from the code. Hebrew quick start:
+[docs/QUICKSTART-HE.md](docs/QUICKSTART-HE.md). Target: Windows 11, Ableton Live 10.1.43,
+Max 8 (only for the legacy M4L devices).
 
-## Starting a session
+## The pieces
 
-Double-click **`Start VJ Session.bat`** (repo root). It launches `VJ Engine.exe`
-(picks up a Release build if one exists, otherwise Debug) and Ableton Live.
-Ableton opens with no project loaded - open your own Live set and make sure
-it contains the **VJ Audio Analyzer** M4L device (`m4l-device/VJ Audio Analyzer.amxd`)
-on an audio track, then press play.
-
-If you'd rather start things by hand: run `engine/build/VJEngine_artefacts/Debug/VJ Engine.exe`,
-then open Live separately. The engine binds UDP port 9000 on startup by
-default - **don't run two instances on the same port.** Windows will happily
-let a second `VJ Engine.exe` start and *also* bind UDP 9000 without any error
-on either side - OSC messages then go to whichever instance the OS hands
-them to, unpredictably, while the *other* (possibly the one you're actually
-looking at) just sits there looking unresponsive. If preset/effect changes
-stop showing up, check Task Manager for more than one `VJ Engine.exe` first.
-
-**Running more than one instance on purpose** (e.g. driving two different
-outputs/monitors with independently-controlled content): pass `--osc-port <N>`
-to give the second instance its own port, e.g.
-
-```bash
-"VJ Engine.exe" --osc-port 9001
+```
+Ableton Live 10                                   VJ Engine (separate process)
+  VJ Analyzer VST3 (one per track you want)  ---OSC v2 (UDP 9000)-->  FeatureBus -> Clock -> Modulation
+    audio analysis (AnalysisCore)                                     -> preset stages (ISF) -> Finish (bloom, tone map)
+    played MIDI notes, host transport                                 -> transition / blackout -> window + Spout
+    8 macros, preset, blackout, HIT     <--/v2/status, /v2/presets--  (current preset, fps, bpm, quality)
+  legacy M4L devices (still work: /audio/*, /preset/*, /effect/*)
 ```
 
-Each instance also gets its own Spout sender name (`VJ Engine (9001)` instead
-of the default `VJ Engine`) so they don't collide there either. You'd then
-need a second M4L device (or a second `udpsend`/OSC source) pointed at that
-port to control it independently of the first.
+| Folder | What |
+|---|---|
+| `analysis/` | AnalysisCore (C++17, no deps): FFT, adaptive normaliser, onsets, descriptors, OSC v2 encoder. `analysis_tests`, `analyze_wav`. |
+| `engine/` | VJ Engine (JUCE app, OpenGL): presets, modulation, render graph, output. |
+| `plugin/` | VJ Analyzer VST3 + `plugin_harness` (runs the plug-in with a synthetic groove, no DAW). |
+| `m4l-device/` | Legacy Max for Live devices (v1 protocol, unchanged). |
+| `visual_instrument_research/` | Research package (report, engineering spec, preset schema). |
+| `docs/` | Reference analyses and guides. |
 
-## Loading the M4L device
+## Build / install
 
-Drag `m4l-device/VJ Audio Analyzer.amxd` onto an audio track in Live (a track
-that's actually receiving/playing audio, so the analyzer has a signal to
-read). It sends OSC to `127.0.0.1:9000`, which is where the engine listens.
-The device's front panel (Presentation view) has: Level/Bass/Mid/High meters,
-a Beat indicator, a Freeze toggle (pauses analysis without unloading), and
-Preset Select/Next/Prev controls - "Preset Select" is a real Live device
-parameter (`live.numbox`), so it's automatable and savable in Live's own
-automation lanes, not just a manual control.
+Double-click **`Build and Install.bat`**: builds AnalysisCore (and runs its 26 tests), the engine and the
+plug-in in Release, and copies `VJ Analyzer.vst3` to `C:\Program Files\Common Files\VST3`.
+In Live: *Preferences > Plug-ins > Use VST3 Plug-in System Folders: On*, then *Rescan*.
 
-A second device, `m4l-device/VJ Effect Controls.amxd`, gives 4 generic knobs
-for live effect-parameter control (see `/effect/param` below) - drag it onto
-any track alongside (or instead of) the analyzer. Each knob row has: a Stage
-number box (which `effectChain` stage of the *current* preset to target, 0-based),
-a Param name field (the ISF input name - check the preset's shader header for
-valid names, e.g. `blockCount`, `jitterAmount`), Min/Max number boxes (the
-real-world range the knob's 0-1 travel maps to), and the knob itself.
-**Not yet verified working** - see the in-patch comment for why (Max's trial
-state on this machine has, as of the last check, prevented newly-added patch
-objects from actually executing, even though they load and display correctly).
+**`Start VJ Session.bat`** launches the engine (Release build preferred) and Live.
 
-## Keyboard shortcuts (engine window)
+## VJ Analyzer (VST3)
+
+Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Audio passes through untouched.
+
+- **Role** (MIX / KICK / SNARE / HAT / BASS / TEXTURE). Put one on the master (or a drum bus) as **MIX**. For
+  tighter hits add more instances on the kick / snare / hat tracks with those roles: the engine then uses them
+  instead of guessing drums from the full mix. With no role sources, the mix's bass/mid/high transients stand in.
+- **MIDI**: route a MIDI track's output to the analyzer's track (*MIDI To*). Played notes arrive as zero-guess
+  events; on a KICK-role analyzer a note *is* a kick (and suppresses audio-detected kicks for 2 s).
+- **Macros 1-8** (Intensity, Motion, Color, Space, 5-8): real host parameters - automate them, or MIDI-map with
+  Live's MIDI Map mode (if a parameter doesn't show up for mapping, click *Configure* on the device and touch it).
+  Only enable **Send macros** on one analyzer (normally the MIX one).
+- **Preset**: 0 = leave the engine's choice; the list on the right selects directly and records the choice in
+  the parameter, so the Live set recalls it.
+- **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black.
+- **Hit Sens** (0.25-4) scales onset thresholds; **Trim** adjusts analysis input only; **Adaptive / Locked**
+  selects the normaliser mode.
+- Header pill: engine connection, engine fps, tempo (host / free), internal render scale.
+
+## VJ Engine
 
 | Key | Action |
 |---|---|
-| `F` / `F11` | Toggle real OS fullscreen on the current monitor |
-| `[` / `]` | Move the window (and fullscreen state, if active) to the previous/next monitor |
-| `Left` / `Right` | Previous / next preset |
-| `1`-`9` | Toggle effect-chain stage N on/off (only affects `effectChain` presets; no-op otherwise) |
-| `C` | Open the default webcam as the video input |
-| Drag a video file onto the window | Load it as the `inputImage` source for `effectChain` presets |
+| `F` / `F11` | Fullscreen on the current monitor |
+| `[` / `]` | Move to previous / next monitor |
+| `Left` / `Right` | Previous / next preset (schema-2 presets may wait for the next bar) |
+| `Space` | Manual hit |
+| `B` | Blackout toggle |
+| `D` | Demo groove on/off (drives visuals when no analysis source is live) |
+| `Q` | Quality: Auto / 100% / 75% / 50% render scale |
+| `1`-`9` | Toggle effect stages |
+| `C` | Webcam as video input; drop a video file onto the window for video presets |
 
-## OSC contract (UDP, port 9000, 127.0.0.1)
+Command line: `"VJ Engine.exe" [--osc-port N] [--demo] [video file]`.
 
-| Address | Args | Effect |
+**Adaptive quality**: the engine renders internally at a fraction of the output resolution and upscales,
+lowering the scale when it falls under 50 fps and climbing back after 6 stable seconds (logged to
+`VJEngine.log`). Measured on this machine's Intel Iris Xe: Liquid Chrome holds ~57 fps at 84 %.
+
+`VJEngine.log` (next to the exe) records preset loads/rejections, shader errors, fps with the live sources and
+clock, and quality changes.
+
+## OSC
+
+Engine listens on UDP 9000 (loopback). All of the following are accepted:
+
+| Address | Args | |
 |---|---|---|
-| `/audio/level` | float 0-1 | Overall level |
-| `/audio/bass` | float 0-1 | Bass band |
-| `/audio/mid` | float 0-1 | Mid band |
-| `/audio/high` | float 0-1 | High band |
-| `/audio/beatphase` | float 0-1 | Position within the current beat (from Live's song time) |
-| `/audio/onset` | none (bang) | Rising-edge bass transient (bass crossing above 0.3). Drives a decaying `onset` pulse (peaks at 1.0, linear decay to 0.0 over 150ms) available to every ISF shader/preset exactly like the signals above - e.g. the "Video Glitch Chain" preset's `ScanlineJitter` stage spikes its jitter on each onset. |
-| `/preset/select` | float/int index | Jump to preset N (0-based, wraps) |
-| `/preset/next` / `/preset/previous` | none | Step through presets |
-| `/preset/transitionduration` | float/int milliseconds | Set the crossfade length used by future preset switches (default 600ms; 0 = hard cut). An in-progress crossfade keeps whatever duration it started with. |
-| `/effect/toggle` | float/int stage index | Toggle an effect-chain stage on/off |
-| `/effect/param` | int stageIndex, string paramName, float value | Live-set an ISF input on a preset (a specific `effectChain` stage, or the lone shader of a single-shader preset, which ignores stageIndex). If the target preset's JSON also has an `audioMappings` entry for that param name, the audio-reactive calc overwrites this value again on the very next frame - only unmapped params stay "set". |
-| `/display/select` | float/int index | Move the window to monitor N |
-| `/display/next` / `/display/previous` | none | Move to the previous/next monitor |
-| `/fullscreen` | float/int (0/1) or none | Set, or (with no arg) toggle, fullscreen |
-| `/camera/open` | float/int device index (default 0) | Open a webcam as video input |
-| `/debug/snapshot` | none | Write the current frame to `VJEngine_snapshot.png` next to the .exe, overwriting any previous one. Lets a preset/effect be checked without a live screenshot - e.g. from a script, or by an assistant with no screen access. |
+| `/v2/hello` | i sourceId, s role, s name, i version, [i replyPort] | analysis source announcement; replyPort subscribes to status |
+| `/v2/frame` | see `analysis/include/vj/Protocol.h` | latest-wins analysis snapshot (~120 Hz) |
+| `/v2/spectrum` | i sourceId, i seq, 32 f | log spectrum (~60 Hz) |
+| `/v2/event` | i sourceId, s role, i eventId, s type, f strength, i note, i velocity, f ageMs | hits and notes (de-duplicated, expire after 150 ms) |
+| `/v2/macro` | i slot 0-7, f 0-1 | macro base value |
+| `/v2/preset` | i index **or** s name | select preset (name = case-insensitive substring) |
+| `/v2/preset/next`, `/v2/preset/previous` | | |
+| `/v2/blackout` | [i 0/1] | set / toggle |
+| `/v2/trigger` | | manual hit |
+| `/v2/transition` | f ms | override every preset's transition length (<0 restores) |
+| `/v2/quality` | f 0 = auto, else fixed scale | |
+| `/v2/demo` | [i 0/1] | |
+| legacy `/audio/level|bass|mid|high|beatphase|onset`, `/preset/select|next|previous`, `/preset/transitionduration`, `/effect/toggle`, `/effect/param`, `/display/*`, `/fullscreen`, `/camera/open`, `/video/load`, `/debug/snapshot` | | unchanged |
 
-## Performance
-
-Every 5 seconds the engine appends an FPS line (with the current preset name)
-to `VJEngine.log` next to the .exe - the same file/format `VideoPlayer`'s
-camera/decode diagnostics use, since there's no debugger attached in normal
-use. Useful for judging whether a preset/effect chain or video source is
-actually taxing the GPU.
-
-## Preset transitions
-
-Switching presets (keyboard, `/preset/select`, `/preset/next`/`previous`, or a
-future scene-link) crossfades rather than cutting - the outgoing preset keeps
-rendering (and reacting to audio) for 600ms (adjustable, see
-`/preset/transitionduration` above) while the incoming one fades in.
-Switching again mid-fade just retargets the fade to the new preset instead of
-queuing or snapping - no special handling needed on the controlling end.
+Engine -> subscribed clients (5 Hz): `/v2/status` (index, name, count, blackout, fps, bpm, following-host, demo,
+render scale) and `/v2/presets` (names, every ~2 s).
 
 ## Presets
 
-Scanned from `engine/Presets/*.json` at startup, sorted by filename (hence
-the `00-06` prefixes controlling order). Currently:
+`engine/Presets/*.json`, sorted by file name (indices are file order). Two formats:
 
-- `00 - MultiPass Test` - single ISF shader, multi-pass sanity check
-- `01 - Star Bass Pulse` / `02 - Noise Level Reactive` / `03 - Star Static Blue` - single-shader, audio-reactive test shaders
-- `04 - Video Glitch Chain` - RGBShift -> BlockGlitch -> ScanlineJitter, needs a video/camera input
-- `05 - Video Datamosh` - persistent-buffer datamosh effect, needs a video/camera input
-- `06 - Kaleido Mosaic` - Pixelate -> Kaleidoscope, needs a video/camera input (compile-verified via `VJEngine.log`, not yet visually checked)
+- **Legacy** (`00`-`08`): `shader` or `effectChain` + `{source, scale, offset}` audio mappings. Unchanged.
+- **Schema 2** (`10`+, `"schemaVersion": "2.0"`): the format in
+  `visual_instrument_research/preset.schema.json`, plus engine extensions:
+  - `stages[].sources`: raw material bound to an ISF image input -
+    `{"type": "images", "folder": "Images/Masks", "advance": "bar"|"beat"|"event.snare"|"none", "every": 2, "order": "random"}` or
+    `{"type": "text", "words": [...], "font": "Arial Black", "advance": "beat"}`.
+  - `parameters[].integrate: true`: the value is a rate; the shader receives its running integral (speed changes never jump).
+  - Route sources: `audio.level|bass|mid|high.activity|absolute`, `audio.kick|snare|hat.activity`, `audio.band0..5.activity`,
+    `descriptor.centroid|flatness|rolloff|flux|energyTrend`, `clock.beatPhase|barPhase`, `macro.<id>`, `env.<id>`, `lfo.<id>`.
+  - Trigger events: `event.kick|snare|hat|bassTransient|midTransient|highTransient|midiNote|userTrigger`.
 
-Add a preset by dropping a new `*.json` file in `engine/Presets/` (see the
-existing files for the `shader` vs `effectChain` shape, `params`, and
-`audioMappings` - source can be `level`/`bass`/`mid`/`high`/`beatphase`/`onset`).
+The instrument presets are generated by `engine/tools/build_instrument_presets.py` (edit there, re-run). Shaders
+live in `engine/Shaders/Instrument/` and share `common.glsl` via `#include`. Generators write **linear** colour;
+the engine's finish pass does bloom, exposure, Reinhard tone mapping, vignette, grain and the sRGB encode.
 
-## Known scope limits (intentionally out for now)
+Every preset shader may use the engine uniforms `vj_beat` (musical position), `vj_palette` (palette-advance steps),
+`vj_seed` (reseed counter), `TIMEDELTA`, and `<imageInput>_size` for every image input.
 
-Projection mapping, VST3, MadMapper integration - not installed, not planned
-for the current milestone.
+### Source material
 
-Scene-linked preset switching (name a Session View scene with a leading
-number, e.g. "3 Drop", to auto-select that preset) is implemented in
-`VJ Audio Analyzer.maxpat` but likewise unverified for the same Max-trial
-reason as the effect knobs above.
+`engine/Media/Images/Masks` holds original generated masks (`engine/tools/make_source_assets.py`). Put your own
+PNG/JPG (transparent PNG works best) into `engine/Media/Images/User` and point a preset's source `folder` at it.
+
+## Tests and tools
+
+| Command | Checks |
+|---|---|
+| `analysis\build\Release\analysis_tests.exe` | 26 DSP acceptance tests (silence, calibration, kicks, hats, gain invariance, noise, vibrato, drop recovery, anti-phase, OSC encoding) |
+| `analysis_tests --stats` | Novelty distributions per region (for tuning onset floors) |
+| `analyze_wav song.wav [--csv out.csv]` | Offline analysis summary / per-frame CSV |
+| `analyze_wav song.wav --send [--bpm 120] [--loop]` | Streams a WAV's analysis to the engine in real time - full test without Live |
+| `python engine\preset_regression_test.py --demo --keep <dir>` | Loads every preset, snapshots it, flags black frames / load errors |
+| `plugin\build\PluginHarness_artefacts\Release\PluginHarness.exe ui.png 8` | Runs the plug-in on a synthetic groove against a running engine, writes a PNG of its UI |

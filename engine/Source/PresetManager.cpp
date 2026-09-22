@@ -105,7 +105,8 @@ juce::String PresetManager::getPresetName (int index) const
 
 juce::String PresetManager::getCurrentName() const
 {
-    return currentIndex >= 0 ? getPresetName (currentIndex) : juce::String ("(no preset)");
+    auto index = currentIndex.load();
+    return index >= 0 ? getPresetName (index) : juce::String ("(no preset)");
 }
 
 bool PresetManager::isSchema2 (int index) const
@@ -170,6 +171,7 @@ bool PresetManager::activate (int index, FrameContext& frame)
             // Interrupted fade: freeze what is on screen right now and fade
             // from that, instead of keeping a third preset alive.
             frozenTarget.ensure (compositeTarget.width, compositeTarget.height, GL_RGBA16F);
+            // (sizes match: the frozen frame is always at the current internal resolution)
             glBindFramebuffer (GL_READ_FRAMEBUFFER, compositeTarget.fbo);
             glBindFramebuffer (GL_DRAW_FRAMEBUFFER, frozenTarget.fbo);
             glBlitFramebuffer (0, 0, compositeTarget.width, compositeTarget.height,
@@ -203,6 +205,7 @@ bool PresetManager::activate (int index, FrameContext& frame)
 
     current = std::move (instance);
     currentIndex = index;
+    ++switchCount;
     logDiagnostic ("PresetManager: switched to '" + entry.name + "' (" + juce::String (index + 1) + "/"
                    + juce::String (entries.size()) + ", " + juce::String ((int) duration) + " ms)");
     return true;
@@ -216,7 +219,7 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     // Pick up a new request; schema-2 presets may wait for the next beat/bar.
     auto requested = requestedIndex.exchange (-1);
     if (requested >= 0)
-        pendingIndex = requested;
+        pendingIndex = (requested == currentIndex.load() && current != nullptr) ? -1 : requested; // re-selecting the live preset is a no-op
 
     if (pendingIndex >= 0)
     {
@@ -238,7 +241,12 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     if (current == nullptr)
         return;
 
-    const auto w = frame.width, h = frame.height;
+    const auto outputWidth = frame.width, outputHeight = frame.height;
+    const auto scale = renderScale.load();
+    const auto w = juce::jmax (16, juce::roundToInt (outputWidth * scale));
+    const auto h = juce::jmax (16, juce::roundToInt (outputHeight * scale));
+    frame.width = w;   // presets render at the internal resolution
+    frame.height = h;
     compositeTarget.ensure (w, h, GL_RGBA16F);
     currentTarget.ensure (w, h, GL_RGBA16F);
 
@@ -300,8 +308,10 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     auto step = (float) (frame.dt / 0.12);
     outputGain = outputGain < target ? juce::jmin (target, outputGain + step) : juce::jmax (target, outputGain - step);
 
+    frame.width = outputWidth;
+    frame.height = outputHeight;
     glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
-    glViewport (0, 0, w, h);
+    glViewport (0, 0, outputWidth, outputHeight); // bilinear upscale when renderScale < 1
     outputProgram->use();
     bindTexture (0, compositeSource);
     outputProgram->setUniform ("source", 0);

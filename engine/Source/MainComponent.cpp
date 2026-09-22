@@ -19,6 +19,9 @@ MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
         DBG ("VJEngine: failed to bind OSC port " << oscPort << " - is another instance already running?");
 
     oscReceiver.addListener (this);
+
+    statusSender.connect ("127.0.0.1", 9); // binds a local socket; real targets come from /v2/hello
+    startTimer (200);
 }
 
 MainComponent::~MainComponent()
@@ -123,6 +126,7 @@ void MainComponent::render()
     if (fpsWindowElapsed >= fpsLogIntervalSeconds)
     {
         auto fps = fpsFrameCount / fpsWindowElapsed;
+        measuredFps = (float) fps;
         logDiagnostic ("FPS: " + juce::String (fps, 1) + " (preset '" + presetManager.getCurrentName() + "', "
                        + featureBus.describeSources (now) + ", clock " + juce::String (clock.bpm(), 1) + " BPM"
                        + (clock.isFollowingTransport() ? " host)" : " free-run)"));
@@ -132,6 +136,8 @@ void MainComponent::render()
 
     auto signals = featureBus.takeSnapshot (now);
     clock.update (signals, now);
+    clockBpm = (float) clock.bpm();
+    clockFollowing = clock.isFollowingTransport();
 
     videoPlayer.updateGLTexture();
 
@@ -147,6 +153,7 @@ void MainComponent::render()
     frame.beatphase = (float) clock.beatPhase();
     frame.onset = (float) juce::jlimit (0.0, 1.0, 1.0 - (now - signals.lastImpactTime) / onsetPulseDurationSeconds);
 
+    updateAdaptiveQuality (now);
     presetManager.render (frame, 0);
 
     // presetManager.render() leaves the default framebuffer (0) holding this
@@ -185,20 +192,111 @@ void MainComponent::captureSnapshot (int pixelWidth, int pixelHeight)
         }
     }
 
+    // Write to a temp file and rename, so a reader polling for the PNG never
+    // sees a half-written image.
     auto outFile = getEngineDirectory().getChildFile ("VJEngine_snapshot.png");
+    auto tempFile = outFile.getSiblingFile ("VJEngine_snapshot.tmp");
     juce::PNGImageFormat pngFormat;
-    juce::FileOutputStream stream (outFile);
-
-    if (stream.openedOk())
+    bool written = false;
     {
-        stream.setPosition (0);
-        stream.truncate();
-        pngFormat.writeImageToStream (image, stream);
+        juce::FileOutputStream stream (tempFile);
+        if (stream.openedOk())
+        {
+            stream.setPosition (0);
+            stream.truncate();
+            written = pngFormat.writeImageToStream (image, stream);
+        }
+    }
+
+    if (written && tempFile.moveFileTo (outFile))
         logDiagnostic ("Snapshot written to " + outFile.getFullPathName());
+    else
+        logDiagnostic ("Snapshot failed: could not write " + outFile.getFullPathName());
+}
+
+void MainComponent::updateAdaptiveQuality (double now)
+{
+    ++qualityFrames;
+    if (now - qualityWindowStart < 1.0)
+        return;
+
+    auto fps = qualityFrames / (now - qualityWindowStart);
+    qualityFrames = 0;
+    qualityWindowStart = now;
+
+    // Ignore the first seconds and the second after a preset switch: shader
+    // compiles are one-off hitches, not a sustained load.
+    auto switches = presetManager.getSwitchCount();
+    if (switches != lastSwitchCount)
+    {
+        lastSwitchCount = switches;
+        qualityHoldUntil = now + 1.5;
+    }
+    if (now < qualityHoldUntil || now - startTime < 3.0)
+        return;
+
+    auto setting = qualitySetting.load();
+    if (setting > 0.0f)
+    {
+        presetManager.setRenderScale (setting);
+        return;
+    }
+
+    // Drop fast when we miss the frame rate; climb back slowly once it has
+    // been comfortably stable, so the scale doesn't oscillate every second.
+    auto previous = autoScale;
+    if (fps < 50.0 && autoScale > 0.5f)
+    {
+        autoScale = juce::jmax (0.5f, autoScale - (fps < 35.0 ? 0.15f : 0.08f));
+        stableSeconds = 0;
+    }
+    else if (fps >= 58.5)
+    {
+        if (++stableSeconds >= 6 && autoScale < 1.0f)
+        {
+            autoScale = juce::jmin (1.0f, autoScale + 0.05f);
+            stableSeconds = 0;
+        }
     }
     else
     {
-        logDiagnostic ("Snapshot failed: could not open " + outFile.getFullPathName() + " for writing");
+        stableSeconds = 0;
+    }
+
+    presetManager.setRenderScale (autoScale);
+    if (std::abs (previous - autoScale) > 0.001f)
+        logDiagnostic ("Quality: render scale " + juce::String (juce::roundToInt (autoScale * 100.0f)) + "% (" + juce::String (fps, 1) + " fps)");
+}
+
+void MainComponent::timerCallback()
+{
+    auto ports = featureBus.getReplyPorts (nowSeconds());
+    if (ports.isEmpty())
+        return;
+
+    juce::OSCMessage status ("/v2/status");
+    status.addInt32 (presetManager.getCurrentIndex());
+    status.addString (presetManager.getCurrentName());
+    status.addInt32 (presetManager.getNumPresets());
+    status.addInt32 (presetManager.isBlackout() ? 1 : 0);
+    status.addFloat32 (measuredFps.load());
+    status.addFloat32 (clockBpm.load());
+    status.addInt32 (clockFollowing.load() ? 1 : 0);
+    status.addInt32 (featureBus.isDemoEnabled() ? 1 : 0);
+    status.addFloat32 (presetManager.getRenderScale());
+
+    // Preset names every ~2 s (cheap, and late-joining clients catch up).
+    const bool sendList = (statusTick++ % 10) == 0;
+    juce::OSCMessage list ("/v2/presets");
+    if (sendList)
+        for (int i = 0; i < juce::jmin (64, presetManager.getNumPresets()); ++i)
+            list.addString (presetManager.getPresetName (i));
+
+    for (auto port : ports)
+    {
+        statusSender.sendToIPAddress ("127.0.0.1", port, status);
+        if (sendList)
+            statusSender.sendToIPAddress ("127.0.0.1", port, list);
     }
 }
 
@@ -344,6 +442,16 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
         return true;
     }
 
+    if (textChar == 'q' || textChar == 'Q')
+    {
+        // Auto -> 100% -> 75% -> 50% -> Auto
+        auto current = qualitySetting.load();
+        auto nextSetting = current == 0.0f ? 1.0f : (current > 0.9f ? 0.75f : (current > 0.6f ? 0.5f : 0.0f));
+        qualitySetting = nextSetting;
+        logDiagnostic ("Quality: " + (nextSetting == 0.0f ? juce::String ("auto") : juce::String (juce::roundToInt (nextSetting * 100.0f)) + "%"));
+        return true;
+    }
+
     if (textChar == 'd' || textChar == 'D')
     {
         featureBus.setDemoEnabled (! featureBus.isDemoEnabled());
@@ -427,6 +535,12 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
     if (address == "/v2/trigger")
     {
         featureBus.pushUserTrigger (nowSeconds());
+        return;
+    }
+
+    if (address == "/v2/quality")
+    {
+        qualitySetting = juce::jlimit (0.0f, 1.0f, numberArg (0, 0.0f));
         return;
     }
 

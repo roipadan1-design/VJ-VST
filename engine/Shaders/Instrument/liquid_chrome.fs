@@ -39,13 +39,13 @@ void main()
     float t = flow;
     vec2 sp = p * scale;
 
-    // Height field; the surge (kick) sharpens and lifts the blobs.
-    float e = 1.5 / RENDERSIZE.y * scale;
-    float h  = field (sp, t);
-    float hx = field (sp + vec2 (e, 0.0), t);
-    float hy = field (sp + vec2 (0.0, e), t);
+    // Height field; the surge (kick) sharpens and lifts the blobs. The
+    // normal comes from screen-space derivatives - one field evaluation per
+    // pixel instead of three (3x cheaper on integrated GPUs).
+    float h = field (sp, t);
     float k = mix (3.0, 7.0, surge) * contrast;
-    vec3 n = normalize (vec3 ((h - hx) * k / e * 0.02, (h - hy) * k / e * 0.02, 1.0));
+    vec2 grad = vec2 (dFdx (h), dFdy (h)) * RENDERSIZE.y / (2.0 * scale);
+    vec3 n = normalize (vec3 (-grad * k * 0.02, 1.0));
 
     vec3 viewDir = vec3 (0.0, 0.0, -1.0);
     vec3 r = reflect (viewDir, n);

@@ -55,6 +55,9 @@ bool FeatureBus::handleMessage (const juce::OSCMessage& message, double now)
         auto& s = sources[argInt (message, 0)];
         s.role = parseRole (argString (message, 1));
         s.name = argString (message, 2);
+        auto replyPort = argInt (message, 4, 0);
+        if (replyPort > 1024 && replyPort < 65536)
+            replyPorts[replyPort] = now;
         return true;
     }
 
@@ -396,6 +399,16 @@ Signals FeatureBus::takeSnapshot (double now)
 
     out.lastImpactTime = lastImpactTime;
     return out;
+}
+
+juce::Array<int> FeatureBus::getReplyPorts (double now) const
+{
+    const juce::ScopedLock sl (lock);
+    juce::Array<int> ports;
+    for (auto& [port, seen] : replyPorts)
+        if (now - seen < 3.0)
+            ports.add (port);
+    return ports;
 }
 
 juce::String FeatureBus::describeSources (double now) const

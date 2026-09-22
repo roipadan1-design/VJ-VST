@@ -34,7 +34,7 @@ public:
     void releaseGLObjects();
 
     int getNumPresets() const noexcept { return entries.size(); }
-    int getCurrentIndex() const noexcept { return currentIndex; }
+    int getCurrentIndex() const noexcept { return currentIndex.load(); }
     int getFirstSchema2Index() const noexcept;
     juce::String getCurrentName() const;
     juce::String getPresetName (int index) const;
@@ -46,6 +46,13 @@ public:
     // Global override of every preset's transition length (OSC
     // /preset/transitionduration); < 0 restores the per-preset values.
     void setTransitionDurationOverride (double ms) noexcept { durationOverrideMs = ms; }
+
+    // Internal render resolution as a fraction of the output (0.4-1). The
+    // composite is upscaled in the final pass - the first rung of the quality
+    // ladder on integrated GPUs, it never changes timing or mappings.
+    void setRenderScale (float s) noexcept { renderScale = juce::jlimit (0.4f, 1.0f, s); }
+    float getRenderScale() const noexcept { return renderScale.load(); }
+    int getSwitchCount() const noexcept { return switchCount.load(); }
 
     // Output gate: fades the final image to/from black over ~120 ms.
     void setBlackout (bool shouldBeBlack) noexcept { blackout = shouldBeBlack; }
@@ -77,13 +84,15 @@ private:
     SourceLibrary sourceLibrary;
 
     std::unique_ptr<PresetInstance> current, outgoing;
-    int currentIndex = -1;
+    std::atomic<int> currentIndex { -1 };   // read by the status timer on the message thread
     int pendingIndex = -1;
     std::atomic<int> requestedIndex { -1 };
 
     Transition transition;
     double durationOverrideMs = -1.0;
     std::atomic<bool> blackout { false };
+    std::atomic<float> renderScale { 1.0f };
+    std::atomic<int> switchCount { 0 };
     float outputGain = 1.0f;
 
     GLRenderTarget currentTarget, outgoingTarget, frozenTarget, compositeTarget;
