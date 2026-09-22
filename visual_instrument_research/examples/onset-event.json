@@ -1,0 +1,19 @@
+{
+  "protocolVersion": "2.0",
+  "sessionId": "8b7e6403-0b69-4f57-b3b1-68aadfbd932a",
+  "sourceId": "32eea7fd-96a9-45c8-a54a-a15d6c93f046",
+  "connectionId": "cb8495a1-e6b1-4285-a5ae-68db32e7dc3b",
+  "sequence": 1200,
+  "sampleIndex": 480000,
+  "sampleRate": 48000,
+  "monotonicUs": 500000000,
+  "kind": "event",
+  "eventId": "4e9477f4-f024-47e4-b48e-fe8824635b2f",
+  "transportEpoch": 2,
+  "eventType": "bassTransient",
+  "role": "kick",
+  "strength": 0.84,
+  "note": null,
+  "channel": null,
+  "expiresAfterMs": 150
+}

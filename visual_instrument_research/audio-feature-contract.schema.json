@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vj-instrument:features:2.0",
+  "title": "Proposed feature/event debug and archive contract v2.0",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": "2.0"
+        },
+        "kind": {
+          "const": "features"
+        },
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "connectionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampleIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampleRate": {
+          "enum": [
+            44100,
+            48000,
+            88200,
+            96000,
+            176400,
+            192000
+          ]
+        },
+        "analysisAgeSamples": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "monotonicUs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role": {
+          "enum": [
+            "mix",
+            "kick",
+            "snare",
+            "hat",
+            "bass",
+            "texture",
+            "other"
+          ]
+        },
+        "transport": {
+          "type": "object",
+          "properties": {
+            "playing": {
+              "type": "boolean"
+            },
+            "valid": {
+              "type": "boolean"
+            },
+            "bpm": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 999
+            },
+            "beatPosition": {
+              "type": "number",
+              "minimum": -1000000000000.0,
+              "maximum": 1000000000000.0
+            },
+            "beatPhase": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "barPhase": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "denominator": {
+              "enum": [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                64
+              ]
+            },
+            "epoch": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "playing",
+            "valid",
+            "bpm",
+            "beatPosition",
+            "beatPhase",
+            "barPhase",
+            "numerator",
+            "denominator",
+            "epoch"
+          ],
+          "additionalProperties": false
+        },
+        "level": {
+          "type": "object",
+          "properties": {
+            "rmsDbfs": {
+              "type": "number",
+              "minimum": -160,
+              "maximum": 24
+            },
+            "peakDbfs": {
+              "type": "number",
+              "minimum": -160,
+              "maximum": 24
+            },
+            "activity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "absoluteActivity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "gateOpen": {
+              "type": "boolean"
+            },
+            "calibrated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "rmsDbfs",
+            "peakDbfs",
+            "activity",
+            "absoluteActivity",
+            "gateOpen",
+            "calibrated"
+          ],
+          "additionalProperties": false
+        },
+        "bands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "loHz": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 96000
+              },
+              "hiHz": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 96000
+              },
+              "powerDbfs": {
+                "type": "number",
+                "minimum": -160,
+                "maximum": 24
+              },
+              "activity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "absoluteActivity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "loHz",
+              "hiHz",
+              "powerDbfs",
+              "activity",
+              "absoluteActivity"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "spectrum32": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 32,
+          "maxItems": 32
+        },
+        "descriptors": {
+          "type": "object",
+          "properties": {
+            "centroid01": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "flatness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rolloff01": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "flux01": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "energyTrend": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "centroid01",
+            "flatness",
+            "rolloff01",
+            "flux01",
+            "energyTrend"
+          ],
+          "additionalProperties": false
+        },
+        "health": {
+          "type": "object",
+          "properties": {
+            "audioQueueDrops": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "analysisDiscontinuity": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "audioQueueDrops",
+            "analysisDiscontinuity"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "kind",
+        "sessionId",
+        "sourceId",
+        "connectionId",
+        "sequence",
+        "sampleIndex",
+        "sampleRate",
+        "analysisAgeSamples",
+        "monotonicUs",
+        "role",
+        "transport",
+        "level",
+        "bands",
+        "spectrum32",
+        "descriptors",
+        "health"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": "2.0"
+        },
+        "kind": {
+          "const": "event"
+        },
+        "sessionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "connectionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sampleIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampleRate": {
+          "enum": [
+            44100,
+            48000,
+            88200,
+            96000,
+            176400,
+            192000
+          ]
+        },
+        "monotonicUs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transportEpoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eventType": {
+          "enum": [
+            "bassTransient",
+            "midTransient",
+            "highTransient",
+            "midiNoteOn",
+            "midiNoteOff",
+            "userTrigger"
+          ]
+        },
+        "role": {
+          "enum": [
+            "mix",
+            "kick",
+            "snare",
+            "hat",
+            "bass",
+            "texture",
+            "other"
+          ]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "note": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 127
+        },
+        "channel": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 16
+        },
+        "expiresAfterMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "kind",
+        "sessionId",
+        "sourceId",
+        "connectionId",
+        "sequence",
+        "eventId",
+        "sampleIndex",
+        "sampleRate",
+        "monotonicUs",
+        "transportEpoch",
+        "eventType",
+        "role",
+        "strength",
+        "note",
+        "channel",
+        "expiresAfterMs"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "protocolVersion": "2.0",
+  "kind": "features",
+  "sessionId": "8b7e6403-0b69-4f57-b3b1-68aadfbd932a",
+  "sourceId": "32eea7fd-96a9-45c8-a54a-a15d6c93f046",
+  "connectionId": "cb8495a1-e6b1-4285-a5ae-68db32e7dc3b",
+  "sequence": 1200,
+  "sampleIndex": 480000,
+  "sampleRate": 48000,
+  "analysisAgeSamples": 1024,
+  "monotonicUs": 500000000,
+  "role": "mix",
+  "transport": {
+    "playing": true,
+    "valid": true,
+    "bpm": 120,
+    "beatPosition": 20,
+    "beatPhase": 0,
+    "barPhase": 0,
+    "numerator": 4,
+    "denominator": 4,
+    "epoch": 2
+  },
+  "level": {
+    "rmsDbfs": -18,
+    "peakDbfs": -6,
+    "activity": 0.65,
+    "absoluteActivity": 0.7,
+    "gateOpen": true,
+    "calibrated": true
+  },
+  "bands": [
+    {
+      "loHz": 20,
+      "hiHz": 60,
+      "powerDbfs": -24,
+      "activity": 0.55,
+      "absoluteActivity": 0.55
+    },
+    {
+      "loHz": 60,
+      "hiHz": 150,
+      "powerDbfs": -20,
+      "activity": 0.75,
+      "absoluteActivity": 0.75
+    },
+    {
+      "loHz": 150,
+      "hiHz": 400,
+      "powerDbfs": -29,
+      "activity": 0.35,
+      "absoluteActivity": 0.35
+    },
+    {
+      "loHz": 400,
+      "hiHz": 2000,
+      "powerDbfs": -25,
+      "activity": 0.45,
+      "absoluteActivity": 0.45
+    },
+    {
+      "loHz": 2000,
+      "hiHz": 6000,
+      "powerDbfs": -32,
+      "activity": 0.25,
+      "absoluteActivity": 0.25
+    },
+    {
+      "loHz": 6000,
+      "hiHz": 16000,
+      "powerDbfs": -38,
+      "activity": 0.1,
+      "absoluteActivity": 0.1
+    }
+  ],
+  "spectrum32": [
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4,
+    0.6,
+    0.3,
+    0.5,
+    0.2,
+    0.4
+  ],
+  "descriptors": {
+    "centroid01": 0.3,
+    "flatness": 0.18,
+    "rolloff01": 0.6,
+    "flux01": 0.4,
+    "energyTrend": 0.1
+  },
+  "health": {
+    "audioQueueDrops": 0,
+    "analysisDiscontinuity": false
+  }
+}

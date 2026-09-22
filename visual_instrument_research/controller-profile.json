@@ -1,0 +1,215 @@
+{
+  "profileVersion": "1.0",
+  "id": "launch-control-xl-custom-v1",
+  "hardware": "Novation Launch Control XL MK1/MK2",
+  "factoryTemplate": false,
+  "channel": 16,
+  "inputMode": "through-m4l-midi-bridge-or-live-map-not-both",
+  "macros": [
+    {
+      "slot": 0,
+      "cc": 20
+    },
+    {
+      "slot": 1,
+      "cc": 21
+    },
+    {
+      "slot": 2,
+      "cc": 22
+    },
+    {
+      "slot": 3,
+      "cc": 23
+    },
+    {
+      "slot": 4,
+      "cc": 24
+    },
+    {
+      "slot": 5,
+      "cc": 25
+    },
+    {
+      "slot": 6,
+      "cc": 26
+    },
+    {
+      "slot": 7,
+      "cc": 27
+    }
+  ],
+  "responseCC": [
+    {
+      "cc": 28,
+      "target": "sourceTrimDb"
+    },
+    {
+      "cc": 29,
+      "target": "responseSensitivity"
+    },
+    {
+      "cc": 30,
+      "target": "onsetSensitivity"
+    },
+    {
+      "cc": 31,
+      "target": "attackScale"
+    },
+    {
+      "cc": 32,
+      "target": "releaseScale"
+    },
+    {
+      "cc": 33,
+      "target": "transitionMs"
+    },
+    {
+      "cc": 34,
+      "target": "paletteFadeMs"
+    },
+    {
+      "cc": 35,
+      "target": "idleMotion"
+    }
+  ],
+  "advancedCC": [
+    {
+      "cc": 36,
+      "target": "bassGateDb"
+    },
+    {
+      "cc": 37,
+      "target": "midGateDb"
+    },
+    {
+      "cc": 38,
+      "target": "highGateDb"
+    },
+    {
+      "cc": 39,
+      "target": "bassRefractoryMs"
+    },
+    {
+      "cc": 40,
+      "target": "midRefractoryMs"
+    },
+    {
+      "cc": 41,
+      "target": "highRefractoryMs"
+    },
+    {
+      "cc": 42,
+      "target": "bloomAmount"
+    },
+    {
+      "cc": 43,
+      "target": "exposureEv"
+    }
+  ],
+  "faders": [
+    {
+      "cc": 44,
+      "target": "mixAmount"
+    },
+    {
+      "cc": 45,
+      "target": "kickAmount"
+    },
+    {
+      "cc": 46,
+      "target": "snareAmount"
+    },
+    {
+      "cc": 47,
+      "target": "hatAmount"
+    },
+    {
+      "cc": 48,
+      "target": "bassAmount"
+    },
+    {
+      "cc": 49,
+      "target": "textureAmount"
+    },
+    {
+      "cc": 50,
+      "target": "masterIntensity"
+    },
+    {
+      "cc": 51,
+      "target": "outputGain"
+    }
+  ],
+  "buttons": [
+    {
+      "note": 36,
+      "target": "presetSlot1"
+    },
+    {
+      "note": 37,
+      "target": "presetSlot2"
+    },
+    {
+      "note": 38,
+      "target": "presetSlot3"
+    },
+    {
+      "note": 39,
+      "target": "presetSlot4"
+    },
+    {
+      "note": 40,
+      "target": "presetSlot5"
+    },
+    {
+      "note": 41,
+      "target": "presetSlot6"
+    },
+    {
+      "note": 42,
+      "target": "presetSlot7"
+    },
+    {
+      "note": 43,
+      "target": "presetSlot8"
+    },
+    {
+      "note": 44,
+      "target": "previousPreset"
+    },
+    {
+      "note": 45,
+      "target": "nextPreset"
+    },
+    {
+      "note": 46,
+      "target": "userTrigger"
+    },
+    {
+      "note": 47,
+      "target": "paletteAdvance"
+    },
+    {
+      "note": 48,
+      "target": "freezeToggle"
+    },
+    {
+      "note": 49,
+      "target": "blackoutToggle"
+    },
+    {
+      "note": 50,
+      "target": "recalibrateHold"
+    },
+    {
+      "note": 51,
+      "target": "panicBlackout"
+    }
+  ],
+  "pickupDeadband": 0.015748031496062992,
+  "smoothingMs": 30,
+  "feedbackMaxHzPerControl": 30,
+  "strobeAssigned": false,
+  "note": "Configure a user template in the vendor editor. LED protocol is a separate hardware profile; arbitrary CC echo is not sufficient."
+}

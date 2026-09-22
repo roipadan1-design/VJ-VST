@@ -1,0 +1,947 @@
+[
+  {
+    "id": "D15",
+    "group": "Audio analysis and music information retrieval",
+    "title": "EBU Tech 3341 — EBU Mode loudness metering",
+    "url": "https://tech.ebu.ch/docs/tech/tech3341.pdf",
+    "publication_or_update": "2023-11",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary standard: 400 ms momentary and 3 s short-term windows; not the proposed visual normalizer"
+  },
+  {
+    "id": "D01",
+    "group": "DSP and analysis",
+    "title": "FluCoMa C++ core",
+    "url": "https://github.com/flucoma/flucoma-core",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-3-Clause; dependency audit still required"
+  },
+  {
+    "id": "D02",
+    "group": "DSP and analysis",
+    "title": "FluCoMa Max adapters",
+    "url": "https://github.com/flucoma/flucoma-max",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-3-Clause; C++17/MSVC; Max SDK >=7.3.3 is a build prerequisite, not current-binary certification"
+  },
+  {
+    "id": "D03",
+    "group": "DSP and analysis",
+    "title": "FluCoMa OnsetSlice",
+    "url": "https://learn.flucoma.org/reference/onsetslice/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "D04",
+    "group": "DSP and analysis",
+    "title": "FluCoMa AmpFeature",
+    "url": "https://learn.flucoma.org/reference/ampfeature/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "D05",
+    "group": "DSP and analysis",
+    "title": "FluCoMa SpectralShape",
+    "url": "https://learn.flucoma.org/reference/spectralshape/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "D06",
+    "group": "DSP and analysis",
+    "title": "SuperFlux reference implementation",
+    "url": "https://github.com/CPJKU/SuperFlux",
+    "publication_or_update": "Algorithm paper: 2013; repository last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "No affirmative permissive repository license established; study algorithm, do not copy by default"
+  },
+  {
+    "id": "D07",
+    "group": "DSP and analysis",
+    "title": "Kiss FFT",
+    "url": "https://github.com/mborgerding/kissfft",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Revised BSD / BSD-3-Clause; audit exact pinned COPYING"
+  },
+  {
+    "id": "D08",
+    "group": "DSP and analysis",
+    "title": "Signalsmith DSP",
+    "url": "https://github.com/Signalsmith-Audio/dsp",
+    "publication_or_update": "Org listing showed update 2026-08-23",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT; org update is not asserted to be last commit date"
+  },
+  {
+    "id": "D09",
+    "group": "DSP and analysis",
+    "title": "aubio",
+    "url": "https://github.com/aubio/aubio",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "GPL-3.0; not the default closed-source dependency"
+  },
+  {
+    "id": "D10",
+    "group": "DSP and analysis",
+    "title": "BTrack",
+    "url": "https://github.com/adamstark/BTrack",
+    "publication_or_update": "Documented release 1.0.7: 2025-12-31",
+    "accessed": "2026-09-22",
+    "evidence_note": "GPL-3.0; includes a Max external path"
+  },
+  {
+    "id": "D11",
+    "group": "DSP and analysis",
+    "title": "madmom",
+    "url": "https://github.com/CPJKU/madmom",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD code; bundled model material CC BY-NC-SA; separate code/weights review essential"
+  },
+  {
+    "id": "D12",
+    "group": "DSP and analysis",
+    "title": "Essentia licensing",
+    "url": "https://essentia.upf.edu/licensing_information.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Copyleft/commercial dual route; obtain exact commercial grant before embedding"
+  },
+  {
+    "id": "D13",
+    "group": "DSP and analysis",
+    "title": "Beat This!",
+    "url": "https://github.com/CPJKU/beat_this",
+    "publication_or_update": "ISMIR 2024; last repository activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT code and provided weights per repository; file inference is not evidence of causal streaming"
+  },
+  {
+    "id": "D14",
+    "group": "DSP and analysis",
+    "title": "FluCoMa build-system overview",
+    "url": "https://develop.flucoma.org/build-system/overview.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Historical compatibility intentions; validate pinned Max 8 package"
+  },
+  {
+    "id": "E01",
+    "group": "Engineering and MIDI",
+    "title": "JUCE AudioProcessorValueTreeState reference",
+    "url": "https://docs.juce.com/master/classjuce_1_1AudioProcessorValueTreeState.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E02",
+    "group": "Engineering and MIDI",
+    "title": "JUCE AbstractFifo reference",
+    "url": "https://docs.juce.com/master/classjuce_1_1AbstractFifo.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E03",
+    "group": "Engineering and MIDI",
+    "title": "Steinberg VST3 SDK",
+    "url": "https://github.com/steinbergmedia/vst3sdk",
+    "publication_or_update": "Current 3.8 generation",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT; host backward compatibility still needs Live 10 testing"
+  },
+  {
+    "id": "E04",
+    "group": "Engineering and MIDI",
+    "title": "Steinberg VST 3.8 announcement",
+    "url": "https://www.steinberg.net/press/2025/vst-3-8/",
+    "publication_or_update": "2025-10-28",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary announcement of MIT licensing"
+  },
+  {
+    "id": "E05",
+    "group": "Engineering and MIDI",
+    "title": "JUCE 8 license",
+    "url": "https://juce.com/legal/juce-8-licence/",
+    "publication_or_update": "2024-05-07; updated 2025-07-17",
+    "accessed": "2026-09-22",
+    "evidence_note": "Relevant only if project pins JUCE 8; Max version does not determine JUCE version"
+  },
+  {
+    "id": "E06",
+    "group": "Engineering and MIDI",
+    "title": "Current JUCE repository license",
+    "url": "https://github.com/juce-framework/JUCE/blob/master/LICENSE.md",
+    "publication_or_update": "Retrieved master references JUCE 9",
+    "accessed": "2026-09-22",
+    "evidence_note": "Commercial/AGPL routes; select terms for exact release, not master by accident"
+  },
+  {
+    "id": "E07",
+    "group": "Engineering and MIDI",
+    "title": "Open Sound Control 1.0 specification",
+    "url": "https://opensoundcontrol.stanford.edu/spec-1_0.html",
+    "publication_or_update": "OSC 1.0 reference",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E08",
+    "group": "Engineering and MIDI",
+    "title": "Microsoft Win32 interprocess communication",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/ipc/interprocess-communications",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E09",
+    "group": "Engineering and MIDI",
+    "title": "Novation Launch Control XL MK1/MK2 official downloads and manuals",
+    "url": "https://downloads.novationmusic.com/novation/launch/launch-control-xl-mk1mk2",
+    "publication_or_update": "Current Windows 10/11 driver listing; historical hardware",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E10",
+    "group": "Engineering and MIDI",
+    "title": "Resolume: Windows MIDI 2.0 update troubleshooting",
+    "url": "https://resolume.com/support/en/midi-troubles-on-windows-with-midi-2-0-update",
+    "publication_or_update": "Support index identifies February 2026 updates",
+    "accessed": "2026-09-22",
+    "evidence_note": "Vendor troubleshooting, not proof every Windows 11 installation is affected"
+  },
+  {
+    "id": "E11",
+    "group": "Engineering and MIDI",
+    "title": "Spout SDK update log",
+    "url": "https://github.com/leadedge/Spout2/blob/master/UPDATES.md",
+    "publication_or_update": "Versioned history; exact latest commit not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E12",
+    "group": "Engineering and MIDI",
+    "title": "Signalsmith Audio repository listing",
+    "url": "https://github.com/Signalsmith-Audio",
+    "publication_or_update": "DSP listing update 2026-08-23",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "E13",
+    "group": "Engineering and MIDI",
+    "title": "Launch Control XL programmer reference",
+    "url": "https://fael-downloads-prod.focusrite.com/customer/prod/downloads/launch_control_xl_programmer_s_reference_guide.pdf",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Official PDF; pages 3–4 inspected for template and LED semantics; proposed CC layout is not a factory template"
+  },
+  {
+    "id": "L01",
+    "group": "Extended landscape",
+    "title": "Ryan Geiss: MilkDrop preset authoring",
+    "url": "https://www.geisswerks.com/milkdrop/milkdrop_preset_authoring.html",
+    "publication_or_update": "Historical MilkDrop 1/2 reference",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L02",
+    "group": "Extended landscape",
+    "title": "projectM source",
+    "url": "https://github.com/projectM-visualizer/projectm",
+    "publication_or_update": "Last activity not exposed in retrieved page",
+    "accessed": "2026-09-22",
+    "evidence_note": "LGPL-2.1 core; shader/preset collections require separate audit"
+  },
+  {
+    "id": "L03",
+    "group": "Extended landscape",
+    "title": "Butterchurn source",
+    "url": "https://github.com/jberg/butterchurn",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT; WebGL 2 implementation; content licenses separate"
+  },
+  {
+    "id": "L04",
+    "group": "Extended landscape",
+    "title": "NestDrop",
+    "url": "https://nestimmersion.ca/nestdrop.php",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L05",
+    "group": "Extended landscape",
+    "title": "Synesthesia SSF audio uniforms",
+    "url": "https://app.synesthesia.live/docs/ssf/audio_uniforms.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L06",
+    "group": "Extended landscape",
+    "title": "Synesthesia Shader Format",
+    "url": "https://app.synesthesia.live/docs/ssf/ssf.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L07",
+    "group": "Extended landscape",
+    "title": "Resolume parameter animation and FFT",
+    "url": "https://resolume.com/support/en/parameter-animation",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L08",
+    "group": "Extended landscape",
+    "title": "Resolume envelopes",
+    "url": "https://resolume.com/support/en/envelopes",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L09",
+    "group": "Extended landscape",
+    "title": "TouchDesigner Palette audioAnalysis",
+    "url": "https://derivative.ca/UserGuide/Palette:audioAnalysis",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L10",
+    "group": "Extended landscape",
+    "title": "Magic Music Visuals user guide",
+    "url": "https://magicmusicvisuals.com/downloads/Magic_UsersGuide.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L11",
+    "group": "Extended landscape",
+    "title": "Plane9",
+    "url": "https://www.plane9.com/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L12",
+    "group": "Extended landscape",
+    "title": "px-stream source",
+    "url": "https://github.com/darosh/px-stream",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "WIP; Live 12.2 / Max 9.0.7–9.0.9; own code and assets have distinct licensing"
+  },
+  {
+    "id": "L13",
+    "group": "Extended landscape",
+    "title": "Spettro developer product listing on KVR",
+    "url": "https://www.kvraudio.com/product/spettro-by-creature-from-the-black",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Developer-supplied listing; no independently verified internal render-process details"
+  },
+  {
+    "id": "L14",
+    "group": "Extended landscape",
+    "title": "Visibox product",
+    "url": "https://spaceage.tv/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "L15",
+    "group": "Extended landscape",
+    "title": "Visibox original developer introduction",
+    "url": "https://www.jjeff.com/blog/2021/6/24/announcing-visibox-an-instrument-for-video",
+    "publication_or_update": "2021-06-24",
+    "accessed": "2026-09-22",
+    "evidence_note": "Historical developer design rationale; use current site for current availability"
+  },
+  {
+    "id": "G01",
+    "group": "Graphics and shader formats",
+    "title": "ISF JSON reference",
+    "url": "https://docs.isf.video/ref_json.html",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "G02",
+    "group": "Graphics and shader formats",
+    "title": "VVISF-GL / VVGL source",
+    "url": "https://github.com/mrRay/VVISF-GL",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-3-Clause; Windows/C++ reference implementation"
+  },
+  {
+    "id": "G03",
+    "group": "Graphics and shader formats",
+    "title": "Spout2 SDK",
+    "url": "https://github.com/leadedge/Spout2",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-2-Clause; Windows OpenGL and DirectX frame sharing"
+  },
+  {
+    "id": "G04",
+    "group": "Graphics and shader formats",
+    "title": "NVIDIA GPU Gems: Fast Fluid Dynamics Simulation on the GPU",
+    "url": "https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu",
+    "publication_or_update": "GPU Gems, 2004",
+    "accessed": "2026-09-22",
+    "evidence_note": "Algorithm reference; publication is not a blanket software redistribution license"
+  },
+  {
+    "id": "G05",
+    "group": "Graphics and shader formats",
+    "title": "Björn Ottosson: OKLab",
+    "url": "https://bottosson.github.io/posts/oklab/",
+    "publication_or_update": "Original 2020; matrices updated 2021-01-25; later page updates",
+    "accessed": "2026-09-22",
+    "evidence_note": "Author permits code under public domain or MIT; do not assume entire site has same license"
+  },
+  {
+    "id": "G06",
+    "group": "Graphics and shader formats",
+    "title": "Filament",
+    "url": "https://github.com/google/filament",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Apache-2.0; material/post-processing study reference, not recommended engine replacement"
+  },
+  {
+    "id": "G07",
+    "group": "Graphics and shader formats",
+    "title": "bgfx",
+    "url": "https://github.com/bkaradzic/bgfx",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-2-Clause"
+  },
+  {
+    "id": "G08",
+    "group": "Graphics and shader formats",
+    "title": "Diligent Engine",
+    "url": "https://github.com/DiligentGraphics/DiligentEngine",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Apache-2.0 core; Metal backend separately commercial; audit modules"
+  },
+  {
+    "id": "G09",
+    "group": "Graphics and shader formats",
+    "title": "sokol",
+    "url": "https://github.com/floooh/sokol",
+    "publication_or_update": "README latest-noted change: 2026-09-14",
+    "accessed": "2026-09-22",
+    "evidence_note": "Zlib"
+  },
+  {
+    "id": "G10",
+    "group": "Graphics and shader formats",
+    "title": "wgpu",
+    "url": "https://github.com/gfx-rs/wgpu",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT OR Apache-2.0"
+  },
+  {
+    "id": "G11",
+    "group": "Graphics and shader formats",
+    "title": "Dawn license",
+    "url": "https://dawn.googlesource.com/dawn/+/refs/heads/main/LICENSE",
+    "publication_or_update": "Last activity not established",
+    "accessed": "2026-09-22",
+    "evidence_note": "BSD-style; bundled third-party notices still apply"
+  },
+  {
+    "id": "G12",
+    "group": "Graphics and shader formats",
+    "title": "SPIRV-Cross",
+    "url": "https://github.com/KhronosGroup/SPIRV-Cross",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Apache-2.0; cross-compilation does not recreate ISF host semantics"
+  },
+  {
+    "id": "G13",
+    "group": "Graphics and shader formats",
+    "title": "glslang",
+    "url": "https://github.com/KhronosGroup/glslang",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "Mixed permissive component licenses; inspect pinned LICENSE and dependencies"
+  },
+  {
+    "id": "G14",
+    "group": "Graphics and shader formats",
+    "title": "WebGL Fluid Simulation — code and license",
+    "url": "https://github.com/PavelDoGreat/WebGL-Fluid-Simulation",
+    "publication_or_update": "Last activity not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT license file inspected; port algorithms rather than adopting a browser runtime by default"
+  },
+  {
+    "id": "G15",
+    "group": "Graphics and shader formats",
+    "title": "Stefan Gustavson / Ashima GLSL noise",
+    "url": "https://github.com/stegu/webgl-noise",
+    "publication_or_update": "README points to newer 2022 psrdnoise; last commit not exposed",
+    "accessed": "2026-09-22",
+    "evidence_note": "MIT; GLSL 1.20-compatible noise source, historical demo host should not be reused blindly"
+  },
+  {
+    "id": "H01",
+    "group": "Host compatibility",
+    "title": "Ableton Live 10 release notes",
+    "url": "https://www.ableton.com/en/release-notes/live-10/",
+    "publication_or_update": "Versioned: 10.1; 10.1.25; 10.1.30; 10.1.43",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary release history: VST3 introduction and MIDI fixes; not certification of every modern plugin"
+  },
+  {
+    "id": "H02",
+    "group": "Host compatibility",
+    "title": "Processing video with Jitter in Max for Live",
+    "url": "https://help.ableton.com/hc/en-us/articles/209769845-Processing-video-with-Jitter-in-Max-for-Live",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "H03",
+    "group": "Host compatibility",
+    "title": "Cycling 74 developer discussion: Syphon and Spout for GL3",
+    "url": "https://cycling74.com/forums/syphon-and-spout-for-gl3",
+    "publication_or_update": "Historical Max 8.1.11 / 8.2 beta tests",
+    "accessed": "2026-09-22",
+    "evidence_note": "Developer forum report; not a certification of every Max/driver combination"
+  },
+  {
+    "id": "H04",
+    "group": "Host compatibility",
+    "title": "Max 8 plugphasor~ reference",
+    "url": "https://docs.cycling74.com/legacy/max8/refpages/plugphasor~",
+    "publication_or_update": "Max 8 documentation",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "H05",
+    "group": "Host compatibility",
+    "title": "Max 8 plugsync~ reference",
+    "url": "https://docs.cycling74.com/legacy/max8/refpages/plugsync~",
+    "publication_or_update": "Max 8 documentation",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "H06",
+    "group": "Host compatibility",
+    "title": "Accessing MIDI output of a VST plugin",
+    "url": "https://help.ableton.com/hc/en-us/articles/209070189-Accessing-the-MIDI-output-of-a-VST-plug-in",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "H07",
+    "group": "Host compatibility",
+    "title": "Max 8 live.object reference",
+    "url": "https://docs.cycling74.com/legacy/max8/refpages/live.object",
+    "publication_or_update": "Max 8 documentation",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "H08",
+    "group": "Host compatibility",
+    "title": "Routing audio and MIDI to a Max for Live device simultaneously",
+    "url": "https://cycling74.com/forums/routing-audio-and-midi-to-a-max-for-live-device-simultaneously",
+    "publication_or_update": "2015 discussion",
+    "accessed": "2026-09-22",
+    "evidence_note": "Historical forum architecture discussion; validate actual Live 10 routing"
+  },
+  {
+    "id": "M01",
+    "group": "Machine learning",
+    "title": "HS-TasNet: real-time low-latency demixing paper",
+    "url": "https://www.l-acoustics.com/wp-content/uploads/2024/04/real_time_demixer_2024_04_19.pdf",
+    "publication_or_update": "2024; PDF filename 2024-04-19",
+    "accessed": "2026-09-22",
+    "evidence_note": "Tables visually inspected; paper measurements, not measurements on the user machine"
+  },
+  {
+    "id": "M02",
+    "group": "Machine learning",
+    "title": "HS-TasNet preprint abstract",
+    "url": "https://arxiv.org/abs/2402.17701",
+    "publication_or_update": "2024-02-27",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "M03",
+    "group": "Machine learning",
+    "title": "StreamDiffusion official implementation",
+    "url": "https://github.com/cumulo-autumn/StreamDiffusion",
+    "publication_or_update": "Paper 2023; current retrieved repository",
+    "accessed": "2026-09-22",
+    "evidence_note": "Apache-2.0 pipeline; model licenses separate; published FPS uses Ubuntu/RTX4090"
+  },
+  {
+    "id": "M04",
+    "group": "Machine learning",
+    "title": "StreamDiffusionTD official documentation",
+    "url": "https://dotsimulate.com/docs/streamdiffusiontd",
+    "publication_or_update": "Retrieved page states v0.4.1",
+    "accessed": "2026-09-22",
+    "evidence_note": "Vendor documentation; no local Windows latency measurement"
+  },
+  {
+    "id": "M05",
+    "group": "Machine learning",
+    "title": "StreamDiffusionTD changelog",
+    "url": "https://dotsimulate.com/docs/streamdiffusiontd/whats-new",
+    "publication_or_update": "Visible v0.3.1 entry: 2026-04-01",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "M06",
+    "group": "Machine learning",
+    "title": "Demucs original repository",
+    "url": "https://github.com/facebookresearch/demucs",
+    "publication_or_update": "Last activity not established",
+    "accessed": "2026-09-22",
+    "evidence_note": "Offline separation reference; not evidence of bounded low-latency live behavior"
+  },
+  {
+    "id": "A01",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra product and pricing",
+    "url": "https://www.arkestra.app/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A02",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra audio modulation",
+    "url": "https://docs.arkestra.app/modulation/audio",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A03",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra MIDI",
+    "url": "https://docs.arkestra.app/modulation/midi",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A04",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra macros",
+    "url": "https://docs.arkestra.app/tracks/macros",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A05",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra scenes",
+    "url": "https://docs.arkestra.app/scenes/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A06",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra GPU effects",
+    "url": "https://docs.arkestra.app/effects/gpu-effects",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A07",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra code editor / ISF",
+    "url": "https://docs.arkestra.app/studio/code-editor",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A08",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra interface",
+    "url": "https://docs.arkestra.app/getting-started/interface",
+    "publication_or_update": "Page update: 2026-09-12",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "A09",
+    "group": "Six references — Arkestra",
+    "title": "Arkestra Live comparison article supplied by user",
+    "url": "https://www.arkestra.app/articles/vj-software-ableton-mac",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Vendor comparison; not treated as independent comparative testing"
+  },
+  {
+    "id": "P01",
+    "group": "Six references — Photism",
+    "title": "Photism product",
+    "url": "https://photism.app/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "P02",
+    "group": "Six references — Photism",
+    "title": "Photism plugin",
+    "url": "https://photism.app/plugin/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "P03",
+    "group": "Six references — Photism",
+    "title": "Photism full manual",
+    "url": "https://photism.app/manual/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Includes Live 11/12 M4L requirement; WebView2; explicit editor/recording and multi-instance limits"
+  },
+  {
+    "id": "P04",
+    "group": "Six references — Photism",
+    "title": "Photism Morphogen scene",
+    "url": "https://photism.app/scenes/morphogen/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "P05",
+    "group": "Six references — Photism",
+    "title": "Photism Fluid scene",
+    "url": "https://photism.app/scenes/fluid/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "P06",
+    "group": "Six references — Photism",
+    "title": "Photism developer M4L listing",
+    "url": "https://maxforlive.com/library/device/15929/photism",
+    "publication_or_update": "Added 2026-08-02; updated 2026-08-30",
+    "accessed": "2026-09-22",
+    "evidence_note": "Version Used fields are test versions, not minimum requirements"
+  },
+  {
+    "id": "P07",
+    "group": "Six references — Photism",
+    "title": "Morphogen official still",
+    "url": "https://photism.app/clips/morphogen.jpg?v=20260731a",
+    "publication_or_update": "Asset query version: 2026-07-31",
+    "accessed": "2026-09-22",
+    "evidence_note": "Official still inspected; temporal behavior comes from vendor description"
+  },
+  {
+    "id": "S01",
+    "group": "Six references — Showsync",
+    "title": "Videosync product",
+    "url": "https://www.showsync.com/videosync",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "S02",
+    "group": "Six references — Showsync",
+    "title": "Videosync introduction and system requirements",
+    "url": "https://support.showsync.com/videosync/introduction",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "S03",
+    "group": "Six references — Showsync",
+    "title": "Videosync full features",
+    "url": "https://support.showsync.com/videosync/features",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "S04",
+    "group": "Six references — Showsync",
+    "title": "Beam for Live introduction and requirements",
+    "url": "https://support.showsync.com/beam-for-live/introduction",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "S05",
+    "group": "Six references — Showsync",
+    "title": "Showsync Sync Tools / LiveGrabber",
+    "url": "https://www.showsync.com/tools",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "S06",
+    "group": "Six references — Showsync",
+    "title": "Official Squares device screenshot",
+    "url": "https://www.showsync.com/_astro/squares.CX4QLKwn_1SetHh.webp",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Official still inspected; not a watched performance video"
+  },
+  {
+    "id": "T01",
+    "group": "Six references — T3X2R",
+    "title": "T3X2R product family",
+    "url": "https://www.t3x2r.com/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "T02",
+    "group": "Six references — T3X2R",
+    "title": "Render product, price and tested host versions",
+    "url": "https://www.t3x2r.com/?product=r3nder",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "T03",
+    "group": "Six references — T3X2R",
+    "title": "Mayas product, price and tested host versions",
+    "url": "https://www.t3x2r.com/?product=mayas",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "T04",
+    "group": "Six references — T3X2R",
+    "title": "T3X2R learning page",
+    "url": "https://www.t3x2r.com/learn/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Footer CC BY-NC scope needs clarification; not assumed to govern all commercial outputs"
+  },
+  {
+    "id": "T05",
+    "group": "Six references — T3X2R",
+    "title": "Mayas official UI/output still",
+    "url": "https://www.t3x2r.com/wp-content/uploads/2022/06/mayas_2.92-prod-800x800.webp",
+    "publication_or_update": "Asset path 2022-06, shown version 2.92",
+    "accessed": "2026-09-22",
+    "evidence_note": "Official still inspected; asset path is not current release date"
+  },
+  {
+    "id": "V01",
+    "group": "Six references — VS",
+    "title": "VS Visual Synthesizer product, pricing, requirements",
+    "url": "https://www.imaginando.pt/products/vs-visual-synthesizer",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "V02",
+    "group": "Six references — VS",
+    "title": "VS 2 user manual",
+    "url": "https://help.imaginando.pt/en/article/vs-2-visual-synthesizer-user-manual-su8wyw/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "Z01",
+    "group": "Six references — Zwobot",
+    "title": "Zwobot product and maintenance notice",
+    "url": "https://www.zwobotmax.com/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "Z02",
+    "group": "Six references — Zwobot",
+    "title": "Zwobot manual",
+    "url": "https://www.zwobotmax.com/manual/",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "Z03",
+    "group": "Six references — Zwobot",
+    "title": "Zwobot developer changelog",
+    "url": "https://www.zwobotmax.com/blog/",
+    "publication_or_update": "Live 10 withdrawal: 2024-11-09; later 2025 entries",
+    "accessed": "2026-09-22",
+    "evidence_note": "Primary source; documentation/vendor statement, not a local benchmark"
+  },
+  {
+    "id": "Z04",
+    "group": "Six references — Zwobot",
+    "title": "Zwobot official effects UI still",
+    "url": "https://www.zwobotmax.com/files/FX_Main_01__still_web_01_retina_20.png",
+    "publication_or_update": "Not stated",
+    "accessed": "2026-09-22",
+    "evidence_note": "Official still inspected; no motion inferred as observed"
+  }
+]

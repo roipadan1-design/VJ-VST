@@ -1,0 +1,706 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vj-instrument:preset:2.0",
+  "title": "Proposed Visual Instrument preset v2.0 — not the existing engine format",
+  "description": "Normative structural contract. Cross-reference, range, asset and shader-header checks are performed by validate_presets.py.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "license": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "engine": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": {
+          "const": "2.0.0"
+        },
+        "shaderProfile": {
+          "enum": [
+            "isf-legacy",
+            "isf-modern"
+          ]
+        },
+        "workingColorSpace": {
+          "const": "linear-srgb"
+        },
+        "featureContract": {
+          "const": "2.0"
+        }
+      },
+      "required": [
+        "minimumVersion",
+        "shaderProfile",
+        "workingColorSpace",
+        "featureContract"
+      ],
+      "additionalProperties": false
+    },
+    "sourcePolicy": {
+      "type": "object",
+      "properties": {
+        "bass": {
+          "enum": [
+            "kick-or-mix",
+            "mix"
+          ]
+        },
+        "mid": {
+          "enum": [
+            "snare-or-mix",
+            "mix"
+          ]
+        },
+        "high": {
+          "enum": [
+            "hat-or-mix",
+            "mix"
+          ]
+        },
+        "level": {
+          "const": "mix"
+        }
+      },
+      "required": [
+        "bass",
+        "mid",
+        "high",
+        "level"
+      ],
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stage"
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "macros": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/macro"
+      },
+      "minItems": 4,
+      "maxItems": 8
+    },
+    "modulators": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+              },
+              "type": {
+                "const": "ad"
+              },
+              "attackMs": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "decayMs": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "peak": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "retrigger": {
+                "enum": [
+                  "restart",
+                  "max"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "attackMs",
+              "decayMs",
+              "peak",
+              "retrigger"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+              },
+              "type": {
+                "const": "lfo"
+              },
+              "shape": {
+                "enum": [
+                  "sine",
+                  "triangle",
+                  "ramp",
+                  "sample-hold"
+                ]
+              },
+              "periodBeats": {
+                "type": "number",
+                "minimum": 0.0625,
+                "maximum": 128
+              },
+              "phaseOffset": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "polarity": {
+                "enum": [
+                  "unipolar",
+                  "bipolar"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "shape",
+              "periodBeats",
+              "phaseOffset",
+              "polarity"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 32
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/route"
+      },
+      "minItems": 0,
+      "maxItems": 128
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/trigger"
+      },
+      "minItems": 0,
+      "maxItems": 32
+    },
+    "transition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "cut",
+            "crossfade",
+            "dip-to-background",
+            "luma-wipe"
+          ]
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8000
+        },
+        "quantize": {
+          "enum": [
+            "none",
+            "beat",
+            "bar"
+          ]
+        },
+        "historyOnEnter": {
+          "enum": [
+            "reset",
+            "retain-compatible"
+          ]
+        },
+        "retarget": {
+          "const": "snapshot-current"
+        }
+      },
+      "required": [
+        "type",
+        "durationMs",
+        "quantize",
+        "historyOnEnter",
+        "retarget"
+      ],
+      "additionalProperties": false
+    },
+    "post": {
+      "type": "object",
+      "properties": {
+        "bloom": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "levels": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            }
+          },
+          "required": [
+            "enabled",
+            "amount",
+            "threshold",
+            "levels"
+          ],
+          "additionalProperties": false
+        },
+        "toneMap": {
+          "enum": [
+            "reinhard",
+            "none"
+          ]
+        },
+        "exposureEv": {
+          "type": "number",
+          "minimum": -8,
+          "maximum": 8
+        },
+        "outputColorSpace": {
+          "const": "srgb"
+        },
+        "grain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "vignette": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        }
+      },
+      "required": [
+        "bloom",
+        "toneMap",
+        "exposureEv",
+        "outputColorSpace",
+        "grain",
+        "vignette"
+      ],
+      "additionalProperties": false
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "qualityTier": {
+          "enum": [
+            "light",
+            "medium",
+            "heavy"
+          ]
+        },
+        "sceneBudgetMs1080p": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 12
+        },
+        "deterministicSeed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "qualityTier",
+        "sceneBudgetMs1080p",
+        "deterministicSeed",
+        "notes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "description",
+    "author",
+    "license",
+    "engine",
+    "sourcePolicy",
+    "stages",
+    "macros",
+    "modulators",
+    "routes",
+    "triggers",
+    "transition",
+    "post",
+    "performance"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "default": {
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "normalized",
+            "radians",
+            "seconds",
+            "pixels",
+            "multiplier"
+          ]
+        },
+        "cyclic": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "min",
+        "max",
+        "default",
+        "unit",
+        "cyclic"
+      ],
+      "additionalProperties": false
+    },
+    "stage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "kind": {
+          "enum": [
+            "generator",
+            "effect"
+          ]
+        },
+        "shader": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "pattern": "^(?!/)(?!.*\\.\\.)(?!.*\\\\)[A-Za-z0-9_./-]+$"
+        },
+        "targetFormat": {
+          "enum": [
+            "rgba8",
+            "rgba16f",
+            "rgba32f"
+          ]
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.125,
+          "maximum": 1
+        },
+        "inputs": {
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          },
+          "minItems": 1,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "shader",
+        "targetFormat",
+        "scale",
+        "inputs",
+        "parameters"
+      ],
+      "additionalProperties": false
+    },
+    "macro": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "default": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "id",
+        "slot",
+        "label",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^(audio|descriptor|clock|macro|env|lfo)\\.[A-Za-z0-9_.-]+$",
+          "maxLength": 100
+        },
+        "destination": {
+          "type": "string",
+          "pattern": "^stage\\.[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_-]*$"
+        },
+        "inputMin": {
+          "type": "number",
+          "minimum": -1000000,
+          "maximum": 1000000
+        },
+        "inputMax": {
+          "type": "number",
+          "minimum": -1000000,
+          "maximum": 1000000
+        },
+        "curve": {
+          "enum": [
+            "linear",
+            "power",
+            "smoothstep"
+          ]
+        },
+        "exponent": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 8
+        },
+        "center": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "amount": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2
+        },
+        "attackMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "releaseMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "destination",
+        "inputMin",
+        "inputMax",
+        "curve",
+        "exponent",
+        "center",
+        "amount",
+        "attackMs",
+        "releaseMs"
+      ],
+      "additionalProperties": false
+    },
+    "trigger": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "on": {
+          "enum": [
+            "event.kick",
+            "event.snare",
+            "event.hat",
+            "event.bassTransient",
+            "event.midTransient",
+            "event.highTransient",
+            "event.midiNote",
+            "event.userTrigger"
+          ]
+        },
+        "minStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "refractoryMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "quantize": {
+          "enum": [
+            "none",
+            "beat",
+            "bar"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "envelope"
+                  },
+                  "target": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": [
+                  "type",
+                  "target",
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "palette-advance"
+                  },
+                  "steps": {
+                    "type": "integer",
+                    "minimum": -8,
+                    "maximum": 8
+                  }
+                },
+                "required": [
+                  "type",
+                  "steps"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "reseed"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "id",
+        "on",
+        "minStrength",
+        "refractoryMs",
+        "quantize",
+        "actions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
