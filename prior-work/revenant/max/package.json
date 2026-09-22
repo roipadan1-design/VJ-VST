@@ -1,0 +1,10 @@
+{
+  "name": "revenant-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "main": "bridge.js",
+  "description": "Static + WebSocket bridge between Max for Live and the REVENANT visual.",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

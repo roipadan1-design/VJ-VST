@@ -1,0 +1,10 @@
+{
+  "name": "spectro-tunnel-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "main": "bridge.js",
+  "description": "Static + WebSocket bridge between Max for Live and the Spectro Tunnel engine.",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

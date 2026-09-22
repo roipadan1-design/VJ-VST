@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectro Tunnel — Audio Visualizer Prototype v6 (3D)</title>
+<style>
+  :root{--panel:rgba(10,14,20,0.72);--hair:rgba(120,150,170,0.18);--ink:#cfe7ea;--dim:#6f8a93;--accent:#5be9d8;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--mono)}
+  #stage{position:fixed;inset:0;display:block}
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:radial-gradient(ellipse 78% 80% at 50% 50%, transparent 46%, rgba(0,0,0,.66) 100%)}
+  #ui{position:fixed;left:18px;bottom:18px;width:264px;background:var(--panel);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-radius:10px;padding:12px 14px 10px;
+    color:var(--ink);font-size:11px;letter-spacing:.04em;box-shadow:0 18px 60px rgba(0,0,0,.55);
+    transition:opacity .35s,transform .35s;z-index:10}
+  #ui.hidden{opacity:0;transform:translateY(8px);pointer-events:none}
+  #ui h1{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+    margin:0 0 10px;display:flex;justify-content:space-between}
+  #ui h1 b{color:var(--accent)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0}
+  .row label{color:var(--dim);text-transform:uppercase;font-size:9px;letter-spacing:.11em}
+  .row .val{color:var(--ink);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:124px;height:2px;background:var(--hair);
+    border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 8px rgba(91,233,216,.6)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border:none;border-radius:50%;background:var(--accent)}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  .btns button{flex:1;background:rgba(91,233,216,.08);border:1px solid var(--hair);color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:8px 6px;border-radius:7px;cursor:pointer}
+  .btns button:hover{background:rgba(91,233,216,.18)}
+  .btns button.primary{background:var(--accent);color:#02161a;border-color:var(--accent);font-weight:600}
+  #meters{margin-top:10px;padding-top:9px;border-top:1px solid var(--hair)}
+  .meter{display:flex;align-items:center;gap:8px;margin:4px 0}
+  .meter span:first-child{color:var(--dim);width:34px;font-size:9px;letter-spacing:.1em}
+  .bar{flex:1;height:3px;background:var(--hair);border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .05s linear}
+  #fps{color:var(--dim);font-size:9px;text-align:right;margin-top:5px;letter-spacing:.1em}
+  #hint{position:fixed;top:16px;left:50%;transform:translateX(-50%);color:var(--dim);font-size:11px;
+    letter-spacing:.1em;background:var(--panel);padding:7px 14px;border-radius:20px;border:1px solid var(--hair);
+    z-index:11;transition:opacity .5s}
+  #hint.gone{opacity:0;pointer-events:none}
+  #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:#9fb;font-size:13px;
+    text-align:center;padding:30px;line-height:1.7;z-index:20}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="vig"></div>
+<div id="hint">ENABLE AUDIO · נגן מוזיקה · G גליץ' · H ממשק · F מסך מלא</div>
+<div id="err"></div>
+
+<div id="ui">
+  <h1>SPECTRO TUNNEL <b>v6</b></h1>
+  <div class="row"><label>Sensitivity</label><input id="sens" type="range" min="0" max="3" step="0.01" value="1.3"><span class="val" id="sensV">1.30</span></div>
+  <div class="row"><label>Relief / Height</label><input id="relief" type="range" min="0.2" max="2.5" step="0.01" value="1.1"><span class="val" id="reliefV">1.10</span></div>
+  <div class="row"><label>Agitation</label><input id="agit" type="range" min="0" max="1.5" step="0.01" value="0.7"><span class="val" id="agitV">0.70</span></div>
+  <div class="row"><label>Beams</label><input id="beams" type="range" min="0" max="1.5" step="0.01" value="0.85"><span class="val" id="beamsV">0.85</span></div>
+  <div class="row"><label>Chaos / Detail</label><input id="chaos" type="range" min="0" max="1" step="0.01" value="0.2"><span class="val" id="chaosV">0.20</span></div>
+  <div class="row"><label>Melt / Decay</label><input id="melt" type="range" min="0" max="1" step="0.01" value="0.5"><span class="val" id="meltV">0.50</span></div>
+  <div class="row"><label>Color Shift</label><input id="hue" type="range" min="0" max="360" step="1" value="0"><span class="val" id="hueV">0</span></div>
+  <div class="row"><label>Glitch</label><input id="glitch" type="range" min="0" max="1" step="0.01" value="0.12"><span class="val" id="glitchV">0.12</span></div>
+  <div class="row"><label>Tunnel Gap</label><input id="gap" type="range" min="9" max="40" step="0.5" value="18"><span class="val" id="gapV">18</span></div>
+  <div class="row"><label>Scroll Speed</label><input id="scroll" type="range" min="0.1" max="1.5" step="0.01" value="0.7"><span class="val" id="scrollV">0.70</span></div>
+  <div class="btns">
+    <button id="audioBtn" class="primary">Enable audio</button>
+    <button id="fsBtn">Fullscreen</button>
+  </div>
+  <div id="meters">
+    <div class="meter"><span>BASS</span><div class="bar"><i id="mBass"></i></div></div>
+    <div class="meter"><span>MID</span><div class="bar"><i id="mMid"></i></div></div>
+    <div class="meter"><span>HIGH</span><div class="bar"><i id="mHigh"></i></div></div>
+    <div id="fps">FPS —</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const S={sens:1.3,relief:1.1,agit:0.7,beams:0.85,chaos:0.2,melt:0.5,hue:0,glitch:0.12,gap:18,scroll:0.7,paused:false};
+function bind(id,key,disp){const el=$(id),out=$(id+'V');el.addEventListener('input',()=>{S[key]=parseFloat(el.value);if(out)out.textContent=disp?disp(S[key]):el.value;});}
+bind('sens','sens',v=>v.toFixed(2));bind('relief','relief',v=>v.toFixed(2));bind('agit','agit',v=>v.toFixed(2));
+bind('beams','beams',v=>v.toFixed(2));bind('chaos','chaos',v=>v.toFixed(2));bind('melt','melt',v=>v.toFixed(2));
+bind('hue','hue');bind('glitch','glitch',v=>v.toFixed(2));bind('gap','gap',v=>v.toFixed(0));bind('scroll','scroll',v=>v.toFixed(2));
+
+if(!window.THREE){$('err').style.display='flex';$('err').textContent='לא הצלחתי לטעון את Three.js — נדרש חיבור אינטרנט בזמן פתיחת הקובץ. התחבר ורענן.';}
+
+const COLS=96,ROWS=120,WIDTH=64,DEPTH=140,FRONT=40,MARGIN=4,NBEAM=28;
+let renderer,scene,camera,floorMesh,ceilMesh,geo,posArr,colArr,rt,postScene,postCam,postMat;
+const baseFov=60;
+const baseH=new Float32Array(ROWS*COLS),specSmooth=new Float32Array(COLS);
+const bandE=new Float32Array(COLS),slowE=new Float32Array(COLS),spike=new Float32Array(COLS);
+const beams=[]; let glowTex; let energy=0;
+
+function makeGlowTexture(){
+  const w=64,h=256,c=document.createElement('canvas');c.width=w;c.height=h;
+  const x=c.getContext('2d'),img=x.createImageData(w,h);
+  for(let yy=0;yy<h;yy++){const fy=Math.min(1,Math.min(yy,h-yy)/26); // soft top/bottom
+    for(let xx=0;xx<w;xx++){const dx=(xx-31.5)/6.5,gx=Math.exp(-dx*dx);
+      const a=Math.max(0,Math.min(1,gx*fy))*255;const o=(yy*w+xx)*4;
+      img.data[o]=255;img.data[o+1]=255;img.data[o+2]=255;img.data[o+3]=a;}}
+  x.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);return t;
+}
+function hsl(h,s,l,out,o){h=((h%360)+360)%360/360;let r,g,b;
+  if(s===0){r=g=b=l;}else{const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;
+    const hk=t=>{t=t<0?t+1:t>1?t-1:t;return t<1/6?p+(q-p)*6*t:t<1/2?q:t<2/3?p+(q-p)*(2/3-t)*6:p;};
+    r=hk(h+1/3);g=hk(h);b=hk(h-1/3);}out[o]=r;out[o+1]=g;out[o+2]=b;}
+const _rgb=[0,0,0];
+
+function initThree(){
+  renderer=new THREE.WebGLRenderer({canvas:$('stage'),antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25));
+  renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x000000,1);
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0x000000,26,180);
+  camera=new THREE.PerspectiveCamera(baseFov,innerWidth/innerHeight,0.1,420);
+  camera.position.set(0,0,70);camera.lookAt(0,0,-40);
+
+  geo=new THREE.PlaneGeometry(WIDTH,DEPTH,COLS-1,ROWS-1);
+  posArr=geo.attributes.position.array;colArr=new Float32Array(posArr.length);
+  geo.setAttribute('color',new THREE.BufferAttribute(colArr,3));
+  for(let i=0;i<posArr.length;i+=3)posArr[i+2]=0;
+  const mat=new THREE.MeshBasicMaterial({wireframe:true,vertexColors:true,fog:true,
+    transparent:true,opacity:0.95,blending:THREE.AdditiveBlending});
+  floorMesh=new THREE.Mesh(geo,mat);floorMesh.rotation.x=-Math.PI/2;floorMesh.position.y=-S.gap;scene.add(floorMesh);
+  ceilMesh=new THREE.Mesh(geo,mat);ceilMesh.rotation.x=-Math.PI/2;ceilMesh.scale.z=-1;ceilMesh.position.y=+S.gap;scene.add(ceilMesh);
+
+  // beam pool (vertical light events)
+  glowTex=makeGlowTexture();
+  for(let i=0;i<NBEAM;i++){
+    const m=new THREE.SpriteMaterial({map:glowTex,color:0xffffff,transparent:true,opacity:0,
+      blending:THREE.AdditiveBlending,depthWrite:false,fog:true});
+    const sp=new THREE.Sprite(m);sp.visible=false;scene.add(sp);
+    beams.push({sp,active:false,life:0,x:0,z:0,inten:0});
+  }
+
+  rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
+  postScene=new THREE.Scene();postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  postMat=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:rt.texture},uGlitch:{value:0},uTime:{value:0}},
+    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}',
+    fragmentShader:[
+      'precision highp float;',
+      'uniform sampler2D tDiffuse;uniform float uGlitch,uTime;varying vec2 vUv;',
+      'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+      'void main(){vec2 uv=vUv;float g=uGlitch;',
+      ' float slice=floor(uv.y*22.0);float t=floor(uTime*12.0);',
+      ' float trig=step(0.82,hash(vec2(slice,t)));',
+      ' uv.x+=(hash(vec2(slice,t*1.7))-0.5)*g*0.18*trig;',
+      ' float s=g*0.010+g*0.02*trig;',
+      ' float r=texture2D(tDiffuse,uv+vec2(s,0.0)).r;',
+      ' float gr=texture2D(tDiffuse,uv).g;',
+      ' float b=texture2D(tDiffuse,uv-vec2(s,0.0)).b;',
+      ' vec3 col=vec3(r,gr,b);',
+      ' float blk=step(0.985,hash(vec2(floor(uv.x*40.0),t)))*g;',
+      ' col*=(1.0-blk*0.8);',
+      ' col+=(hash(uv*vec2(uTime+1.0,uTime+2.0))-0.5)*g*0.10;',
+      ' col*=1.0-0.06*g*step(0.5,fract(uv.y*220.0));',
+      ' gl_FragColor=vec4(col,1.0);}'
+    ].join('\n')});
+  postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMat));
+
+  addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);
+    camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);});
+}
+
+/* ---------- audio ---------- */
+let analyser=null,freqData=null,audioOn=false,sampleRate=44100;
+const env={bass:0,mid:0,high:0};let bandIdx=[];const spec=new Float32Array(COLS);
+const follow=(t,c)=>t>c?t:c*0.90;
+function computeBandIndex(){bandIdx=[];const fLo=32,fHi=15000,hz=sampleRate/2/analyser.frequencyBinCount;
+  for(let i=0;i<COLS;i++){const a=fLo*Math.pow(fHi/fLo,i/COLS),b=fLo*Math.pow(fHi/fLo,(i+1)/COLS);
+    bandIdx.push([Math.max(1,(a/hz)|0),Math.max(2,Math.ceil(b/hz))]);}}
+async function enableAudio(){try{
+  const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  const ac=new (window.AudioContext||window.webkitAudioContext)();sampleRate=ac.sampleRate;
+  const src=ac.createMediaStreamSource(stream);analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.5;
+  src.connect(analyser);freqData=new Uint8Array(analyser.frequencyBinCount);computeBandIndex();
+  audioOn=true;$('audioBtn').textContent='Audio live';$('audioBtn').classList.remove('primary');$('hint').classList.add('gone');
+}catch(e){$('audioBtn').textContent='Mic blocked';$('hint').textContent='הדפדפן חסם מיקרופון — בדוק הרשאות. הויזואל ימשיך במצב סרק.';}}
+function readAudio(){
+  if(!audioOn){const tt=performance.now()*0.0009;
+    for(let i=0;i<COLS;i++){const f=i/COLS;spec[i]=(0.10+0.12*Math.abs(Math.sin(tt*1.3+f*9.0)))*(1.0-f*0.35);}
+    env.bass=0.2+0.18*Math.abs(Math.sin(tt));env.mid=0.18;env.high=0.12+0.12*Math.abs(Math.sin(tt*2.3));}
+  else{analyser.getByteFrequencyData(freqData);
+    const avg=(a,b)=>{let s=0;for(let i=a;i<b;i++)s+=freqData[i];return (s/(b-a))/255;};const g=S.sens;
+    env.bass=Math.min(1,follow(avg(1,12)*g,env.bass));env.mid=Math.min(1,follow(avg(12,90)*g,env.mid));
+    env.high=Math.min(1,follow(avg(90,360)*g,env.high));
+    for(let i=0;i<COLS;i++){const r=bandIdx[i];let v=avg(r[0],r[1])*g*1.1;v=Math.pow(Math.min(1,v),0.85);spec[i]=v;}}
+  for(let i=0;i<COLS;i++){
+    const a=spec[Math.max(0,i-2)],b=spec[i],c=spec[Math.min(COLS-1,i+2)];const target=(a+b*2+c)/4;
+    bandE[i]=target>bandE[i]?target:bandE[i]*0.88;
+    slowE[i]+=(bandE[i]-slowE[i])*0.12;
+    spike[i]=Math.max(spike[i]*0.85,Math.max(0,bandE[i]-slowE[i])*3.2);
+  }
+  energy+=(((env.bass+env.mid+env.high)/3)-energy)*0.02; // slow narrative envelope
+}
+
+/* ---------- beams ---------- */
+function spawnBeam(ix,strength){
+  for(let b=0;b<NBEAM;b++){if(!beams[b].active){
+    const bm=beams[b];bm.active=true;bm.life=1;bm.inten=Math.min(1.4,strength);
+    bm.x=(ix/(COLS-1)-0.5)*WIDTH; bm.z=56;
+    hsl(262+(176-262)*(ix/(COLS-1))+S.hue,0.7,0.6,_rgb,0);
+    bm.sp.material.color.setRGB(_rgb[0],_rgb[1],_rgb[2]); bm.sp.visible=true; return;
+  }}
+}
+function updateBeams(dt){
+  const recede=S.scroll*1.3*(dt/16.67);
+  for(let b=0;b<NBEAM;b++){const bm=beams[b];if(!bm.active)continue;
+    bm.z-=recede; bm.life-=dt*0.0017;
+    if(bm.life<=0||bm.z<-80){bm.active=false;bm.sp.visible=false;continue;}
+    bm.sp.position.set(bm.x,0,bm.z);
+    bm.sp.scale.set((0.9+bm.inten*1.6),2*S.gap,1);
+    bm.sp.material.opacity=Math.max(0,bm.life*bm.inten)*S.beams;
+  }
+}
+
+function shiftAndInsert(){
+  baseH.copyWithin(0,COLS,ROWS*COLS);
+  const last=(ROWS-1)*COLS;
+  for(let ix=0;ix<COLS;ix++){specSmooth[ix]+=(spec[ix]-specSmooth[ix])*(1-S.melt*0.85);baseH[last+ix]=specSmooth[ix];}
+}
+
+let scrollAcc=0,t0=performance.now(),fpsAcc=0,fpsN=0,clock=0;
+function render(now){
+  requestAnimationFrame(render);
+  if(!window.THREE||!renderer)return;
+  const dt=Math.min(50,now-t0);t0=now;clock+=dt*0.001;
+  if(S.paused){renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam);return;}
+  readAudio();
+  scrollAcc+=(S.scroll*(0.9+env.bass*0.8))*(dt/16.67);
+  while(scrollAcc>=1){shiftAndInsert();scrollAcc-=1;}
+
+  // spawn beams on local-maxima onsets
+  if(S.beams>0){let spawned=0;
+    for(let ix=1;ix<COLS-1&&spawned<3;ix++){
+      if(spike[ix]>0.28&&spike[ix]>=spike[ix-1]&&spike[ix]>=spike[ix+1]){spawnBeam(ix,spike[ix]);spawned++;ix+=4;}
+    }}
+  updateBeams(dt);
+
+  const reliefScale=8.5*S.relief,chAmp=S.chaos*3.0,chF=0.18;
+  const lowHue=262,highHue=176,hueOff=S.hue,agitK=S.agit,bloom=energy*0.13;
+  const cap=S.gap-MARGIN;
+  for(let iy=0;iy<ROWS;iy++){
+    const near=iy/ROWS,frontW=Math.max(0,(iy-(ROWS-1-FRONT))/FRONT);
+    for(let ix=0;ix<COLS;ix++){
+      const i=iy*COLS+ix;let h=baseH[i]*reliefScale;
+      if(agitK>0&&frontW>0){const wig=0.7+0.3*Math.sin(clock*9.0+ix*0.7+iy*0.5);
+        h+=(bandE[ix]*0.55+spike[ix]*1.6)*agitK*frontW*6.0*wig;}
+      if(chAmp>0)h+=Math.sin(ix*chF+clock*2.0+iy*0.3)*Math.cos(iy*chF*1.3-clock*1.3)*chAmp*0.9*near;
+      if(h>cap)h=cap;if(h<-cap)h=-cap;
+      posArr[i*3+2]=h;
+      const tnorm=Math.min(1,Math.abs(h)/(reliefScale*0.55));
+      hsl(lowHue+(highHue-lowHue)*(ix/(COLS-1))+hueOff,0.62,Math.min(0.95,0.16+tnorm*0.6+bloom),colArr,i*3);
+    }
+  }
+  geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true;
+  floorMesh.position.y=-S.gap;ceilMesh.position.y=+S.gap;
+  scene.fog.far=180+energy*45;
+
+  camera.position.x=Math.sin(clock*0.20)*3.2;camera.position.y=Math.sin(clock*0.15)*1.4;
+  camera.fov=baseFov-env.bass*5.0;camera.updateProjectionMatrix();camera.lookAt(0,0,-40);
+
+  postMat.uniforms.uGlitch.value=Math.min(1,S.glitch+env.high*env.high*0.9);
+  postMat.uniforms.uTime.value=clock;
+  renderer.setRenderTarget(rt);renderer.render(scene,camera);
+  renderer.setRenderTarget(null);renderer.render(postScene,postCam);
+
+  $('mBass').style.width=(env.bass*100)+'%';$('mMid').style.width=(env.mid*100)+'%';$('mHigh').style.width=(env.high*100)+'%';
+  fpsAcc+=1000/Math.max(1,dt);fpsN++;
+  if(fpsN>=20){$('fps').textContent='FPS '+(fpsAcc/fpsN).toFixed(0);fpsAcc=0;fpsN=0;}
+}
+
+if(window.THREE){initThree();requestAnimationFrame(render);}
+
+$('audioBtn').addEventListener('click',enableAudio);
+$('fsBtn').addEventListener('click',()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();});
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+  if(k==='h')$('ui').classList.toggle('hidden');
+  else if(k==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();}
+  else if(k===' '){e.preventDefault();S.paused=!S.paused;}
+  else if(k==='g'){const el=$('glitch');el.value=(parseFloat(el.value)>0.5?0.12:0.85);el.dispatchEvent(new Event('input'));}
+});
+setTimeout(()=>{const h=$('hint');if(h)h.classList.add('gone');},9000);
+</script>
+</body>
+</html>

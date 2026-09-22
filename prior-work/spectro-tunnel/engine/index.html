@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectro Tunnel — Engine</title>
+<style>
+  :root{--panel:rgba(12,11,9,0.76);--hair:rgba(150,130,110,0.2);--ink:#e6dcc8;--dim:#9a8a72;--accent:#d8a24e;
+    --warn:#e0c060;--bad:#c06040;--mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--mono)}
+  #stage{position:fixed;inset:0;display:block}
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse 82% 84% at 50% 50%, transparent 40%, rgba(0,0,0,.6) 100%)}
+  #data{position:fixed;top:16px;right:18px;text-align:right;color:rgba(200,170,120,.34);font-size:10px;letter-spacing:.12em;line-height:1.7;pointer-events:none;z-index:6;text-transform:uppercase}#data b{color:rgba(225,205,160,.7)}
+  #ui{position:fixed;left:18px;bottom:18px;width:262px;max-height:calc(100vh - 36px);overflow-y:auto;background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-radius:10px;padding:12px 14px 10px;color:var(--ink);font-size:11px;letter-spacing:.04em;box-shadow:0 18px 60px rgba(0,0,0,.55);transition:opacity .35s,transform .35s;z-index:10}
+  #ui.hidden{opacity:0;transform:translateY(8px);pointer-events:none}#ui::-webkit-scrollbar{width:0}
+  #ui h1{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0 0 9px;display:flex;justify-content:space-between;align-items:center}#ui h1 b{color:var(--accent)}
+  .grp{font-size:8.5px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin:9px 0 2px;opacity:.7}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px 0}
+  .row label{color:var(--dim);text-transform:uppercase;font-size:9px;letter-spacing:.1em}.row .val{color:var(--ink);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:2px;background:var(--hair);border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(216,162,78,.6)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border:none;border-radius:50%;background:var(--accent)}
+  .toggles{display:flex;gap:8px;margin:4px 0 2px}
+  .toggles button{flex:1;background:rgba(216,162,78,.06);border:1px solid var(--hair);color:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;padding:8px 6px;border-radius:7px;cursor:pointer;text-transform:uppercase}
+  .toggles button.on{background:rgba(216,162,78,.2);color:var(--accent);border-color:rgba(216,162,78,.5)}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  .btns button{flex:1;background:rgba(216,162,78,.08);border:1px solid var(--hair);color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.07em;padding:8px 6px;border-radius:7px;cursor:pointer}
+  .btns button.primary{background:var(--accent);color:#1a1206;border-color:var(--accent);font-weight:600}
+  #beatdots{display:flex;gap:6px;align-items:center;margin-top:9px}
+  #beatdots i{width:13px;height:13px;border-radius:50%;background:var(--hair);transition:background .04s,transform .04s}
+  #beatdots i.on{background:var(--accent);box-shadow:0 0 9px var(--accent);transform:scale(1.18)}#beatdots i.db.on{background:#fff;box-shadow:0 0 12px #fff}
+  #beatdots .lbl{margin-left:auto;color:var(--dim);font-size:9px;letter-spacing:.1em}
+  #meters{margin-top:9px;padding-top:8px;border-top:1px solid var(--hair)}
+  .meter{display:flex;align-items:center;gap:8px;margin:4px 0}.meter span:first-child{color:var(--dim);width:34px;font-size:9px;letter-spacing:.1em}
+  .bar{flex:1;height:3px;background:var(--hair);border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .05s linear}
+  #fps{color:var(--dim);font-size:9px;text-align:right;margin-top:5px;letter-spacing:.1em}#scene{color:var(--accent);font-size:9px;text-align:left;margin-top:3px;letter-spacing:.14em}
+  #hint{position:fixed;top:16px;left:50%;transform:translateX(-50%);color:var(--dim);font-size:11px;letter-spacing:.1em;background:var(--panel);padding:7px 14px;border-radius:20px;border:1px solid var(--hair);z-index:11;transition:opacity .5s}
+  #hint.gone{opacity:0;pointer-events:none}
+  #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:#dca;font-size:13px;text-align:center;padding:30px;line-height:1.7;z-index:20}
+  #conn{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--dim);padding:2px 8px;border:1px solid var(--hair);border-radius:12px;background:rgba(0,0,0,.35)}
+  #conn .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);box-shadow:0 0 8px currentColor;transition:background .25s}
+  #conn.s-ws{color:var(--accent);border-color:rgba(216,162,78,.45)}
+  #conn.s-ws .dot{background:var(--accent)}
+  #conn.s-mic{color:var(--warn);border-color:rgba(224,192,96,.45)}
+  #conn.s-mic .dot{background:var(--warn)}
+  #conn.s-demo{color:var(--bad);border-color:rgba(192,96,64,.45)}
+  #conn.s-demo .dot{background:var(--bad)}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="vig"></div>
+<div id="data"></div>
+<div id="hint">SPECTRO TUNNEL · A אוטו · W עולם · H ממשק · F מסך מלא</div>
+<div id="err"></div>
+
+<div id="ui">
+  <h1>SPECTRO TUNNEL <span id="conn" class="s-demo"><span class="dot"></span><span id="connT">DEMO</span></span></h1>
+  <div class="toggles"><button id="autoBtn">Auto-pilot</button><button id="worldBtn">World &#9654;</button></div>
+  <div class="grp">Beat / Time</div>
+  <div class="row"><label>BPM</label><input id="bpm" type="range" min="60" max="180" step="1" value="120"><span class="val" id="bpmV">120</span></div>
+  <div class="row"><label>Cut Every (bars)</label><input id="cut" type="range" min="1" max="8" step="1" value="4"><span class="val" id="cutV">4</span></div>
+  <div class="row"><label>Punch</label><input id="punch" type="range" min="0" max="1.5" step="0.01" value="0.85"><span class="val" id="punchV">0.85</span></div>
+  <div class="grp">Audio</div>
+  <div class="row"><label>Sensitivity</label><input id="sens" type="range" min="0" max="3" step="0.01" value="1.3"><span class="val" id="sensV">1.30</span></div>
+  <div class="row"><label>Agitation</label><input id="agit" type="range" min="0" max="1.5" step="0.01" value="0.7"><span class="val" id="agitV">0.70</span></div>
+  <div class="row"><label>Beams</label><input id="beams" type="range" min="0" max="1.5" step="0.01" value="0.85"><span class="val" id="beamsV">0.85</span></div>
+  <div class="grp">World</div>
+  <div class="row"><label>Relief / Scale</label><input id="relief" type="range" min="0.2" max="2.5" step="0.01" value="1.1"><span class="val" id="reliefV">1.10</span></div>
+  <div class="row"><label>Tunnel Gap</label><input id="gap" type="range" min="9" max="40" step="0.5" value="18"><span class="val" id="gapV">18</span></div>
+  <div class="row"><label>Scroll</label><input id="scroll" type="range" min="0.1" max="1.5" step="0.01" value="0.7"><span class="val" id="scrollV">0.70</span></div>
+  <div class="row"><label>Particles</label><input id="parts" type="range" min="0" max="1.5" step="0.01" value="0.7"><span class="val" id="partsV">0.70</span></div>
+  <div class="grp">Look (post)</div>
+  <div class="row"><label>Bloom</label><input id="bloom" type="range" min="0" max="1.5" step="0.01" value="0.8"><span class="val" id="bloomV">0.80</span></div>
+  <div class="row"><label>Trails</label><input id="trails" type="range" min="0" max="0.95" step="0.01" value="0.45"><span class="val" id="trailsV">0.45</span></div>
+  <div class="row"><label>Mood (BoC)</label><input id="hue" type="range" min="-20" max="20" step="1" value="0"><span class="val" id="hueV">0</span></div>
+  <div class="row"><label>Glitch</label><input id="glitch" type="range" min="0" max="1" step="0.01" value="0.12"><span class="val" id="glitchV">0.12</span></div>
+  <div class="row"><label>Film Grain</label><input id="grain" type="range" min="0" max="1" step="0.01" value="0.4"><span class="val" id="grainV">0.40</span></div>
+  <div id="beatdots"><i class="db" data-b="0"></i><i data-b="1"></i><i data-b="2"></i><i data-b="3"></i><span class="lbl" id="barlbl">BAR 0</span></div>
+  <div class="btns"><button id="audioBtn" class="primary">Enable mic</button><button id="fsBtn">Fullscreen</button></div>
+  <div id="meters">
+    <div class="meter"><span>BASS</span><div class="bar"><i id="mBass"></i></div></div>
+    <div class="meter"><span>MID</span><div class="bar"><i id="mMid"></i></div></div>
+    <div class="meter"><span>HIGH</span><div class="bar"><i id="mHigh"></i></div></div>
+    <div id="scene">-- &middot; --</div><div id="fps">FPS --</div>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="engine.js"></script>
+</body>
+</html>

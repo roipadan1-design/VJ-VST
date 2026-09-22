@@ -1,0 +1,14 @@
+{
+  "name": "vj-ableton-bridge",
+  "version": "0.1.0",
+  "description": "Bridges Ableton Live 10 (tempo, playback, meters) to the browser VJ sketch over WebSocket",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ableton-js": "^4.1.0",
+    "ws": "^8.18.0"
+  }
+}

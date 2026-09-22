@@ -1,0 +1,17 @@
+{
+  "name": "glitch-face",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node server.mjs",
+    "capture": "node capture.js",
+    "encode": "node encode.mjs"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}
