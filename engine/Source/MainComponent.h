@@ -4,27 +4,24 @@
 #include "PresetManager.h"
 #include "SpoutSender.h"
 #include "VideoPlayer.h"
+#include "FeatureBus.h"
+#include "Modulation.h"
 
-// Phase 1: ISF shader hosting + preset switching. Listens for /audio/level,
-// /audio/bass, /audio/mid, /audio/high, /audio/beatphase, /audio/onset,
-// /preset/select, /preset/next, /preset/previous, /preset/transitionduration,
-// /display/select, /display/next, /display/previous, /fullscreen, /effect/toggle,
-// /effect/param, /camera/open, /video/load, and /debug/snapshot
-// on UDP port 9000 by default (see "--osc-port" on the command line to run a
-// second simultaneous instance on a different port). /effect/param <stageIndex> <paramName> <value> sets an ISF
-// input live on the current preset (an effectChain stage, or the lone shader
-// of a single-shader preset, which ignores stageIndex) - the same mechanism a
-// future M4L knob UI would drive. /audio/onset (a bare bang, no argument - the M4L device sends
-// it on a rising-edge bass transient) drives a decaying "onset" pulse
-// (1.0 down to 0.0 over onsetPulseDurationSeconds) alongside level/bass/mid/
-// high/beatphase, so any ISF shader or preset audioMappings entry can react
-// to it exactly like the other audio-reactive uniforms. Press F for real OS fullscreen on whichever monitor the
-// window is currently on, [ and ] to move the window (and fullscreen
-// state, if active) to the previous/next monitor, Left/Right arrows to
-// switch presets locally, 1-9 to toggle effect-chain stages on/off live,
-// C to open the default webcam. Drag a video file (MP4/etc) onto the
-// window to load it as the ISF "inputImage" source for effect-chain
-// presets (e.g. the Glitch chain) - a live camera feed works the same way.
+// The VJ Engine window: owns the GL context, the preset library/compositor
+// (PresetManager), the analysis intake (FeatureBus) and the outputs (window,
+// fullscreen on any monitor, Spout).
+//
+// OSC on UDP 9000 by default ("--osc-port N" for a second instance):
+//  - analysis:  /v2/hello /v2/frame /v2/spectrum /v2/event (VJ Analyzer plugin,
+//               analyze_wav --send) and the legacy /audio/* messages
+//  - control:   /v2/macro <slot 0-7> <0-1>, /v2/preset <index>, /v2/preset/next|previous,
+//               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>
+//  - legacy:    /preset/select|next|previous, /preset/transitionduration,
+//               /effect/toggle, /effect/param, /display/*, /fullscreen,
+//               /camera/open, /video/load, /debug/snapshot
+// Keys: F/F11 fullscreen, [ ] move monitor, Left/Right presets, 1-9 toggle
+// stages, Space manual hit, B blackout, D demo groove, C webcam; drop a video
+// file onto the window to use it as the video input.
 class MainComponent : public juce::OpenGLAppComponent,
                        public juce::FileDragAndDropTarget,
                        private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
@@ -35,7 +32,7 @@ public:
     // single port used to mean a second instance would silently bind the
     // same port alongside the first, with OSC then delivered to an
     // unpredictable one of the two.
-    explicit MainComponent (int oscPortIn = 9000);
+    explicit MainComponent (int oscPortIn = 9000, bool startWithDemo = false);
     ~MainComponent() override;
 
     void initialise() override;
@@ -73,27 +70,22 @@ private:
     SpoutSender spoutSender;
     VideoPlayer videoPlayer;
 
-    std::atomic<float> level { 0.0f };
-    std::atomic<float> bass  { 0.0f };
-    std::atomic<float> mid   { 0.0f };
-    std::atomic<float> high  { 0.0f };
-    std::atomic<float> beatPhase { 0.0f };
-
-    // Time (same clock as startTime/render()'s `time`) at which the last
-    // /audio/onset bang arrived - the render loop derives a decaying pulse
-    // from this rather than storing the pulse value itself, since the OSC
-    // message thread (writer) and GL thread (reader/decayer) would otherwise
-    // race over who last touched it.
-    std::atomic<double> lastOnsetTime { -1000.0 };
+    FeatureBus featureBus;
+    Clock clock;
+    MacroBank macroBank; // GL thread copy of the macro slots below
+    std::array<std::atomic<float>, MacroBank::numSlots> macroValues {};
+    std::array<std::atomic<bool>, MacroBank::numSlots> macroSet {};
+    double lastFrameSeconds = -1.0;
     static constexpr double onsetPulseDurationSeconds = 0.15;
 
-    std::atomic<int> pendingPresetSelect { -1 };
-    std::atomic<bool> pendingNext { false };
-    std::atomic<bool> pendingPrevious { false };
+    static double nowSeconds() { return juce::Time::getMillisecondCounterHiRes() * 0.001; }
+
     std::atomic<int> pendingStageToggle { -1 };
 
-    // -1 sentinel = no change pending, same pattern as pendingPresetSelect.
-    std::atomic<float> pendingTransitionDurationMs { -1.0f };
+    // noTransitionChange = nothing pending; a negative value restores the
+    // per-preset transition lengths.
+    static constexpr float noTransitionChange = -1.0e9f;
+    std::atomic<float> pendingTransitionDurationMs { noTransitionChange };
 
     // /debug/snapshot - dumps the current frame to VJEngine_snapshot.png next
     // to the .exe, overwriting any previous one. Lets a preset/effect be
@@ -113,6 +105,7 @@ private:
     juce::Array<PendingEffectParam> pendingEffectParams;
 
     double startTime = 0.0;
+    bool startupPresetRequested = false;
 
     // Periodic FPS logging (to VJEngine.log, same file/pattern VideoPlayer's
     // diagnostics use) - the only way to actually see frame rate without a

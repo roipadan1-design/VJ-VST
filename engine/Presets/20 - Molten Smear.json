@@ -1,0 +1,465 @@
+{
+  "schemaVersion": "2.0",
+  "id": "molten-smear",
+  "name": "Molten Smear",
+  "description": "Holographic masks dragged through a flowing feedback memory - melted, liquid trails; kicks push the flow.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "holo",
+      "kind": "generator",
+      "shader": "Instrument/holo_shards.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.7,
+          "max": 2.6,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "spin",
+          "label": "Spin",
+          "min": -0.6,
+          "max": 0.6,
+          "default": 0.1,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "film",
+          "label": "Film",
+          "min": 0.5,
+          "max": 6,
+          "default": 2.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "shimmer",
+          "label": "Shimmer",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "shards",
+          "label": "Shards",
+          "min": 0,
+          "max": 0.9,
+          "default": 0.15,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "burst",
+          "label": "Burst",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "rings",
+          "label": "Rings",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.3,
+          "max": 3.5,
+          "default": 1.2,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ],
+      "sources": {
+        "source": {
+          "type": "images",
+          "folder": "Images/Masks",
+          "advance": "bar",
+          "every": 2,
+          "order": "random"
+        }
+      }
+    },
+    {
+      "id": "smear",
+      "kind": "effect",
+      "shader": "Instrument/feedback_smear.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "persistence",
+          "label": "Persistence",
+          "min": 0.1,
+          "max": 4.0,
+          "default": 1.2,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "flow",
+          "label": "Flow",
+          "min": 0.0,
+          "max": 1.0,
+          "default": 0.25,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "push",
+          "label": "Push",
+          "min": 0,
+          "max": 0.03,
+          "default": 0.006,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": -0.02,
+          "max": 0.02,
+          "default": 0.004,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "aberration",
+          "label": "Aberration",
+          "min": 0,
+          "max": 0.02,
+          "default": 0.003,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "inject",
+          "label": "Inject",
+          "min": 0,
+          "max": 1,
+          "default": 0.7,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "flush",
+          "label": "Flush",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "Intensity",
+      "default": 0.5
+    },
+    {
+      "id": "motion",
+      "slot": 1,
+      "label": "Motion",
+      "default": 0.4
+    },
+    {
+      "id": "color",
+      "slot": 2,
+      "label": "Color",
+      "default": 0.5
+    },
+    {
+      "id": "space",
+      "slot": 3,
+      "label": "Space",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 180,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 140,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 70,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "drift",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 16,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-smear-persistence",
+      "source": "macro.intensity",
+      "destination": "stage.smear.persistence",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-smear-flow",
+      "source": "macro.motion",
+      "destination": "stage.smear.flow",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-holo-spin",
+      "source": "macro.motion",
+      "destination": "stage.holo.spin",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-holo-film",
+      "source": "macro.color",
+      "destination": "stage.holo.film",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.7,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-smear-zoom",
+      "source": "macro.space",
+      "destination": "stage.smear.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-holo-zoom",
+      "source": "macro.space",
+      "destination": "stage.holo.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-kick-smear-push",
+      "source": "env.kick",
+      "destination": "stage.smear.push",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.7,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-kick-holo-burst",
+      "source": "env.kick",
+      "destination": "stage.holo.burst",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.8,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-snare-smear-aberration",
+      "source": "env.snare",
+      "destination": "stage.smear.aberration",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "audio-bass-activity-smear-push",
+      "source": "audio.bass.activity",
+      "destination": "stage.smear.push",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.2,
+      "attackMs": 30,
+      "releaseMs": 220
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "crossfade",
+    "durationMs": 800,
+    "quantize": "bar",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.25,
+      "threshold": 0.9,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.3,
+    "outputColorSpace": "srgb",
+    "grain": 0.025,
+    "vignette": 0.2
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 1111,
+    "notes": "target, not measured"
+  }
+}

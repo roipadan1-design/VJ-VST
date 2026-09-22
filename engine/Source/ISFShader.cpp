@@ -1,4 +1,5 @@
 #include "ISFShader.h"
+#include "GLHelpers.h"
 
 using namespace juce::gl;
 
@@ -58,6 +59,46 @@ bool ISFShader::loadFromFile (const juce::File& file)
 
     headerJson = parsed;
     rawBody = text.substring (commentEnd + 2);
+    shaderFile = file;
+
+    // Engine extension: `#include "common.glsl"` lines are replaced with that
+    // file (resolved next to the shader, one level deep), so a family of
+    // shaders can share noise/palette/sampling helpers.
+    {
+        juce::StringArray lines;
+        lines.addLines (rawBody);
+        for (auto& line : lines)
+        {
+            auto trimmed = line.trim();
+            if (! trimmed.startsWith ("#include"))
+                continue;
+
+            auto name = trimmed.fromFirstOccurrenceOf ("\"", false, false).upToFirstOccurrenceOf ("\"", false, false);
+            auto includeFile = file.getParentDirectory().getChildFile (name);
+            if (name.isEmpty() || name.contains ("..") || ! includeFile.existsAsFile())
+            {
+                lastError = "cannot resolve " + trimmed;
+                return false;
+            }
+            line = includeFile.loadFileAsString();
+        }
+        rawBody = lines.joinIntoString ("\n");
+    }
+
+    // ISF "IMPORTED": { "name": { "PATH": "file.png" } } (or the array form
+    // [{ "NAME": ..., "PATH": ... }]), resolved next to the shader file.
+    imported.clear();
+    auto importedVar = headerJson.getProperty ("IMPORTED", juce::var());
+    auto addImport = [this, &file] (const juce::String& name, const juce::String& path) {
+        if (name.isNotEmpty() && path.isNotEmpty() && ! path.contains (".."))
+            imported.add ({ name, file.getParentDirectory().getChildFile (path) });
+    };
+    if (auto* obj = importedVar.getDynamicObject())
+        for (auto& prop : obj->getProperties())
+            addImport (prop.name.toString(), prop.value.getProperty ("PATH", juce::var()).toString());
+    else if (auto* arr = importedVar.getArray())
+        for (auto& entry : *arr)
+            addImport (entry.getProperty ("NAME", juce::var()).toString(), entry.getProperty ("PATH", juce::var()).toString());
 
     inputs.clear();
     currentValues.clear();
@@ -91,6 +132,7 @@ bool ISFShader::loadFromFile (const juce::File& file)
             pass.persistent = (bool) entry.getProperty ("PERSISTENT", false);
             pass.widthScale = parseSimpleDimensionExpression (entry.getProperty ("WIDTH", juce::var()));
             pass.heightScale = parseSimpleDimensionExpression (entry.getProperty ("HEIGHT", juce::var()));
+            pass.fullFloat = (bool) entry.getProperty ("FLOAT", false);
             passes.add (pass);
         }
     }
@@ -180,9 +222,11 @@ juce::String ISFShader::buildFragmentShaderSource() const
     src << "#ifdef GL_ES\n precision mediump float;\n#endif\n";
     src << "varying vec2 isf_FragNormCoord;\n";
     src << "uniform float TIME;\n";
+    src << "uniform float TIMEDELTA;\n";
     src << "uniform vec2 RENDERSIZE;\n";
     src << "uniform int PASSINDEX;\n";
     src << "uniform float level;\nuniform float bass;\nuniform float mid;\nuniform float high;\nuniform float beatphase;\nuniform float onset;\n";
+    src << "uniform float vj_palette;\nuniform float vj_seed;\nuniform float vj_beat;\n";
 
     for (auto& input : inputs)
     {
@@ -195,7 +239,12 @@ juce::String ISFShader::buildFragmentShaderSource() const
         }
 
         src << "uniform " << glslType << " " << input.name << ";\n";
+        if (glslType == "sampler2D")
+            src << "uniform vec2 " << input.name << "_size;\n";
     }
+
+    for (auto& image : imported)
+        src << "uniform sampler2D " << image.name << ";\nuniform vec2 " << image.name << "_size;\n";
 
     juce::StringArray declaredTargets;
     for (auto& pass : passes)
@@ -250,23 +299,53 @@ bool ISFShader::compile (juce::OpenGLContext& context)
     uniformTime.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "TIME"));
     uniformRenderSize.reset (new juce::OpenGLShaderProgram::Uniform (*program, "RENDERSIZE"));
     uniformPassIndex.reset  (new juce::OpenGLShaderProgram::Uniform (*program, "PASSINDEX"));
+    uniformTimeDelta.reset  (new juce::OpenGLShaderProgram::Uniform (*program, "TIMEDELTA"));
     uniformLevel.reset      (new juce::OpenGLShaderProgram::Uniform (*program, "level"));
     uniformBass.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "bass"));
     uniformMid.reset        (new juce::OpenGLShaderProgram::Uniform (*program, "mid"));
     uniformHigh.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "high"));
     uniformBeatPhase.reset  (new juce::OpenGLShaderProgram::Uniform (*program, "beatphase"));
     uniformOnset.reset      (new juce::OpenGLShaderProgram::Uniform (*program, "onset"));
+    uniformPalette.reset    (new juce::OpenGLShaderProgram::Uniform (*program, "vj_palette"));
+    uniformSeed.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "vj_seed"));
+    uniformBeat.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "vj_beat"));
 
     inputUniforms.clear();
+    sizeUniforms.clear();
     for (auto& input : inputs)
     {
-        if (glslTypeFor (input.type).isEmpty())
+        auto glslType = glslTypeFor (input.type);
+        if (glslType.isEmpty())
         {
             inputUniforms.add (nullptr);
+            sizeUniforms.add (nullptr);
             continue;
         }
 
         inputUniforms.add (new juce::OpenGLShaderProgram::Uniform (*program, input.name.toRawUTF8()));
+        sizeUniforms.add (glslType == "sampler2D"
+                              ? new juce::OpenGLShaderProgram::Uniform (*program, (input.name + "_size").toRawUTF8())
+                              : nullptr);
+    }
+
+    importedUniforms.clear();
+    importedSizeUniforms.clear();
+    for (auto& image : imported)
+    {
+        if (image.texture == 0)
+        {
+            auto loaded = juce::ImageFileFormat::loadFrom (image.file);
+            if (! loaded.isValid())
+            {
+                lastError = "IMPORTED image not found or unreadable: " + image.file.getFullPathName();
+                return false;
+            }
+            image.texture = uploadImageTexture (loaded);
+            image.width = loaded.getWidth();
+            image.height = loaded.getHeight();
+        }
+        importedUniforms.add (new juce::OpenGLShaderProgram::Uniform (*program, image.name.toRawUTF8()));
+        importedSizeUniforms.add (new juce::OpenGLShaderProgram::Uniform (*program, (image.name + "_size").toRawUTF8()));
     }
 
     targetUniforms.clear();
@@ -308,12 +387,12 @@ void ISFShader::ensureBlackPlaceholderTexture()
     glBindTexture (GL_TEXTURE_2D, 0);
 }
 
-void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, bool persistent)
+void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, bool persistent, bool fullFloat)
 {
     width = juce::jmax (1, width);
     height = juce::jmax (1, height);
 
-    if (rt.fbo != 0 && rt.width == width && rt.height == height && rt.persistent == persistent)
+    if (rt.fbo != 0 && rt.width == width && rt.height == height && rt.persistent == persistent && rt.fullFloat == fullFloat)
         return;
 
     if (rt.fbo == 0)
@@ -325,7 +404,7 @@ void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, boo
     for (int i = 0; i < 2; ++i)
     {
         glBindTexture (GL_TEXTURE_2D, rt.textures[i]);
-        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D (GL_TEXTURE_2D, 0, fullFloat ? GL_RGBA32F : GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -346,6 +425,7 @@ void ISFShader::ensureRenderTarget (RenderTarget& rt, int width, int height, boo
     rt.width = width;
     rt.height = height;
     rt.persistent = persistent;
+    rt.fullFloat = fullFloat;
     rt.writeIndex = 0;
 }
 
@@ -366,7 +446,7 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
         targetHeight = juce::roundToInt (mainHeight * pass.heightScale);
 
         auto& rt = renderTargets[pass.target];
-        ensureRenderTarget (rt, targetWidth, targetHeight, pass.persistent);
+        ensureRenderTarget (rt, targetWidth, targetHeight, pass.persistent, pass.fullFloat);
         writingTo = &rt;
 
         glBindFramebuffer (GL_FRAMEBUFFER, rt.fbo);
@@ -382,6 +462,7 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
     program->use();
 
     if (uniformTime != nullptr)       uniformTime->set (timeSeconds);
+    if (uniformTimeDelta != nullptr)  uniformTimeDelta->set (timeDelta);
     if (uniformRenderSize != nullptr) uniformRenderSize->set ((float) targetWidth, (float) targetHeight);
     if (uniformPassIndex != nullptr)  uniformPassIndex->set (passIndex);
     if (uniformLevel != nullptr)      uniformLevel->set (level);
@@ -390,6 +471,9 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
     if (uniformHigh != nullptr)       uniformHigh->set (high);
     if (uniformBeatPhase != nullptr)  uniformBeatPhase->set (beatphase);
     if (uniformOnset != nullptr)      uniformOnset->set (onset);
+    if (uniformPalette != nullptr)    uniformPalette->set (enginePalette);
+    if (uniformSeed != nullptr)       uniformSeed->set (engineSeed);
+    if (uniformBeat != nullptr)       uniformBeat->set (engineBeat);
 
     int textureUnit = 0;
 
@@ -411,10 +495,33 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
         auto boundTexture = (externalImageTexture != 0 && input.name == "inputImage")
                                  ? externalImageTexture
                                  : blackPlaceholderTexture;
+        float imageWidth = (float) mainWidth, imageHeight = (float) mainHeight;
+
+        // A schema-2 source (still image / rendered text) bound by name wins.
+        auto bound = boundImages.find (input.name);
+        if (bound != boundImages.end() && bound->second.texture != 0)
+        {
+            boundTexture = bound->second.texture;
+            imageWidth = bound->second.width;
+            imageHeight = bound->second.height;
+        }
 
         glActiveTexture (GL_TEXTURE0 + textureUnit);
         glBindTexture (GL_TEXTURE_2D, boundTexture);
         uniform->set (textureUnit);
+        ++textureUnit;
+
+        if (auto* sizeUniform = sizeUniforms[i])
+            sizeUniform->set (imageWidth, imageHeight);
+    }
+
+    for (int i = 0; i < imported.size(); ++i)
+    {
+        auto& image = imported.getReference (i);
+        glActiveTexture (GL_TEXTURE0 + textureUnit);
+        glBindTexture (GL_TEXTURE_2D, image.texture);
+        if (auto* u = importedUniforms[i])     u->set (textureUnit);
+        if (auto* u = importedSizeUniforms[i]) u->set ((float) image.width, (float) image.height);
         ++textureUnit;
     }
 
@@ -492,6 +599,9 @@ void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth,
 
     ensureBlackPlaceholderTexture();
 
+    timeDelta = lastRenderTime < 0.0f ? 1.0f / 60.0f : juce::jlimit (0.0f, 0.1f, timeSeconds - lastRenderTime);
+    lastRenderTime = timeSeconds;
+
     for (int i = 0; i < passes.size(); ++i)
         runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase, onset,
                  externalImageTexture, finalTargetFbo);
@@ -522,17 +632,31 @@ void ISFShader::releaseGLObjects()
     }
     renderTargets.clear();
 
+    for (auto& image : imported)
+    {
+        if (image.texture != 0)
+            glDeleteTextures (1, &image.texture);
+        image.texture = 0;
+    }
+
     inputUniforms.clear();
+    sizeUniforms.clear();
+    importedUniforms.clear();
+    importedSizeUniforms.clear();
     targetUniforms.clear();
     targetUniformNames.clear();
     uniformTime.reset();
     uniformRenderSize.reset();
     uniformPassIndex.reset();
+    uniformTimeDelta.reset();
     uniformLevel.reset();
     uniformBass.reset();
     uniformMid.reset();
     uniformHigh.reset();
     uniformBeatPhase.reset();
     uniformOnset.reset();
+    uniformPalette.reset();
+    uniformSeed.reset();
+    uniformBeat.reset();
     program.reset();
 }

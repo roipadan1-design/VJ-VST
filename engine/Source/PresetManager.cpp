@@ -3,12 +3,47 @@
 
 using namespace juce::gl;
 
+namespace
+{
+    const char* const blendSource = R"(
+        uniform sampler2D outgoingImage;
+        uniform sampler2D incomingImage;
+        uniform float progress;
+        uniform float mode; // 0 crossfade, 1 dip to background, 2 luma wipe
+        void main()
+        {
+            vec3 a = texture2D (outgoingImage, uv).rgb;
+            vec3 b = texture2D (incomingImage, uv).rgb;
+            vec3 c;
+            if (mode < 0.5)
+                c = mix (a, b, progress);
+            else if (mode < 1.5)
+                c = progress < 0.5 ? a * (1.0 - 2.0 * progress) : b * (2.0 * progress - 1.0);
+            else
+            {
+                // Dark regions of the outgoing image give way first.
+                float lum = dot (a, vec3 (0.2126, 0.7152, 0.0722));
+                float edge = progress * 1.2 - 0.1;
+                c = mix (a, b, smoothstep (lum - 0.1, lum + 0.1, edge));
+            }
+            gl_FragColor = vec4 (c, 1.0);
+        }
+    )";
+
+    const char* const outputSource = R"(
+        uniform sampler2D source;
+        uniform float gain;
+        void main() { gl_FragColor = vec4 (texture2D (source, uv).rgb * gain, 1.0); }
+    )";
+}
+
 PresetManager::~PresetManager() = default;
 
-void PresetManager::scanPresets (const juce::File& presetsDir, const juce::File& shadersDir)
+void PresetManager::scanPresets (const juce::File& presetsDir, const juce::File& shadersDir, const juce::File& mediaDir)
 {
     shadersDirectory = shadersDir;
-    presets.clear();
+    sourceLibrary.setMediaRoot (mediaDir);
+    entries.clear();
 
     if (! presetsDir.isDirectory())
     {
@@ -16,352 +51,292 @@ void PresetManager::scanPresets (const juce::File& presetsDir, const juce::File&
         return;
     }
 
-    auto jsonFiles = presetsDir.findChildFiles (juce::File::findFiles, false, "*.json");
-    jsonFiles.sort();
+    auto files = presetsDir.findChildFiles (juce::File::findFiles, false, "*.json");
+    files.sort();
 
-    for (auto& file : jsonFiles)
+    for (auto& file : files)
     {
-        bool ok = false;
+        auto json = juce::JSON::parse (file);
+        Entry entry;
+        entry.file = file;
         juce::String error;
-        auto preset = Preset::loadFromFile (file, ok, error);
 
-        if (ok)
-            presets.add (preset);
+        if (PresetV2::isSchema2 (json))
+        {
+            auto def = std::make_shared<PresetV2>();
+            if (! PresetV2::parse (json, *def, error))
+            {
+                logDiagnostic ("PresetManager: rejected " + file.getFileName() + " - " + error);
+                continue;
+            }
+            entry.name = def->name;
+            entry.v2 = def;
+        }
         else
-            logDiagnostic ("PresetManager: failed to load " + file.getFileName() + " - " + error);
-    }
-
-    logDiagnostic ("PresetManager: loaded " + juce::String (presets.size()) + " preset(s) from " + presetsDir.getFullPathName());
-}
-
-bool PresetManager::selectPreset (int index, juce::OpenGLContext& context)
-{
-    if (presets.isEmpty())
-        return false;
-
-    index = ((index % presets.size()) + presets.size()) % presets.size();
-    auto& preset = presets.getReference (index);
-
-    std::unique_ptr<ISFShader> newShader;
-    std::unique_ptr<EffectChain> newEffectChain;
-
-    if (preset.isEffectChain())
-    {
-        auto chain = std::make_unique<EffectChain>();
-
-        if (! chain->load (preset.effectChain, shadersDirectory, context))
         {
-            logDiagnostic ("PresetManager: could not load effect chain for preset '" + preset.name + "'");
-            return false;
+            bool ok = false;
+            entry.legacy = Preset::loadFromFile (file, ok, error);
+            if (! ok)
+            {
+                logDiagnostic ("PresetManager: failed to load " + file.getFileName() + " - " + error);
+                continue;
+            }
+            entry.name = entry.legacy.name;
         }
 
-        newEffectChain = std::move (chain);
-    }
-    else
-    {
-        auto shaderFile = shadersDirectory.getChildFile (preset.shaderFile);
-        auto shader = std::make_unique<ISFShader>();
-
-        if (! shader->loadFromFile (shaderFile))
-        {
-            logDiagnostic ("PresetManager: could not load shader for preset '" + preset.name + "': " + shader->getLastError());
-            return false;
-        }
-
-        if (! shader->compile (context))
-        {
-            logDiagnostic ("PresetManager: could not compile shader for preset '" + preset.name + "': " + shader->getLastError());
-            return false;
-        }
-
-        for (auto& override : preset.paramOverrides)
-            shader->setValue (override.name.toString(), override.value);
-
-        newShader = std::move (shader);
+        entries.add (entry);
     }
 
-    // Whatever was current becomes "outgoing" and keeps rendering (crossfading
-    // out) instead of being torn down immediately - unless a fade was already
-    // in flight, in which case that half-finished outgoing preset is what's
-    // being replaced, so it's released now rather than accumulating a third.
-    if (currentShader != nullptr || currentEffectChain != nullptr)
-    {
-        if (outgoingShader != nullptr)      outgoingShader->releaseGLObjects();
-        if (outgoingEffectChain != nullptr) outgoingEffectChain->releaseGLObjects();
-
-        outgoingShader = std::move (currentShader);
-        outgoingEffectChain = std::move (currentEffectChain);
-        outgoingIndex = currentIndex;
-        transitioning = true;
-        transitionStartMs = juce::Time::getMillisecondCounterHiRes();
-    }
-
-    currentShader = std::move (newShader);
-    currentEffectChain = std::move (newEffectChain);
-    currentIndex = index;
-
-    logDiagnostic ("PresetManager: switched to preset '" + preset.name + "' (" + juce::String (index + 1) + "/" + juce::String (presets.size()) + ")");
-    return true;
+    logDiagnostic ("PresetManager: loaded " + juce::String (entries.size()) + " preset(s) from " + presetsDir.getFullPathName());
 }
 
-void PresetManager::nextPreset (juce::OpenGLContext& context)
+int PresetManager::getFirstSchema2Index() const noexcept
 {
-    if (! presets.isEmpty())
-        selectPreset (currentIndex + 1, context);
+    for (int i = 0; i < entries.size(); ++i)
+        if (entries.getReference (i).v2 != nullptr)
+            return i;
+    return 0;
 }
 
-void PresetManager::previousPreset (juce::OpenGLContext& context)
+juce::String PresetManager::getPresetName (int index) const
 {
-    if (! presets.isEmpty())
-        selectPreset (currentIndex - 1, context);
+    return juce::isPositiveAndBelow (index, entries.size()) ? entries.getReference (index).name : juce::String();
 }
 
 juce::String PresetManager::getCurrentName() const
 {
-    if (juce::isPositiveAndBelow (currentIndex, presets.size()))
-        return presets.getReference (currentIndex).name;
-
-    return "(no preset)";
+    return currentIndex >= 0 ? getPresetName (currentIndex) : juce::String ("(no preset)");
 }
 
-int PresetManager::getNumEffectStages() const
+bool PresetManager::isSchema2 (int index) const
 {
-    return currentEffectChain != nullptr ? currentEffectChain->getNumStages() : 0;
+    return juce::isPositiveAndBelow (index, entries.size()) && entries.getReference (index).v2 != nullptr;
+}
+
+void PresetManager::requestPreset (int index)
+{
+    if (entries.isEmpty())
+        return;
+    requestedIndex = ((index % entries.size()) + entries.size()) % entries.size();
+}
+
+bool PresetManager::ensurePrograms (juce::OpenGLContext& context)
+{
+    if (outputProgram != nullptr)
+        return true;
+    if (programsFailed)
+        return false;
+
+    juce::String error;
+    blendProgram = buildFullscreenProgram (context, blendSource, error);
+    if (blendProgram != nullptr)
+        outputProgram = buildFullscreenProgram (context, outputSource, error);
+
+    if (outputProgram == nullptr)
+    {
+        logDiagnostic ("PresetManager: compositing shaders failed - " + error);
+        programsFailed = true;
+        return false;
+    }
+    return true;
+}
+
+bool PresetManager::activate (int index, FrameContext& frame)
+{
+    auto& entry = entries.getReference (index);
+    juce::String error;
+
+    auto instance = entry.v2 != nullptr
+                      ? V2Instance::create (*entry.v2, shadersDirectory, sourceLibrary, frame.gl, error)
+                      : LegacyInstance::create (entry.legacy, shadersDirectory, frame.gl, error);
+
+    if (instance == nullptr)
+    {
+        // Keep the current picture - never swap to a half-built preset.
+        logDiagnostic ("PresetManager: could not load '" + entry.name + "': " + error);
+        return false;
+    }
+
+    auto type = entry.v2 != nullptr ? entry.v2->transition.type : V2Transition::Type::crossfade;
+    auto duration = durationOverrideMs >= 0.0 ? durationOverrideMs
+                  : (entry.v2 != nullptr ? (double) entry.v2->transition.durationMs : 600.0);
+    if (type == V2Transition::Type::cut)
+        duration = 0.0;
+
+    if (current != nullptr && duration > 0.0)
+    {
+        if (transition.active)
+        {
+            // Interrupted fade: freeze what is on screen right now and fade
+            // from that, instead of keeping a third preset alive.
+            frozenTarget.ensure (compositeTarget.width, compositeTarget.height, GL_RGBA16F);
+            glBindFramebuffer (GL_READ_FRAMEBUFFER, compositeTarget.fbo);
+            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, frozenTarget.fbo);
+            glBlitFramebuffer (0, 0, compositeTarget.width, compositeTarget.height,
+                               0, 0, frozenTarget.width, frozenTarget.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            glBindFramebuffer (GL_FRAMEBUFFER, 0);
+
+            if (outgoing != nullptr) outgoing->releaseGLObjects();
+            outgoing.reset();
+            current->releaseGLObjects();
+            current.reset();
+            transition.fromFrozen = true;
+        }
+        else
+        {
+            outgoing = std::move (current);
+            transition.fromFrozen = false;
+        }
+
+        transition.active = true;
+        transition.type = type;
+        transition.durationMs = duration;
+        transition.startTime = frame.now;
+    }
+    else
+    {
+        if (current != nullptr) current->releaseGLObjects();
+        if (outgoing != nullptr) outgoing->releaseGLObjects();
+        outgoing.reset();
+        transition.active = false;
+    }
+
+    current = std::move (instance);
+    currentIndex = index;
+    logDiagnostic ("PresetManager: switched to '" + entry.name + "' (" + juce::String (index + 1) + "/"
+                   + juce::String (entries.size()) + ", " + juce::String ((int) duration) + " ms)");
+    return true;
+}
+
+void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
+{
+    if (entries.isEmpty() || ! ensurePrograms (frame.gl))
+        return;
+
+    // Pick up a new request; schema-2 presets may wait for the next beat/bar.
+    auto requested = requestedIndex.exchange (-1);
+    if (requested >= 0)
+        pendingIndex = requested;
+
+    if (pendingIndex >= 0)
+    {
+        auto quantize = Quantize::none;
+        if (auto& v2 = entries.getReference (pendingIndex).v2; v2 != nullptr && current != nullptr)
+            quantize = v2->transition.quantize;
+
+        const bool waitForGrid = quantize != Quantize::none && frame.clock.isFollowingTransport();
+        const bool onGrid = (quantize == Quantize::beat && frame.clock.crossedBeat())
+                         || (quantize == Quantize::bar && frame.clock.crossedBar());
+
+        if (! waitForGrid || onGrid)
+        {
+            activate (pendingIndex, frame);
+            pendingIndex = -1;
+        }
+    }
+
+    if (current == nullptr)
+        return;
+
+    const auto w = frame.width, h = frame.height;
+    compositeTarget.ensure (w, h, GL_RGBA16F);
+    currentTarget.ensure (w, h, GL_RGBA16F);
+
+    float progress = 1.0f;
+    if (transition.active)
+    {
+        progress = (float) juce::jlimit (0.0, 1.0, (frame.now - transition.startTime) * 1000.0 / transition.durationMs);
+        if (progress >= 1.0f)
+        {
+            transition.active = false;
+            if (outgoing != nullptr) outgoing->releaseGLObjects();
+            outgoing.reset();
+        }
+    }
+
+    auto bindTexture = [] (int unit, unsigned int tex) {
+        glActiveTexture ((GLenum) (GL_TEXTURE0 + unit));
+        glBindTexture (GL_TEXTURE_2D, tex);
+    };
+
+    current->render (frame, currentTarget);
+
+    unsigned int compositeSource = currentTarget.texture;
+
+    if (transition.active)
+    {
+        unsigned int outgoingTexture = 0;
+        if (transition.fromFrozen)
+            outgoingTexture = frozenTarget.texture;
+        else if (outgoing != nullptr)
+        {
+            outgoingTarget.ensure (w, h, GL_RGBA16F);
+            outgoing->render (frame, outgoingTarget);
+            outgoingTexture = outgoingTarget.texture;
+        }
+
+        compositeTarget.bind();
+        blendProgram->use();
+        bindTexture (0, outgoingTexture);
+        bindTexture (1, currentTarget.texture);
+        blendProgram->setUniform ("outgoingImage", 0);
+        blendProgram->setUniform ("incomingImage", 1);
+        blendProgram->setUniform ("progress", progress);
+        blendProgram->setUniform ("mode", transition.type == V2Transition::Type::dipToBackground ? 1.0f
+                                        : transition.type == V2Transition::Type::lumaWipe ? 2.0f : 0.0f);
+        quad.draw (*blendProgram);
+        compositeSource = compositeTarget.texture;
+    }
+    else
+    {
+        // Keep compositeTarget current so an interrupting switch can freeze it.
+        glBindFramebuffer (GL_READ_FRAMEBUFFER, currentTarget.fbo);
+        glBindFramebuffer (GL_DRAW_FRAMEBUFFER, compositeTarget.fbo);
+        glBlitFramebuffer (0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+
+    // Final output with the blackout gate (the last thing before the screen/Spout).
+    auto target = blackout ? 0.0f : 1.0f;
+    auto step = (float) (frame.dt / 0.12);
+    outputGain = outputGain < target ? juce::jmin (target, outputGain + step) : juce::jmax (target, outputGain - step);
+
+    glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
+    glViewport (0, 0, w, h);
+    outputProgram->use();
+    bindTexture (0, compositeSource);
+    outputProgram->setUniform ("source", 0);
+    outputProgram->setUniform ("gain", outputGain);
+    quad.draw (*outputProgram);
+
+    bindTexture (1, 0);
+    bindTexture (0, 0);
 }
 
 void PresetManager::toggleEffectStage (int stageIndex)
 {
-    if (currentEffectChain != nullptr)
-        currentEffectChain->toggleStageBypassed (stageIndex);
+    if (current != nullptr)
+        current->toggleStage (stageIndex);
 }
 
 void PresetManager::setEffectParam (int stageIndex, const juce::String& name, const juce::var& value)
 {
-    if (currentEffectChain != nullptr)
-        currentEffectChain->setStageParam (stageIndex, name, value);
-    else if (currentShader != nullptr)
-        currentShader->setValue (name, value);
-}
-
-void PresetManager::renderActive (ISFShader* shader, EffectChain* effectChain, int presetIndexForMappings,
-                                   juce::OpenGLContext& context, float timeSeconds, int pixelWidth, int pixelHeight,
-                                   float level, float bass, float mid, float high, float beatphase, float onset,
-                                   unsigned int videoTexture, unsigned int targetFbo)
-{
-    if (effectChain != nullptr)
-    {
-        effectChain->render (context, videoTexture, timeSeconds, pixelWidth, pixelHeight,
-                              level, bass, mid, high, beatphase, onset, targetFbo);
-        return;
-    }
-
-    if (shader != nullptr)
-    {
-        if (juce::isPositiveAndBelow (presetIndexForMappings, presets.size()))
-        {
-            auto& preset = presets.getReference (presetIndexForMappings);
-
-            for (auto& mappingEntry : preset.audioMappings)
-            {
-                auto& paramName = mappingEntry.first;
-                auto& mapping = mappingEntry.second;
-
-                auto raw = resolveAudioMappingSource (mapping.source, level, bass, mid, high, beatphase, onset);
-                shader->setValue (paramName, raw * mapping.scale + mapping.offset);
-            }
-        }
-
-        shader->render (context, timeSeconds, pixelWidth, pixelHeight,
-                        level, bass, mid, high, beatphase, onset, videoTexture, targetFbo);
-    }
-}
-
-void PresetManager::ensureCrossfadeTarget (CrossfadeTarget& t, int width, int height)
-{
-    width = juce::jmax (1, width);
-    height = juce::jmax (1, height);
-
-    if (t.fbo != 0 && t.width == width && t.height == height)
-        return;
-
-    if (t.fbo == 0)     glGenFramebuffers (1, &t.fbo);
-    if (t.texture == 0) glGenTextures (1, &t.texture);
-
-    glBindTexture (GL_TEXTURE_2D, t.texture);
-    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture (GL_TEXTURE_2D, 0);
-
-    glBindFramebuffer (GL_FRAMEBUFFER, t.fbo);
-    glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-    glBindFramebuffer (GL_FRAMEBUFFER, 0);
-
-    t.width = width;
-    t.height = height;
-}
-
-void PresetManager::ensureBlendResources (juce::OpenGLContext& context)
-{
-    if (blendProgram != nullptr)
-        return;
-
-    auto newProgram = std::make_unique<juce::OpenGLShaderProgram> (context);
-
-    auto vertexSrc = juce::OpenGLHelpers::translateVertexShaderToV3 (R"(
-        attribute vec2 position;
-        varying vec2 texCoord;
-        void main() { gl_Position = vec4 (position, 0.0, 1.0); texCoord = position * 0.5 + 0.5; }
-    )");
-
-    // Straight alpha-mix crossfade - a classic VJ cut/fade, not a fancier
-    // additive/luma-wipe transition. Alpha forced to 1.0 for the same reason
-    // EffectChain's passthrough does: downstream Spout/Resolume consumers
-    // would otherwise see a partially transparent frame.
-    auto fragmentSrc = juce::OpenGLHelpers::translateFragmentShaderToV3 (R"(
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
-        uniform sampler2D outgoingImage;
-        uniform sampler2D incomingImage;
-        uniform float alpha;
-        varying vec2 texCoord;
-        void main()
-        {
-            vec3 blended = mix (texture2D (outgoingImage, texCoord).rgb,
-                                 texture2D (incomingImage, texCoord).rgb, alpha);
-            gl_FragColor = vec4 (blended, 1.0);
-        }
-    )");
-
-    if (! newProgram->addVertexShader (vertexSrc) || ! newProgram->addFragmentShader (fragmentSrc) || ! newProgram->link())
-    {
-        logDiagnostic ("PresetManager: blend shader failed to build: " + newProgram->getLastError());
-        return;
-    }
-
-    blendProgram = std::move (newProgram);
-
-    if (blendVertexBuffer == 0)
-    {
-        glGenBuffers (1, &blendVertexBuffer);
-        glBindBuffer (GL_ARRAY_BUFFER, blendVertexBuffer);
-        static const GLfloat quad[] = { -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
-        glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
-        glBindBuffer (GL_ARRAY_BUFFER, 0);
-    }
-}
-
-void PresetManager::drawBlend (juce::OpenGLContext& context, unsigned int outgoingTexture, unsigned int incomingTexture,
-                                float alpha, int pixelWidth, int pixelHeight, unsigned int finalTargetFbo)
-{
-    ensureBlendResources (context);
-
-    if (blendProgram == nullptr)
-        return;
-
-    glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
-    glViewport (0, 0, pixelWidth, pixelHeight);
-
-    blendProgram->use();
-
-    glActiveTexture (GL_TEXTURE0);
-    glBindTexture (GL_TEXTURE_2D, outgoingTexture);
-    juce::OpenGLShaderProgram::Uniform (*blendProgram, "outgoingImage").set (0);
-
-    glActiveTexture (GL_TEXTURE1);
-    glBindTexture (GL_TEXTURE_2D, incomingTexture);
-    juce::OpenGLShaderProgram::Uniform (*blendProgram, "incomingImage").set (1);
-
-    juce::OpenGLShaderProgram::Uniform (*blendProgram, "alpha").set (alpha);
-
-    auto positionAttribute = glGetAttribLocation (blendProgram->getProgramID(), "position");
-
-    if (positionAttribute >= 0)
-    {
-        glBindBuffer (GL_ARRAY_BUFFER, blendVertexBuffer);
-        glEnableVertexAttribArray ((GLuint) positionAttribute);
-        glVertexAttribPointer ((GLuint) positionAttribute, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
-
-        glDisableVertexAttribArray ((GLuint) positionAttribute);
-        glBindBuffer (GL_ARRAY_BUFFER, 0);
-    }
-
-    glActiveTexture (GL_TEXTURE1);
-    glBindTexture (GL_TEXTURE_2D, 0);
-    glActiveTexture (GL_TEXTURE0);
-}
-
-void PresetManager::render (juce::OpenGLContext& context, float timeSeconds, int pixelWidth, int pixelHeight,
-                             float level, float bass, float mid, float high, float beatphase, float onset,
-                             unsigned int videoTexture, unsigned int finalTargetFbo)
-{
-    if (! juce::isPositiveAndBelow (currentIndex, presets.size()))
-        return;
-
-    if (transitioning)
-    {
-        auto elapsedMs = juce::Time::getMillisecondCounterHiRes() - transitionStartMs;
-        auto alpha = (float) juce::jlimit (0.0, 1.0, elapsedMs / transitionDurationMs);
-
-        if (alpha >= 1.0f || (outgoingShader == nullptr && outgoingEffectChain == nullptr))
-        {
-            // Fade complete (or nothing was actually kept to fade from) - drop
-            // the outgoing preset and fall through to the normal single-render path.
-            if (outgoingShader != nullptr)      outgoingShader->releaseGLObjects();
-            if (outgoingEffectChain != nullptr) outgoingEffectChain->releaseGLObjects();
-            outgoingShader.reset();
-            outgoingEffectChain.reset();
-            outgoingIndex = -1;
-            transitioning = false;
-        }
-        else
-        {
-            ensureCrossfadeTarget (outgoingTarget, pixelWidth, pixelHeight);
-            ensureCrossfadeTarget (incomingTarget, pixelWidth, pixelHeight);
-
-            renderActive (outgoingShader.get(), outgoingEffectChain.get(), outgoingIndex,
-                          context, timeSeconds, pixelWidth, pixelHeight,
-                          level, bass, mid, high, beatphase, onset, videoTexture, outgoingTarget.fbo);
-
-            renderActive (currentShader.get(), currentEffectChain.get(), currentIndex,
-                          context, timeSeconds, pixelWidth, pixelHeight,
-                          level, bass, mid, high, beatphase, onset, videoTexture, incomingTarget.fbo);
-
-            drawBlend (context, outgoingTarget.texture, incomingTarget.texture, alpha,
-                       pixelWidth, pixelHeight, finalTargetFbo);
-            return;
-        }
-    }
-
-    renderActive (currentShader.get(), currentEffectChain.get(), currentIndex,
-                  context, timeSeconds, pixelWidth, pixelHeight,
-                  level, bass, mid, high, beatphase, onset, videoTexture, finalTargetFbo);
+    if (current != nullptr)
+        current->setParam (stageIndex, name, value);
 }
 
 void PresetManager::releaseGLObjects()
 {
-    if (currentShader != nullptr)      currentShader->releaseGLObjects();
-    if (currentEffectChain != nullptr) currentEffectChain->releaseGLObjects();
-    if (outgoingShader != nullptr)      outgoingShader->releaseGLObjects();
-    if (outgoingEffectChain != nullptr) outgoingEffectChain->releaseGLObjects();
+    if (current != nullptr)  current->releaseGLObjects();
+    if (outgoing != nullptr) outgoing->releaseGLObjects();
+    current.reset();
+    outgoing.reset();
+    currentIndex = -1;
 
-    for (auto* target : { &outgoingTarget, &incomingTarget })
-    {
-        if (target->texture != 0) { glDeleteTextures (1, &target->texture); target->texture = 0; }
-        if (target->fbo != 0)     { glDeleteFramebuffers (1, &target->fbo); target->fbo = 0; }
-        target->width = target->height = 0;
-    }
+    for (auto* t : { &currentTarget, &outgoingTarget, &frozenTarget, &compositeTarget })
+        t->release();
+    sourceLibrary.release();
 
-    if (blendVertexBuffer != 0)
-    {
-        glDeleteBuffers (1, &blendVertexBuffer);
-        blendVertexBuffer = 0;
-    }
-
+    quad.release();
     blendProgram.reset();
+    outputProgram.reset();
 }

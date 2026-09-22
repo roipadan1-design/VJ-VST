@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(VJEngine VERSION 0.1.0)
+project(VJEngine VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,7 +14,7 @@ juce_add_gui_app(VJEngine
     COMPANY_NAME "VJVST"
     BUNDLE_ID "com.vjvst.vjengine"
     PRODUCT_NAME "VJ Engine"
-    VERSION "0.1.0"
+    VERSION "0.2.0"
 )
 
 juce_generate_juce_header(VJEngine)
@@ -28,6 +28,14 @@ target_sources(VJEngine PRIVATE
     Source/SpoutSender.cpp
     Source/VideoPlayer.cpp
     Source/EffectChain.cpp
+    Source/Signals.cpp
+    Source/FeatureBus.cpp
+    Source/PresetV2.cpp
+    Source/Modulation.cpp
+    Source/GLHelpers.cpp
+    Source/FinishPass.cpp
+    Source/PresetInstance.cpp
+    Source/SourceLibrary.cpp
 )
 
 set(VJ_SPOUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Spout")
@@ -46,6 +54,9 @@ add_custom_command(TARGET VJEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Presets"
         "$<TARGET_FILE_DIR:VJEngine>/Presets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/Media"
+        "$<TARGET_FILE_DIR:VJEngine>/Media"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${VJ_SPOUT_DIR}/bin/SpoutLibrary.dll"
         "$<TARGET_FILE_DIR:VJEngine>/SpoutLibrary.dll"

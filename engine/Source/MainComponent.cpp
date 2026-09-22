@@ -3,9 +3,10 @@
 
 using namespace juce::gl;
 
-MainComponent::MainComponent (int oscPortIn)
+MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
     : oscPort (oscPortIn)
 {
+    featureBus.setDemoEnabled (startWithDemo);
     setSize (1280, 720);
     // Deliberately NOT forcing a Core profile: defaultGLVersion gives the GPU's newest
     // compatibility-profile context, which is what ISF/Shadertoy-style shaders expect
@@ -33,8 +34,10 @@ juce::File MainComponent::getEngineDirectory() const
 void MainComponent::initialise()
 {
     auto engineDir = getEngineDirectory();
-    presetManager.scanPresets (engineDir.getChildFile ("Presets"), engineDir.getChildFile ("Shaders"));
-    presetManager.selectPreset (0, openGLContext);
+    presetManager.scanPresets (engineDir.getChildFile ("Presets"), engineDir.getChildFile ("Shaders"), engineDir.getChildFile ("Media"));
+
+    // Start on the first schema-2 (instrument) preset if there is one.
+    presetManager.requestPreset (presetManager.getFirstSchema2Index());
 
     // Distinct Spout sender name when running on a non-default port, so a
     // second simultaneous instance doesn't collide with the first's sender.
@@ -74,25 +77,13 @@ void MainComponent::render()
 {
     jassert (juce::OpenGLHelpers::isContextActive());
 
-    // Preset switches are requested from the OSC/message thread but must happen
-    // here, on the GL thread, since selecting a preset compiles a new shader.
-    auto requestedIndex = pendingPresetSelect.exchange (-1);
-    if (requestedIndex >= 0)
-        presetManager.selectPreset (requestedIndex, openGLContext);
-
-    if (pendingNext.exchange (false))
-        presetManager.nextPreset (openGLContext);
-
-    if (pendingPrevious.exchange (false))
-        presetManager.previousPreset (openGLContext);
-
     auto requestedStageToggle = pendingStageToggle.exchange (-1);
     if (requestedStageToggle >= 0)
         presetManager.toggleEffectStage (requestedStageToggle);
 
-    auto requestedTransitionDuration = pendingTransitionDurationMs.exchange (-1.0f);
-    if (requestedTransitionDuration >= 0.0f)
-        presetManager.setTransitionDuration (requestedTransitionDuration);
+    auto requestedTransitionDuration = pendingTransitionDurationMs.exchange (noTransitionChange);
+    if (requestedTransitionDuration != noTransitionChange)
+        presetManager.setTransitionDurationOverride (requestedTransitionDuration);
 
     {
         juce::Array<PendingEffectParam> paramsToApply;
@@ -106,37 +97,57 @@ void MainComponent::render()
             presetManager.setEffectParam (param.stageIndex, param.name, param.value);
     }
 
+    for (int i = 0; i < MacroBank::numSlots; ++i)
+    {
+        macroBank.values[(size_t) i] = macroValues[(size_t) i].load();
+        macroBank.set[(size_t) i] = macroSet[(size_t) i].load();
+    }
+
     auto desktopScale = (float) openGLContext.getRenderingScale();
     juce::OpenGLHelpers::clear (juce::Colours::black);
 
-    // Physical pixel dimensions, not logical ones - runPass()'s glViewport calls need
-    // to match the actual framebuffer size or HiDPI/display-scaled windows only get
-    // partially filled (the rest stays black - looks like a cropped render).
+    // Physical pixel dimensions, not logical ones - glViewport calls need to
+    // match the actual framebuffer size or HiDPI/display-scaled windows only
+    // get partially filled.
     auto physicalWidth  = juce::roundToInt (desktopScale * (float) getWidth());
     auto physicalHeight = juce::roundToInt (desktopScale * (float) getHeight());
 
-    auto nowSeconds = juce::Time::getMillisecondCounterHiRes() * 0.001;
-    auto time = (float) (nowSeconds - startTime);
+    auto now = nowSeconds();
+    auto time = (float) (now - startTime);
+    auto dt = lastFrameSeconds < 0.0 ? 1.0 / 60.0 : juce::jlimit (0.0, 0.25, now - lastFrameSeconds);
+    lastFrameSeconds = now;
 
     ++fpsFrameCount;
-    auto fpsWindowElapsed = nowSeconds - fpsWindowStartSeconds;
+    auto fpsWindowElapsed = now - fpsWindowStartSeconds;
 
     if (fpsWindowElapsed >= fpsLogIntervalSeconds)
     {
         auto fps = fpsFrameCount / fpsWindowElapsed;
-        logDiagnostic ("FPS: " + juce::String (fps, 1) + " (preset '" + presetManager.getCurrentName() + "')");
+        logDiagnostic ("FPS: " + juce::String (fps, 1) + " (preset '" + presetManager.getCurrentName() + "', "
+                       + featureBus.describeSources (now) + ", clock " + juce::String (clock.bpm(), 1) + " BPM"
+                       + (clock.isFollowingTransport() ? " host)" : " free-run)"));
         fpsFrameCount = 0;
-        fpsWindowStartSeconds = nowSeconds;
+        fpsWindowStartSeconds = now;
     }
 
-    auto elapsedSinceOnset = nowSeconds - lastOnsetTime.load();
-    auto onset = (float) juce::jlimit (0.0, 1.0, 1.0 - elapsedSinceOnset / onsetPulseDurationSeconds);
+    auto signals = featureBus.takeSnapshot (now);
+    clock.update (signals, now);
 
     videoPlayer.updateGLTexture();
 
-    presetManager.render (openGLContext, time, physicalWidth, physicalHeight,
-                          level.load(), bass.load(), mid.load(), high.load(), beatPhase.load(), onset,
-                          videoPlayer.getTextureID());
+    FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank };
+    frame.videoTexture = videoPlayer.getTextureID();
+    frame.width = physicalWidth;
+    frame.height = physicalHeight;
+    // Legacy uniforms, now fed from whichever analysis source is live.
+    frame.level = signals.levelRel;
+    frame.bass = signals.bassRel;
+    frame.mid = signals.midRel;
+    frame.high = signals.highRel;
+    frame.beatphase = (float) clock.beatPhase();
+    frame.onset = (float) juce::jlimit (0.0, 1.0, 1.0 - (now - signals.lastImpactTime) / onsetPulseDurationSeconds);
+
+    presetManager.render (frame, 0);
 
     // presetManager.render() leaves the default framebuffer (0) holding this
     // frame's final image - share it as-is, no extra copy/blit needed.
@@ -301,13 +312,19 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
 
     if (key == juce::KeyPress::rightKey)
     {
-        pendingNext = true;
+        presetManager.requestNext();
         return true;
     }
 
     if (key == juce::KeyPress::leftKey)
     {
-        pendingPrevious = true;
+        presetManager.requestPrevious();
+        return true;
+    }
+
+    if (key == juce::KeyPress::spaceKey)
+    {
+        featureBus.pushUserTrigger (nowSeconds());
         return true;
     }
 
@@ -317,6 +334,20 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
     if (textChar >= '1' && textChar <= '9')
     {
         pendingStageToggle = (textChar - '1');
+        return true;
+    }
+
+    if (textChar == 'b' || textChar == 'B')
+    {
+        presetManager.setBlackout (! presetManager.isBlackout());
+        logDiagnostic (presetManager.isBlackout() ? "Blackout ON" : "Blackout OFF");
+        return true;
+    }
+
+    if (textChar == 'd' || textChar == 'D')
+    {
+        featureBus.setDemoEnabled (! featureBus.isDemoEnabled());
+        logDiagnostic (featureBus.isDemoEnabled() ? "Demo groove ON (used while no analysis source is live)" : "Demo groove OFF");
         return true;
     }
 
@@ -333,24 +364,75 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
 {
     const auto address = message.getAddressPattern().toString();
 
-    if (address == "/preset/next")
+    // Analysis (v2 + legacy /audio/*) goes to the FeatureBus.
+    if (featureBus.handleMessage (message, nowSeconds()))
+        return;
+
+    auto numberArg = [&message] (int index, float fallback) {
+        if (message.size() > index && message[index].isFloat32()) return message[index].getFloat32();
+        if (message.size() > index && message[index].isInt32())   return (float) message[index].getInt32();
+        return fallback;
+    };
+
+    if (address == "/preset/next" || address == "/v2/preset/next")
     {
-        pendingNext = true;
+        presetManager.requestNext();
         return;
     }
 
-    if (address == "/preset/previous")
+    if (address == "/preset/previous" || address == "/v2/preset/previous")
     {
-        pendingPrevious = true;
+        presetManager.requestPrevious();
         return;
     }
 
-    if (address == "/preset/select")
+    if (address == "/preset/select" || address == "/v2/preset")
     {
-        if (message.size() > 0 && message[0].isFloat32())
-            pendingPresetSelect = (int) message[0].getFloat32();
-        else if (message.size() > 0 && message[0].isInt32())
-            pendingPresetSelect = message[0].getInt32();
+        if (message.size() > 0 && message[0].isString())
+        {
+            // By name: first preset whose name contains the text (case-insensitive).
+            for (int i = 0; i < presetManager.getNumPresets(); ++i)
+            {
+                if (presetManager.getPresetName (i).containsIgnoreCase (message[0].getString()))
+                {
+                    presetManager.requestPreset (i);
+                    break;
+                }
+            }
+        }
+        else if (message.size() > 0)
+        {
+            presetManager.requestPreset ((int) numberArg (0, 0.0f));
+        }
+        return;
+    }
+
+    if (address == "/v2/macro")
+    {
+        auto slot = (int) numberArg (0, -1.0f);
+        if (juce::isPositiveAndBelow (slot, MacroBank::numSlots) && message.size() > 1)
+        {
+            macroValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+            macroSet[(size_t) slot] = true;
+        }
+        return;
+    }
+
+    if (address == "/v2/blackout")
+    {
+        presetManager.setBlackout (message.size() > 0 ? numberArg (0, 0.0f) != 0.0f : ! presetManager.isBlackout());
+        return;
+    }
+
+    if (address == "/v2/trigger")
+    {
+        featureBus.pushUserTrigger (nowSeconds());
+        return;
+    }
+
+    if (address == "/v2/demo")
+    {
+        featureBus.setDemoEnabled (message.size() > 0 ? numberArg (0, 0.0f) != 0.0f : ! featureBus.isDemoEnabled());
         return;
     }
 
@@ -405,7 +487,7 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         return;
     }
 
-    if (address == "/preset/transitionduration")
+    if (address == "/preset/transitionduration" || address == "/v2/transition")
     {
         float ms = 0.0f;
         if (message.size() > 0 && message[0].isFloat32())
@@ -452,12 +534,6 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         return;
     }
 
-    if (address == "/audio/onset")
-    {
-        lastOnsetTime = juce::Time::getMillisecondCounterHiRes() * 0.001;
-        return;
-    }
-
     if (address == "/camera/open")
     {
         int deviceIndex = 0;
@@ -469,15 +545,4 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         videoPlayer.openCamera (deviceIndex);
         return;
     }
-
-    if (message.size() == 0 || ! message[0].isFloat32())
-        return;
-
-    const auto value = message[0].getFloat32();
-
-    if (address == "/audio/level")          level = value;
-    else if (address == "/audio/bass")      bass = value;
-    else if (address == "/audio/mid")       mid = value;
-    else if (address == "/audio/high")      high = value;
-    else if (address == "/audio/beatphase") beatPhase = value;
 }

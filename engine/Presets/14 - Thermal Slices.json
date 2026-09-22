@@ -1,0 +1,399 @@
+{
+  "schemaVersion": "2.0",
+  "id": "thermal-slices",
+  "name": "Thermal Slices",
+  "description": "Heat-map false colour on the masks, torn into horizontal slices on every hit.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "thermal",
+      "kind": "generator",
+      "shader": "Instrument/thermal_slices.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.7,
+          "max": 3.2,
+          "default": 1.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "drift",
+          "label": "Drift",
+          "min": -0.5,
+          "max": 0.5,
+          "default": 0.08,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "slices",
+          "label": "Slices",
+          "min": 4,
+          "max": 60,
+          "default": 18,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "tear",
+          "label": "Tear",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "map_offset",
+          "label": "Map Offset",
+          "min": -0.5,
+          "max": 0.5,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "contrast",
+          "label": "Contrast",
+          "min": 0.5,
+          "max": 3,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "aberration",
+          "label": "Aberration",
+          "min": 0,
+          "max": 0.04,
+          "default": 0.006,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "texture_amt",
+          "label": "Texture Amt",
+          "min": 0,
+          "max": 1,
+          "default": 0.45,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.3,
+          "max": 3.5,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ],
+      "sources": {
+        "source": {
+          "type": "images",
+          "folder": "Images/Masks",
+          "advance": "bar",
+          "every": 2,
+          "order": "random"
+        }
+      }
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "Intensity",
+      "default": 0.5
+    },
+    {
+      "id": "motion",
+      "slot": 1,
+      "label": "Motion",
+      "default": 0.4
+    },
+    {
+      "id": "color",
+      "slot": 2,
+      "label": "Color",
+      "default": 0.5
+    },
+    {
+      "id": "space",
+      "slot": 3,
+      "label": "Space",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 180,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 140,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 70,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "drift",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 16,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-thermal-emission",
+      "source": "macro.intensity",
+      "destination": "stage.thermal.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-intensity-thermal-contrast",
+      "source": "macro.intensity",
+      "destination": "stage.thermal.contrast",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.4,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-thermal-drift",
+      "source": "macro.motion",
+      "destination": "stage.thermal.drift",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.7,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-thermal-map_offset",
+      "source": "macro.color",
+      "destination": "stage.thermal.map_offset",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-thermal-zoom",
+      "source": "macro.space",
+      "destination": "stage.thermal.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-thermal-slices",
+      "source": "macro.space",
+      "destination": "stage.thermal.slices",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-kick-thermal-tear",
+      "source": "env.kick",
+      "destination": "stage.thermal.tear",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.9,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-snare-thermal-tear",
+      "source": "env.snare",
+      "destination": "stage.thermal.tear",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hat-thermal-aberration",
+      "source": "env.hat",
+      "destination": "stage.thermal.aberration",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "descriptor-centroid-thermal-map_offset",
+      "source": "descriptor.centroid",
+      "destination": "stage.thermal.map_offset",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.2,
+      "attackMs": 120,
+      "releaseMs": 400
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "bar",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.25,
+      "threshold": 0.9,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.3,
+    "outputColorSpace": "srgb",
+    "grain": 0.025,
+    "vignette": 0.2
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 505,
+    "notes": "target, not measured"
+  }
+}

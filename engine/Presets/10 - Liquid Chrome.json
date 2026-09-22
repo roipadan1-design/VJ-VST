@@ -1,0 +1,425 @@
+{
+  "schemaVersion": "2.0",
+  "id": "liquid-chrome",
+  "name": "Liquid Chrome",
+  "description": "Flowing black/white chrome with a mask floating in it; kicks surge the metal, masks change every 2 bars.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "chrome",
+      "kind": "generator",
+      "shader": "Instrument/liquid_chrome.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "scale",
+          "label": "Scale",
+          "min": 0.6,
+          "max": 3.2,
+          "default": 1.1,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "flow",
+          "label": "Flow",
+          "min": 0.0,
+          "max": 0.8,
+          "default": 0.14,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "surge",
+          "label": "Surge",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "contrast",
+          "label": "Contrast",
+          "min": 0.8,
+          "max": 2.8,
+          "default": 1.9,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "tint",
+          "label": "Tint",
+          "min": 0,
+          "max": 1,
+          "default": 0.12,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "hue",
+          "label": "Hue",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "unit": "normalized",
+          "cyclic": true
+        },
+        {
+          "name": "mask_mix",
+          "label": "Mask Mix",
+          "min": 0,
+          "max": 1,
+          "default": 0.85,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "mask_zoom",
+          "label": "Mask Zoom",
+          "min": 0.8,
+          "max": 2.6,
+          "default": 1.35,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "glow",
+          "label": "Glow",
+          "min": 0,
+          "max": 2,
+          "default": 0.4,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ],
+      "sources": {
+        "mask": {
+          "type": "images",
+          "folder": "Images/Masks",
+          "advance": "bar",
+          "every": 2,
+          "order": "random"
+        }
+      }
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "Intensity",
+      "default": 0.5
+    },
+    {
+      "id": "motion",
+      "slot": 1,
+      "label": "Motion",
+      "default": 0.4
+    },
+    {
+      "id": "color",
+      "slot": 2,
+      "label": "Color",
+      "default": 0.5
+    },
+    {
+      "id": "space",
+      "slot": 3,
+      "label": "Space",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 180,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 140,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 70,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "drift",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 16,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-chrome-contrast",
+      "source": "macro.intensity",
+      "destination": "stage.chrome.contrast",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-intensity-chrome-glow",
+      "source": "macro.intensity",
+      "destination": "stage.chrome.glow",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-chrome-flow",
+      "source": "macro.motion",
+      "destination": "stage.chrome.flow",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.9,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-chrome-hue",
+      "source": "macro.color",
+      "destination": "stage.chrome.hue",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-chrome-tint",
+      "source": "macro.color",
+      "destination": "stage.chrome.tint",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-chrome-scale",
+      "source": "macro.space",
+      "destination": "stage.chrome.scale",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-chrome-mask_zoom",
+      "source": "macro.space",
+      "destination": "stage.chrome.mask_zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-kick-chrome-surge",
+      "source": "env.kick",
+      "destination": "stage.chrome.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-snare-chrome-tint",
+      "source": "env.snare",
+      "destination": "stage.chrome.tint",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "audio-bass-activity-chrome-scale",
+      "source": "audio.bass.activity",
+      "destination": "stage.chrome.scale",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "power",
+      "exponent": 1.5,
+      "center": 0.0,
+      "amount": -0.1,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "audio-high-activity-chrome-glow",
+      "source": "audio.high.activity",
+      "destination": "stage.chrome.glow",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.25,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "lfo-drift-chrome-mask_zoom",
+      "source": "lfo.drift",
+      "destination": "stage.chrome.mask_zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.08,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "bar",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.25,
+      "threshold": 0.9,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.3,
+    "outputColorSpace": "srgb",
+    "grain": 0.025,
+    "vignette": 0.2
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 101,
+    "notes": "target, not measured"
+  }
+}

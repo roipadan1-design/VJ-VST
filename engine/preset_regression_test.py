@@ -117,6 +117,9 @@ def main():
     ap.add_argument('--exe', default=None)
     ap.add_argument('--settle', type=float, default=2.0, help='seconds to wait after preset/select before snapshot')
     ap.add_argument('--video', default=None, help='video file to preload, for presets whose effectChain expects one')
+    ap.add_argument('--demo', action='store_true', help='drive the engine with its built-in demo groove (hits, transport)')
+    ap.add_argument('--keep', default=None, help='folder to copy every snapshot into, named after its preset')
+    ap.add_argument('--only', default=None, help='only presets whose file name contains this text')
     args = ap.parse_args()
 
     exe = args.exe or find_default_exe()
@@ -135,7 +138,7 @@ def main():
     snapshot_path = os.path.join(os.path.dirname(exe), 'VJEngine_snapshot.png')
     log_path = os.path.join(os.path.dirname(exe), 'VJEngine.log')
 
-    launch_args = [exe, '--osc-port', str(args.port)]
+    launch_args = [exe, '--osc-port', str(args.port)] + (['--demo'] if args.demo else [])
     if args.video:
         launch_args.append(args.video)
     print('Launching:', ' '.join(f'"{a}"' if ' ' in a else a for a in launch_args))
@@ -153,6 +156,8 @@ def main():
     results = []
     try:
         for idx, name in enumerate(presets):
+            if args.only and args.only.lower() not in name.lower():
+                continue
             if os.path.isfile(snapshot_path):
                 os.remove(snapshot_path)
 
@@ -171,6 +176,11 @@ def main():
             if not os.path.isfile(snapshot_path):
                 results.append({'preset': name, 'ok': False, 'reason': 'no snapshot written', 'errors': errors})
                 continue
+
+            if args.keep:
+                import shutil
+                os.makedirs(args.keep, exist_ok=True)
+                shutil.copy(snapshot_path, os.path.join(args.keep, name + '.png'))
 
             stats = analyze_snapshot(snapshot_path)
             ok = not stats['suspect'] and not errors
