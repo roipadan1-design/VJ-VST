@@ -4,8 +4,9 @@
 
 1. **VJ Engine:** האפליקציה שמציירת. חלון שאפשר להעביר למסך או לפרוג'קטור ולהגדיל למסך מלא. היא גם שולחת את התמונה ב-Spout ל-Resolume, OBS וכו'.
 2. **VJ Analyzer:** פלאגין VST3 שיושב ב-Ableton על ערוץ. הוא מנתח את הסאונד (עוצמה, תדרים, מכות, ה-BPM וה-bar של Live, תווי MIDI) ושולט במנוע: 8 מאקרו, בחירת פריסט, HIT ו-BLACKOUT.
-3. **7 סצנות גנרטיביות** בשפה האדומה של הרפרנסים:
-   Hot Blobs (נוזלי), Dot Relief, One Bit, Corridor, Fibers, Terminal, Ink.
+3. **10 סצנות גנרטיביות**:
+   Hot Blobs (נוזלי), Dot Relief, One Bit, Corridor, Fibers, Terminal, Ink,
+   Signal Fog (חלקיקים וצורות שמתגבשות, בהשראת Kohlberger), Mesh Body (גוף רשת שנשחק, בהשראת The Noise Diary), Morphogen (צמיחה אורגנית, Reaction-Diffusion).
 
 ## הפעלה (פעם ראשונה)
 
@@ -31,8 +32,11 @@
    - **Detail:** צפיפות ופירוט
 5. **VISUALS REACT TO** (בפאנל SIGNAL): KICK / SNARE / HAT / BASS / LEVEL. רק KICK דלוק = כל הוויזואל זז רק מהקיק. פותחים עוד ערוצים כדי להוסיף אותם (למשל בבילד-אפ).
    הכפתורים למעלה (MIX, KICK...) אומרים **מה יש בערוץ הזה**; REACT TO אומר **למה הוויזואל מגיב**. הוא נשלח רק מהפלאגין ש-Send macros דלוק בו (בשאר הוא מעומעם).
-6. **LOOK** (למטה, חל על כל הסצנות): Grain, Crush, Flash, Glitch, Trails, Symbols (ברייל), Cut Rate (חיתוכים אוטומטיים בין סצנות).
-   **Palette:** פלטה מוכנה, או לחיצה על אחד מ-3 הצבעים (Shadow / Mid / Light) ובחירה חופשית. **Scene Colors** מכבה את המיפוי.
+6. **LOOK** (למטה, חל על כל הסצנות): Grain, Crush, Smear, Glitch, Trails, Symbols (ברייל), Flash, Cut Rate (חיתוכים אוטומטיים בין סצנות).
+   **FILM:** Halation (זוהר אדום מהאזורים הבהירים), Weave (רעידת פריים והבהוב), Dust (אבק, שערות, שריטות), Blacks (שחורים מורמים).
+   **REACTION:** Reactivity = כמה הוויזואל מגיב לסאונד בכלל. **CALM** מרגיע את כל התגובות במשך תיבה אחת (לשבירות) ומחזיר אותן כשמכבים.
+   **Palette:** פלטה מוכנה (כולל פלטות פילם: Nitrate, Cyanotype, Tungsten, Ash), או לחיצה על אחד מ-3 הצבעים ובחירה חופשית. **Scene Colors** מכבה את המיפוי.
+7. **SNAPSHOTS** (בפאנל PERFORM): מדליקים STORE ולוחצים על A-D כדי לשמור את כל המאקרו, ה-LOOK והפלטה. לחיצה על משבצת מחזירה אותה במורפינג, לפי הזמן שנבחר (Cut / ביט / תיבה / 4 / 16 תיבות). נשמר עם הסט של Live.
 
 ## לשלוט עם הקונטרולר (הקורג)
 
