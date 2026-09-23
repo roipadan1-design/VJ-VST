@@ -1,0 +1,482 @@
+{
+  "schemaVersion": "2.0",
+  "id": "signal-fog",
+  "name": "Signal Fog",
+  "description": "After Rainer Kohlberger: extremely fine particles flutter over black while large forms condense out of the haze; build-ups pull the forms into focus.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "fog",
+      "kind": "generator",
+      "shader": "Instrument/signal_fog.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "clock",
+          "label": "Clock",
+          "min": 0.0,
+          "max": 0.6,
+          "default": 0.15,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "scale",
+          "label": "Scale",
+          "min": 0.4,
+          "max": 4.0,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "focus",
+          "label": "Focus",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "density",
+          "label": "Density",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "haze",
+          "label": "Haze",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "grain_size",
+          "label": "Grain Size",
+          "min": 1.0,
+          "max": 4.0,
+          "default": 1.4,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "surge",
+          "label": "Surge",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.2,
+          "max": 4.0,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "Intensity",
+      "default": 0.5
+    },
+    {
+      "id": "motion",
+      "slot": 1,
+      "label": "Motion",
+      "default": 0.4
+    },
+    {
+      "id": "color",
+      "slot": 2,
+      "label": "Color",
+      "default": 0.5
+    },
+    {
+      "id": "space",
+      "slot": 3,
+      "label": "Space",
+      "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.5
+    },
+    {
+      "id": "gravity",
+      "slot": 5,
+      "label": "Gravity",
+      "default": 0.5
+    },
+    {
+      "id": "viscosity",
+      "slot": 6,
+      "label": "Viscosity",
+      "default": 0.5
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "Detail",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 180,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 140,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 70,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 60,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "drift",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 16,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-fog-emission",
+      "source": "macro.intensity",
+      "destination": "stage.fog.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-intensity-fog-haze",
+      "source": "macro.intensity",
+      "destination": "stage.fog.haze",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-fog-clock",
+      "source": "macro.motion",
+      "destination": "stage.fog.clock",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-fog-grain_size",
+      "source": "macro.color",
+      "destination": "stage.fog.grain_size",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-space-fog-scale",
+      "source": "macro.space",
+      "destination": "stage.fog.scale",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-detail-fog-density",
+      "source": "macro.detail",
+      "destination": "stage.fog.density",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-viscosity-fog-clock",
+      "source": "macro.viscosity",
+      "destination": "stage.fog.clock",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.4,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-gravity-fog-focus",
+      "source": "macro.gravity",
+      "destination": "stage.fog.focus",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "audio-bass-activity-fog-clock",
+      "source": "audio.bass.activity",
+      "destination": "stage.fog.clock",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "descriptor-build-fog-focus",
+      "source": "descriptor.build",
+      "destination": "stage.fog.focus",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 120,
+      "releaseMs": 400
+    },
+    {
+      "id": "env-kick-fog-surge",
+      "source": "env.kick",
+      "destination": "stage.fog.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.8,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "lfo-phrase-fog-focus",
+      "source": "lfo.phrase",
+      "destination": "stage.fog.focus",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.15,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "beat",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.18,
+      "threshold": 0.9,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.4,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.3
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 909,
+    "notes": "target, not measured"
+  }
+}

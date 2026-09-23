@@ -241,6 +241,51 @@ PRESETS = [
             route('audio.bass.activity', 'ink.morph', 0.3), route('descriptor.build', 'ink.coverage', 0.3),
             route('lfo.phrase', 'ink.fall', 0.2, 0.5)],
            seed=808),
+
+    preset('08 - Signal Fog.json', 'signal-fog', 'Signal Fog',
+           'After Rainer Kohlberger: extremely fine particles flutter over black while large forms condense out of the haze; build-ups pull the forms into focus.',
+           [stage('fog', 'signal_fog.fs', [
+               param('clock', 0.0, 0.6, 0.15, integrate=True), param('scale', 0.4, 4.0, 1.3), param('focus', 0, 1, 0.3),
+               param('density', 0, 1, 0.5), param('haze', 0, 1, 0.25), param('grain_size', 1.0, 4.0, 1.4),
+               param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.3)])],
+           [route('macro.intensity', 'fog.emission', 0.5, 0.5), route('macro.intensity', 'fog.haze', 0.5, 0.5),
+            route('macro.motion', 'fog.clock', 0.8, 0.4), route('macro.color', 'fog.grain_size', 0.6, 0.5),
+            route('macro.space', 'fog.scale', -0.6, 0.5), route('macro.detail', 'fog.density', 0.8, 0.5),
+            route('macro.viscosity', 'fog.clock', -0.4, 0.5), route('macro.gravity', 'fog.focus', 0.5, 0.5),
+            route('audio.bass.activity', 'fog.clock', 0.4), route('descriptor.build', 'fog.focus', 0.6),
+            route('env.kick', 'fog.surge', 0.8), route('lfo.phrase', 'fog.focus', 0.15, 0.5)],
+           post={'bloom': {'enabled': True, 'amount': 0.18, 'threshold': 0.9, 'levels': 5},
+                 'toneMap': 'reinhard', 'exposureEv': 0.4, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.3},
+           seed=909),
+
+    preset('09 - Mesh Body.json', 'mesh-body', 'Mesh Body',
+           'After The Noise Diary: a breathing body woven from fine plexus lines with drifting openings; build-ups erode it into dust, breakdowns re-knit it.',
+           [stage('mesh', 'mesh_body.fs', [
+               param('turn', -0.3, 0.6, 0.08, integrate=True), param('breathe', 0.0, 1.5, 0.3, integrate=True),
+               param('size', 0.3, 1.1, 0.62), param('density', 5, 22, 11), param('erosion', 0, 1, 0.12),
+               param('hole', 0, 1, 0.5), param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.2)])],
+           [route('macro.intensity', 'mesh.emission', 0.6, 0.5), route('macro.motion', 'mesh.turn', 0.6, 0.4),
+            route('macro.motion', 'mesh.breathe', 0.6, 0.4), route('macro.space', 'mesh.size', 0.6, 0.5),
+            route('macro.detail', 'mesh.density', 0.9, 0.5), route('macro.color', 'mesh.hole', 0.8, 0.5),
+            route('macro.gravity', 'mesh.erosion', 0.5, 0.5), route('macro.viscosity', 'mesh.breathe', -0.5, 0.5),
+            route('descriptor.build', 'mesh.erosion', 0.7), route('descriptor.flatness', 'mesh.erosion', 0.3),
+            route('audio.bass.activity', 'mesh.breathe', 0.4), route('env.kick', 'mesh.surge', 0.6),
+            route('lfo.phrase', 'mesh.size', 0.1, 0.5)],
+           seed=1010),
+
+    preset('10 - Morphogen.json', 'morphogen', 'Morphogen',
+           'Reaction-diffusion grown live and lit as a relief; kicks plant seeds that grow roots, Color slides between fingerprint, coral, mitosis and worms.',
+           [stage('rd', 'morphogen.fs', [
+               param('pattern', 0, 1, 0.35), param('rate', 0.2, 1.0, 0.9), param('seed_amt', 0, 1, 0),
+               param('zoom', 0.6, 2.0, 1.0), param('relief', 0, 1.5, 0.6), param('boundary', 0, 1, 0.55),
+               param('emission', 0.2, 4.0, 1.2)])],
+           [route('macro.intensity', 'rd.emission', 0.6, 0.5), route('macro.color', 'rd.pattern', 0.9, 0.5),
+            route('macro.motion', 'rd.rate', 0.8, 0.4), route('macro.space', 'rd.zoom', 0.6, 0.5),
+            route('macro.space', 'rd.boundary', -0.6, 0.5), route('macro.detail', 'rd.relief', 0.8, 0.5),
+            route('macro.gravity', 'rd.boundary', 0.5, 0.5), route('descriptor.build', 'rd.rate', 0.2),
+            route('env.drop', 'rd.seed_amt', 1.0), route('lfo.phrase', 'rd.pattern', 0.15, 0.5)],
+           transition={'type': 'cut', 'durationMs': 0, 'quantize': 'beat', 'historyOnEnter': 'keep', 'retarget': 'snapshot-current'},
+           seed=1111),
 ]
 
 if __name__ == '__main__':
