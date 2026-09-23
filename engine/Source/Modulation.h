@@ -47,7 +47,7 @@ private:
     enum class SourceKind
     {
         zero, levelRel, levelAbs, bassRel, midRel, highRel, bassAbs, midAbs, highAbs,
-        kickActivity, snareActivity, hatActivity, band,
+        kickActivity, snareActivity, hatActivity, band, build, presence,
         centroid, flatness, rolloff, flux, energyTrend,
         beatPhase, barPhase, macro, envelope, lfo
     };

@@ -12,6 +12,11 @@ every scene playable the same way:
            6 Viscosity  (how thick and slow the motion is)
            7 Detail     (density / complexity)
   envs     kick (3/180 ms), snare (2/140 ms), hat (1/70 ms), swell (5/900 ms, kick)
+  lfos     drift (4 bars), phrase (16 bars)
+  motion   "band clocks": bass energy is routed into integrated (speed)
+           parameters, so music pushes motion forward and never snaps back
+  section  descriptor.build (build-ups) / descriptor.presence shape each
+           scene's density or depth - reacting to the phrase, not every hit
   user     the manual hit (Space bar / /v2/trigger / plugin button) fires "kick"
 
 Run after editing:  python build_instrument_presets.py
@@ -41,6 +46,8 @@ ENVS = [
     {'id': 'swell', 'type': 'ad', 'attackMs': 5, 'decayMs': 900, 'peak': 1, 'retrigger': 'max'},
     {'id': 'drop', 'type': 'ad', 'attackMs': 1, 'decayMs': 60, 'peak': 1, 'retrigger': 'restart'},
     {'id': 'drift', 'type': 'lfo', 'shape': 'sine', 'periodBeats': 16, 'phaseOffset': 0, 'polarity': 'bipolar'},
+    # Phrase-locked: one cycle every 16 bars - slow drift for ambient sets.
+    {'id': 'phrase', 'type': 'lfo', 'shape': 'sine', 'periodBeats': 64, 'phaseOffset': 0, 'polarity': 'bipolar'},
 ]
 
 KICK_ACTIONS = [{'type': 'envelope', 'target': 'kick', 'amount': 1},
@@ -127,7 +134,9 @@ PRESETS = [
             route('macro.impact', 'blobs.impact', 0.9, 0.5), route('macro.gravity', 'blobs.gravity', 0.9, 0.5),
             route('macro.viscosity', 'blobs.viscosity', 1.0, 0.5), route('macro.detail', 'blobs.scale', 0.35, 0.5),
             route('env.drop', 'blobs.drop', 1.0), route('env.snare', 'blobs.rim', 0.3),
-            route('audio.level.activity', 'blobs.threshold', -0.2, curve='power', exponent=1.4)],
+            route('audio.level.activity', 'blobs.threshold', -0.2, curve='power', exponent=1.4),
+            route('audio.bass.activity', 'blobs.flow', 0.35), route('descriptor.build', 'blobs.ripple', 0.4),
+            route('lfo.phrase', 'blobs.scale', 0.12, 0.5)],
            seed=202),
 
     preset('02 - Dot Relief.json', 'dot-relief', 'Dot Relief',
@@ -142,7 +151,9 @@ PRESETS = [
             route('macro.space', 'dots.zoom', -0.4, 0.5), route('macro.detail', 'dots.grid', 0.8, 0.5),
             route('macro.gravity', 'dots.tilt', 0.8, 0.5), route('macro.viscosity', 'dots.sway', -0.4, 0.5),
             route('env.kick', 'dots.surge', 1.0), route('env.swell', 'dots.depth', 0.3),
-            route('audio.bass.activity', 'dots.depth', 0.2), route('audio.high.activity', 'dots.noise_floor', 0.3)],
+            route('audio.bass.activity', 'dots.depth', 0.2), route('audio.high.activity', 'dots.noise_floor', 0.3),
+            route('audio.bass.activity', 'dots.sway', 0.3), route('descriptor.build', 'dots.depth', 0.3),
+            route('lfo.phrase', 'dots.tilt', 0.15, 0.5)],
            seed=303),
 
     preset('03 - One Bit.json', 'one-bit', 'One Bit',
@@ -158,7 +169,8 @@ PRESETS = [
             route('macro.space', 'bits.zoom', 0.8, 0.5), route('macro.space', 'bits.frame', 1.0, 0.5, curve='smoothstep'),
             route('macro.detail', 'bits.cell', -0.8, 0.5), route('macro.gravity', 'bits.threshold', 0.4, 0.5),
             route('env.kick', 'bits.surge', 1.0), route('env.hat', 'bits.invert', 1.0),
-            route('audio.high.activity', 'bits.speckle', 0.3), route('descriptor.centroid', 'bits.threshold', -0.2, 0.5)],
+            route('audio.high.activity', 'bits.speckle', 0.3), route('descriptor.centroid', 'bits.threshold', -0.2, 0.5),
+            route('audio.bass.activity', 'bits.spin', 0.25), route('descriptor.build', 'bits.texture_amt', 0.3)],
            seed=404),
 
     preset('04 - Corridor.json', 'corridor', 'Corridor',
@@ -173,7 +185,9 @@ PRESETS = [
             route('macro.detail', 'hall.detail', 1.0, 0.5), route('macro.gravity', 'hall.sway_amt', 1.0, 0.5),
             route('macro.viscosity', 'hall.sway', -0.5, 0.5),
             route('env.swell', 'hall.travel', 1.0), route('env.kick', 'hall.surge', 1.0), route('env.hat', 'hall.flicker', 0.8),
-            route('audio.bass.activity', 'hall.emission', 0.15)],
+            route('audio.bass.activity', 'hall.emission', 0.15),
+            route('audio.bass.activity', 'hall.travel', 0.5), route('descriptor.build', 'hall.fog', -0.4),
+            route('lfo.phrase', 'hall.sway_amt', 0.2, 0.5)],
            seed=505),
 
     preset('05 - Fibers.json', 'fibers', 'Fibers',
@@ -189,7 +203,9 @@ PRESETS = [
             route('macro.detail', 'web.density', 1.0, 0.5), route('macro.gravity', 'web.turn', -0.5, 0.5),
             route('macro.viscosity', 'web.drift', -0.5, 0.5),
             route('env.kick', 'web.tear', 1.0), route('env.swell', 'web.tear', 0.3),
-            route('audio.bass.activity', 'web.swell', 0.8), route('env.snare', 'web.thickness', 0.3)],
+            route('audio.bass.activity', 'web.swell', 0.8), route('env.snare', 'web.thickness', 0.3),
+            route('audio.bass.activity', 'web.drift', 0.4), route('descriptor.build', 'web.density', 0.4),
+            route('lfo.phrase', 'web.zoom', 0.12, 0.5)],
            seed=606),
 
     preset('06 - Terminal.json', 'terminal', 'Terminal',
@@ -203,7 +219,8 @@ PRESETS = [
             route('macro.detail', 'term.fill', 1.0, 0.5), route('macro.gravity', 'term.scroll', 0.3, 0.5),
             route('macro.viscosity', 'term.morph', -0.5, 0.5),
             route('env.kick', 'term.jump', 1.0), route('env.snare', 'term.invert', 1.0),
-            route('audio.high.activity', 'term.fill', 0.2)],
+            route('audio.high.activity', 'term.fill', 0.2),
+            route('audio.mid.activity', 'term.scroll', 0.4), route('descriptor.build', 'term.fill', 0.4)],
            post={'bloom': {'enabled': True, 'amount': 0.15, 'threshold': 1.0, 'levels': 4},
                  'toneMap': 'reinhard', 'exposureEv': 0.5, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.15},
            seed=707),
@@ -220,7 +237,9 @@ PRESETS = [
             route('macro.space', 'ink.scale', -0.6, 0.5), route('macro.detail', 'ink.dots', 1.0, 0.5),
             route('macro.gravity', 'ink.fall', 0.9, 0.5), route('macro.viscosity', 'ink.morph', -0.5, 0.5),
             route('env.kick', 'ink.rip', 1.0), route('env.swell', 'ink.swell', 0.8),
-            route('audio.bass.activity', 'ink.swell', 0.3)],
+            route('audio.bass.activity', 'ink.swell', 0.3),
+            route('audio.bass.activity', 'ink.morph', 0.3), route('descriptor.build', 'ink.coverage', 0.3),
+            route('lfo.phrase', 'ink.fall', 0.2, 0.5)],
            seed=808),
 ]
 

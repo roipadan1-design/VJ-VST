@@ -218,6 +218,14 @@
       "periodBeats": 16,
       "phaseOffset": 0,
       "polarity": "bipolar"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
     }
   ],
   "routes": [
@@ -391,6 +399,45 @@
       "amount": -0.2,
       "attackMs": 30,
       "releaseMs": 220
+    },
+    {
+      "id": "audio-bass-activity-blobs-flow",
+      "source": "audio.bass.activity",
+      "destination": "stage.blobs.flow",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.35,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "descriptor-build-blobs-ripple",
+      "source": "descriptor.build",
+      "destination": "stage.blobs.ripple",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 120,
+      "releaseMs": 400
+    },
+    {
+      "id": "lfo-phrase-blobs-scale",
+      "source": "lfo.phrase",
+      "destination": "stage.blobs.scale",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.12,
+      "attackMs": 0,
+      "releaseMs": 0
     }
   ],
   "triggers": [

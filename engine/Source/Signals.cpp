@@ -28,6 +28,27 @@ bool parseEventName (const juce::String& name, EventType& out) noexcept
     return false;
 }
 
+void SectionTracker::update (Signals& s, double dt) noexcept
+{
+    const double level = juce::jlimit (0.0f, 1.0f, s.levelAbs);
+    if (! primed)
+    {
+        fast = slow = level;
+        primed = true;
+    }
+    auto follow = [dt] (double& state, double target, double tau) { state += (target - state) * (1.0 - std::exp (-dt / tau)); };
+    follow (fast, level, 4.0);
+    follow (slow, level, 24.0);
+
+    const double rise = (fast - slow) * 6.0 + juce::jmax (0.0f, s.energyTrend) * 0.5;
+    const double target = juce::jlimit (0.0, 1.0, rise);
+    follow (build, target, target > build ? 1.5 : 4.0);
+    follow (presence, juce::jlimit (0.0f, 1.0f, s.levelRel), 2.5);
+
+    s.build = (float) build;
+    s.presence = (float) presence;
+}
+
 void applyReactMask (Signals& s, const ReactMask& mask)
 {
     s.react = mask;

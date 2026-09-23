@@ -227,6 +227,14 @@
       "periodBeats": 16,
       "phaseOffset": 0,
       "polarity": "bipolar"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
     }
   ],
   "routes": [
@@ -385,6 +393,32 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": -0.2,
+      "attackMs": 120,
+      "releaseMs": 400
+    },
+    {
+      "id": "audio-bass-activity-bits-spin",
+      "source": "audio.bass.activity",
+      "destination": "stage.bits.spin",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.25,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "descriptor-build-bits-texture_amt",
+      "source": "descriptor.build",
+      "destination": "stage.bits.texture_amt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
       "attackMs": 120,
       "releaseMs": 400
     }

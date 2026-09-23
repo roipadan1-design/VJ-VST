@@ -63,6 +63,13 @@ struct Signals
     std::array<float, 32> spectrum {};
     float centroid = 0.0f, flatness = 0.0f, rolloff = 0.0f, flux = 0.0f, energyTrend = 0.0f;
 
+    // Musical-section signals, computed in the engine (SectionTracker):
+    //   build     0-1, rises through build-ups (short-term energy above the
+    //             long-term average), falls slowly in breakdowns - react to the
+    //             phrase, not to every hit
+    //   presence  0-1, smoothed "how much is happening" (~2.5 s)
+    float build = 0.0f, presence = 0.0f;
+
     std::array<RoleActivity, (size_t) SourceRole::count> roles {};
 
     // Transport, as last reported (the Clock extrapolates between reports).
@@ -80,6 +87,19 @@ struct Signals
     // Seconds since the last kick-like hit (kick / bassTransient), for the
     // legacy "onset" uniform.
     double lastImpactTime = -1000.0;
+};
+
+// Derives build / presence from the running analysis (fast vs slow energy
+// averages plus the analyser's energy trend), with asymmetric smoothing:
+// builds register in ~1.5 s, releases take ~4 s.
+class SectionTracker
+{
+public:
+    void update (Signals&, double dt) noexcept;
+
+private:
+    double fast = 0.0, slow = 0.0, build = 0.0, presence = 0.0;
+    bool primed = false;
 };
 
 // Stores the mask in the frame and drops the hits of closed channels.

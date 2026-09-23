@@ -477,7 +477,7 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
             if (s.age > s.life)
                 s.life = 0.0f;
         }
-        else if (dust > 0.05f && random.nextFloat() < frameDt * dust / 14.0f)
+        else if (dust > 0.05f && random.nextFloat() < frameDt * dust * (0.3f + signals.build) / 10.0f) // scratches come with build-ups
             s = { random.nextFloat(), (random.nextFloat() - 0.5f) * 0.0006f, 2.0f + 8.0f * random.nextFloat(), 0.0f,
                   1.0f + random.nextFloat() };
     }

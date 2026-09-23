@@ -154,6 +154,7 @@ void MainComponent::render()
     }
 
     auto signals = featureBus.takeSnapshot (now);
+    sectionTracker.update (signals, dt);
     ReactMask react;
     react.kick = reactValues[0];
     react.snare = reactValues[1];

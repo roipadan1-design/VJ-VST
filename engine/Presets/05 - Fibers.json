@@ -210,6 +210,14 @@
       "periodBeats": 16,
       "phaseOffset": 0,
       "polarity": "bipolar"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
     }
   ],
   "routes": [
@@ -384,6 +392,45 @@
       "attackMs": 0,
       "releaseMs": 0,
       "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-bass-activity-web-drift",
+      "source": "audio.bass.activity",
+      "destination": "stage.web.drift",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "descriptor-build-web-density",
+      "source": "descriptor.build",
+      "destination": "stage.web.density",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 120,
+      "releaseMs": 400
+    },
+    {
+      "id": "lfo-phrase-web-zoom",
+      "source": "lfo.phrase",
+      "destination": "stage.web.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.12,
+      "attackMs": 0,
+      "releaseMs": 0
     }
   ],
   "triggers": [

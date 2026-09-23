@@ -140,6 +140,8 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
         else if (s == "descriptor.rolloff")     r.kind = SourceKind::rolloff;
         else if (s == "descriptor.flux")        r.kind = SourceKind::flux;
         else if (s == "descriptor.energyTrend") r.kind = SourceKind::energyTrend;
+        else if (s == "descriptor.build")       r.kind = SourceKind::build;
+        else if (s == "descriptor.presence")    r.kind = SourceKind::presence;
         else if (s == "clock.beatPhase")        r.kind = SourceKind::beatPhase;
         else if (s == "clock.barPhase")         r.kind = SourceKind::barPhase;
         else
@@ -178,7 +180,9 @@ bool ModulationRuntime::isClosedByReact (const ResolvedRoute& r, const ReactMask
         case SourceKind::flatness:
         case SourceKind::rolloff:
         case SourceKind::flux:
-        case SourceKind::energyTrend:   return ! m.level;
+        case SourceKind::energyTrend:
+        case SourceKind::build:
+        case SourceKind::presence:      return ! m.level;
         default:                        return false; // macros, envelopes, LFOs, clock
     }
 }
@@ -222,6 +226,8 @@ float ModulationRuntime::readSource (const ResolvedRoute& r, const Signals& s, c
         case SourceKind::rolloff:     return s.rolloff;
         case SourceKind::flux:        return s.flux;
         case SourceKind::energyTrend: return s.energyTrend;
+        case SourceKind::build:       return s.build;
+        case SourceKind::presence:    return s.presence;
         case SourceKind::beatPhase:   return (float) clock.beatPhase();
         case SourceKind::barPhase:    return (float) clock.barPhase();
         case SourceKind::macro:
