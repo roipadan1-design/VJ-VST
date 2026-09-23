@@ -78,7 +78,7 @@
           "label": "Hole",
           "min": 0,
           "max": 1,
-          "default": 0.5,
+          "default": 0.75,
           "unit": "normalized",
           "cyclic": false
         },

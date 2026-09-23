@@ -1,6 +1,6 @@
 /*{
   "ISFVSN": "2",
-  "DESCRIPTION": "Morphogen: Gray-Scott reaction-diffusion grown at quarter resolution (8 steps a frame), lit as a relief. Pattern slides between fingerprint, coral, mitosis and worm families; kicks plant new seeds, which grow roots across the frame.",
+  "DESCRIPTION": "Morphogen: Gray-Scott reaction-diffusion grown at quarter resolution (16 steps a frame), lit as a relief. Pattern slides between fingerprint, coral, mitosis and worm families; kicks plant new seeds, which grow roots across the frame.",
   "CATEGORIES": ["Generator", "Instrument"],
   "INPUTS": [
     { "NAME": "pattern", "TYPE": "float", "DEFAULT": 0.35, "MIN": 0.0, "MAX": 1.0 },
@@ -20,12 +20,21 @@
     { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
     { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
     { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
+    { "TARGET": "rd", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.25", "HEIGHT": "0.25" },
     { }
   ]
 }*/
 #include "common.glsl"
 
-// rd.r = 1 - A (so the zero-initialised buffer means A = 1), rd.g = B.
+// rd.r = 1 - A (so the zero-initialised buffer means A = 1), rd.g = B,
+// rd.b = 1 once a texel has been initialised (the culture is sown at birth).
 
 vec2 feedKill (float t)
 {
@@ -39,11 +48,20 @@ vec2 feedKill (float t)
 
 void main()
 {
-    if (PASSINDEX < 8)
+    if (PASSINDEX < 16)
     {
         vec2 texel = 1.0 / RENDERSIZE;
         vec2 uv = gl_FragCoord.xy * texel;
-        vec2 c = texture2D (rd, uv).rg;
+        vec4 c4 = texture2D (rd, uv);
+        if (c4.b < 0.5)
+        {
+            // First frame of this scene: sow ~1.5 % of the texels so the
+            // culture grows everywhere at once instead of from one spot.
+            float sown = step (0.985, vjHash12 (gl_FragCoord.xy + vj_seed * 3.1));
+            gl_FragColor = vec4 (0.0, sown, 1.0, 1.0);
+            return;
+        }
+        vec2 c = c4.rg;
         vec2 lap = -c;
         lap += 0.2 * (texture2D (rd, uv + vec2 (texel.x, 0.0)).rg + texture2D (rd, uv - vec2 (texel.x, 0.0)).rg
                     + texture2D (rd, uv + vec2 (0.0, texel.y)).rg + texture2D (rd, uv - vec2 (0.0, texel.y)).rg);
@@ -62,8 +80,8 @@ void main()
         vec2 aspect = vec2 (RENDERSIZE.x / RENDERSIZE.y, 1.0);
         vec2 at = vec2 (0.2, 0.2) + vjHash22 (vec2 (vj_seed, 5.3)) * 0.6;
         float d = length ((uv - at) * aspect);
-        nB += seed_amt * 0.5 * (1.0 - smoothstep (0.012, 0.03, d));
-        float trickle = step (0.99985, vjHash12 (gl_FragCoord.xy + floor (TIME * 3.0) * 11.0));
+        nB += seed_amt * 0.5 * (1.0 - smoothstep (0.02, 0.05, d));
+        float trickle = step (0.9996, vjHash12 (gl_FragCoord.xy + floor (TIME * 3.0) * 11.0));
         nB += trickle * 0.8;
 
         // Soft circular boundary: the culture lives in an island.
@@ -71,7 +89,7 @@ void main()
         float limit = mix (0.9, 0.42, boundary);
         nB *= 1.0 - smoothstep (limit - 0.06, limit, edge);
 
-        gl_FragColor = vec4 (1.0 - clamp (nA, 0.0, 1.0), clamp (nB, 0.0, 1.0), 0.0, 1.0);
+        gl_FragColor = vec4 (1.0 - clamp (nA, 0.0, 1.0), clamp (nB, 0.0, 1.0), 1.0, 1.0);
     }
     else
     {

@@ -35,7 +35,7 @@ void main()
     float warp = vjFbm (sp * 0.6 - clock * 0.02);
     float v = volume (sp + (warp - 0.5) * 0.8, clock);
     float soft = mix (0.22, 0.015, focus);
-    float form = smoothstep (0.52 - soft, 0.52 + soft, v);
+    float form = smoothstep (0.57 - soft, 0.57 + soft, v);   // islands, not a field
 
     // Particles: a fresh speckle field every film frame (24 fps), denser where
     // the form is; a kick flares the whole field.
@@ -46,7 +46,9 @@ void main()
     float amount = density * (0.08 + 0.92 * form) * (1.0 + 1.5 * surge);
     float speck = step (1.0 - amount * 0.55, n);
 
-    float value = speck * (0.35 + 0.65 * form) + form * haze * 0.35 + haze * 0.03;
+    // Two particle brightnesses give depth; the haze is only a faint breath.
+    float bright = 0.45 + 0.55 * vjHash12 (id * 1.37 + frame);
+    float value = speck * bright * (0.3 + 0.7 * form) + form * haze * 0.12 + haze * 0.02;
     // Faint horizontal streaks inside the form, like a scanned print.
     value += form * 0.06 * (vjNoise (vec2 (gl_FragCoord.y * 0.35, clock * 3.0)) - 0.5);
 

@@ -246,7 +246,7 @@ PRESETS = [
            'After Rainer Kohlberger: extremely fine particles flutter over black while large forms condense out of the haze; build-ups pull the forms into focus.',
            [stage('fog', 'signal_fog.fs', [
                param('clock', 0.0, 0.6, 0.15, integrate=True), param('scale', 0.4, 4.0, 1.3), param('focus', 0, 1, 0.3),
-               param('density', 0, 1, 0.5), param('haze', 0, 1, 0.25), param('grain_size', 1.0, 4.0, 1.4),
+               param('density', 0, 1, 0.3), param('haze', 0, 1, 0.25), param('grain_size', 1.0, 4.0, 1.4),
                param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.3)])],
            [route('macro.intensity', 'fog.emission', 0.5, 0.5), route('macro.intensity', 'fog.haze', 0.5, 0.5),
             route('macro.motion', 'fog.clock', 0.8, 0.4), route('macro.color', 'fog.grain_size', 0.6, 0.5),
@@ -263,7 +263,7 @@ PRESETS = [
            [stage('mesh', 'mesh_body.fs', [
                param('turn', -0.3, 0.6, 0.08, integrate=True), param('breathe', 0.0, 1.5, 0.3, integrate=True),
                param('size', 0.3, 1.1, 0.62), param('density', 5, 22, 11), param('erosion', 0, 1, 0.12),
-               param('hole', 0, 1, 0.5), param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.2)])],
+               param('hole', 0, 1, 0.75), param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.2)])],
            [route('macro.intensity', 'mesh.emission', 0.6, 0.5), route('macro.motion', 'mesh.turn', 0.6, 0.4),
             route('macro.motion', 'mesh.breathe', 0.6, 0.4), route('macro.space', 'mesh.size', 0.6, 0.5),
             route('macro.detail', 'mesh.density', 0.9, 0.5), route('macro.color', 'mesh.hole', 0.8, 0.5),
