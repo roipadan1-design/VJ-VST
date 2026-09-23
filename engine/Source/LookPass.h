@@ -45,6 +45,10 @@ public:
 
     void release();
 
+    // Drops the trail memory - called on every scene switch so the previous
+    // scene never lingers (or smears over) the new one.
+    void clearTrails() noexcept { trailsCleared = true; }
+
 private:
     bool ensurePrograms (juce::OpenGLContext&);
 
@@ -54,6 +58,7 @@ private:
     FullscreenQuad quad;
     bool buildFailed = false;
     double lastDt = 1.0 / 60.0;
+    bool trailsCleared = false;
 
     juce::Random random;
     float kickEnv = 0.0f, snareEnv = 0.0f, hatEnv = 0.0f;

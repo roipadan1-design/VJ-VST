@@ -97,7 +97,7 @@ def preset(file_name, pid, name, description, stages, routes, post=None, transit
         'modulators': ENVS,
         'routes': routes,
         'triggers': TRIGGERS,
-        'transition': transition or {'type': 'cut', 'durationMs': 0, 'quantize': 'bar', 'historyOnEnter': 'reset', 'retarget': 'snapshot-current'},
+        'transition': transition or {'type': 'cut', 'durationMs': 0, 'quantize': 'beat', 'historyOnEnter': 'reset', 'retarget': 'snapshot-current'},
         # Grain lives in the global look pass now; the preset only finishes light.
         'post': post or {'bloom': {'enabled': True, 'amount': 0.22, 'threshold': 0.9, 'levels': 5},
                          'toneMap': 'reinhard', 'exposureEv': 0.3, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.25},

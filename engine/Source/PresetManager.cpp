@@ -208,6 +208,7 @@ bool PresetManager::activate (int index, FrameContext& frame)
 
     current = std::move (instance);
     currentIndex = index;
+    lookPass.clearTrails();
     ++switchCount;
     logDiagnostic ("PresetManager: switched to '" + entry.name + "' (" + juce::String (index + 1) + "/"
                    + juce::String (entries.size()) + ", " + juce::String ((int) duration) + " ms)");

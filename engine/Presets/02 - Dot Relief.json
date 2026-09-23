@@ -476,7 +476,7 @@
   "transition": {
     "type": "cut",
     "durationMs": 0,
-    "quantize": "bar",
+    "quantize": "beat",
     "historyOnEnter": "reset",
     "retarget": "snapshot-current"
   },

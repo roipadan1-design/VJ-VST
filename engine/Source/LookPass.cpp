@@ -225,10 +225,13 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     glDisable (GL_BLEND);
 
     // Trails: max (scene, memory * retain), time-constant based so the smear
-    // lasts the same at any frame rate.
+    // lasts the same at any frame rate. The tail is capped (~0.5 s): a longer
+    // max-memory saturates into a flat wash once Crush pushes it to full tone.
     const auto trails = look.get (LookSettings::trails);
-    const auto tau = 0.04 + 1.4 * std::pow ((double) trails, 1.6);
-    const auto retain = trails > 0.001f ? (float) std::exp (-lastDt / tau) : 0.0f;
+    const auto tau = 0.03 + 0.45 * std::pow ((double) trails, 1.6);
+    auto retain = trails > 0.001f ? (float) std::exp (-lastDt / tau) : 0.0f;
+    if (std::exchange (trailsCleared, false))
+        retain = 0.0f;
 
     auto& prev = history[(size_t) historyIndex];
     auto& next = history[(size_t) (1 - historyIndex)];
@@ -242,7 +245,7 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     trailProgram->setUniform ("scene", 0);
     trailProgram->setUniform ("previous", 1);
     trailProgram->setUniform ("retain", retain);
-    trailProgram->setUniform ("push", trails * 0.004f * (float) (lastDt * 60.0));
+    trailProgram->setUniform ("push", retain > 0.0f ? trails * 0.004f * (float) (lastDt * 60.0) : 0.0f);
     quad.draw (*trailProgram);
     historyIndex = 1 - historyIndex;
 
