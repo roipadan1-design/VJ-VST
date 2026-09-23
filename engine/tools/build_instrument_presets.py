@@ -286,6 +286,37 @@ PRESETS = [
             route('env.drop', 'rd.seed_amt', 1.0), route('lfo.phrase', 'rd.pattern', 0.15, 0.5)],
            transition={'type': 'cut', 'durationMs': 0, 'quantize': 'beat', 'historyOnEnter': 'keep', 'retarget': 'snapshot-current'},
            seed=1111),
+
+    preset('11 - Halo Ring.json', 'halo-ring', 'Halo Ring',
+           'After The Noise Diary: a thin ring on black whose edge the sound pushes - bass swells slow lobes, highs grow radial hairs, mids thicken grey fur.',
+           [stage('ring', 'halo_ring.fs', [
+               param('radius', 0.2, 0.95, 0.55), param('spin', -0.3, 0.6, 0.05, integrate=True),
+               param('wobble', 0.0, 2.0, 0.4, integrate=True), param('low', 0, 1, 0.3), param('hair', 0, 1, 0.4),
+               param('fur', 0, 1, 0.4), param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 1.3)])],
+           [route('macro.intensity', 'ring.emission', 0.5, 0.5), route('macro.motion', 'ring.wobble', 0.8, 0.4),
+            route('macro.motion', 'ring.spin', 0.5, 0.4), route('macro.space', 'ring.radius', 0.6, 0.5),
+            route('macro.color', 'ring.fur', 0.8, 0.5), route('macro.detail', 'ring.hair', 0.8, 0.5),
+            route('macro.gravity', 'ring.low', 0.6, 0.5), route('macro.viscosity', 'ring.wobble', -0.4, 0.5),
+            route('audio.bass.activity', 'ring.low', 0.6), route('audio.high.activity', 'ring.hair', 0.6),
+            route('audio.mid.activity', 'ring.fur', 0.5), route('env.kick', 'ring.surge', 0.7),
+            route('descriptor.build', 'ring.hair', 0.3), route('lfo.phrase', 'ring.radius', 0.08, 0.5)],
+           seed=1212),
+
+    preset('12 - Emergence.json', 'emergence', 'Emergence',
+           'After The Noise Diary: an abstract form rises out of darkness with vertical light streaks, dissolves into dust as the music builds, re-forms in the quiet.',
+           [stage('rise', 'emergence.fs', [
+               param('zoom', 0.6, 3.0, 1.7), param('visible', 0, 1, 0.45), param('streak', 0, 1, 0.5),
+               param('dissolve', 0, 1, 0.12), param('drift', 0.0, 1.0, 0.3, integrate=True),
+               param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 0.95)],
+               {'source': dict(FORMS, every=8)})],
+           [route('macro.intensity', 'rise.emission', 0.5, 0.5), route('macro.motion', 'rise.drift', 0.8, 0.4),
+            route('macro.space', 'rise.zoom', 0.6, 0.5), route('macro.color', 'rise.streak', 0.8, 0.5),
+            route('macro.detail', 'rise.dissolve', 0.4, 0.5), route('macro.gravity', 'rise.visible', 0.5, 0.5),
+            route('macro.viscosity', 'rise.drift', -0.4, 0.5),
+            route('descriptor.presence', 'rise.visible', 0.6), route('descriptor.build', 'rise.dissolve', 0.7),
+            route('audio.high.activity', 'rise.streak', 0.3), route('env.kick', 'rise.surge', 0.6),
+            route('env.swell', 'rise.streak', 0.2), route('lfo.phrase', 'rise.visible', 0.25, 0.5)],
+           seed=1313),
 ]
 
 if __name__ == '__main__':

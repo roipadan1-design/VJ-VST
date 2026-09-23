@@ -126,7 +126,7 @@ render scale) and `/v2/presets` (names, every ~2 s).
 
 - **Legacy** (no `schemaVersion`): `shader` or `effectChain` + `{source, scale, offset}` audio mappings. Still
   loadable; the shipped set no longer contains any.
-- **Schema 2** (`"schemaVersion": "2.0"`, the ten shipped scenes `01`-`10`): the format in
+- **Schema 2** (`"schemaVersion": "2.0"`, the twelve shipped scenes `01`-`12`): the format in
   `visual_instrument_research/preset.schema.json`, plus engine extensions:
   - `stages[].sources`: raw material bound to an ISF image input -
     `{"type": "images", "folder": "Images/Forms", "advance": "bar"|"beat"|"event.snare"|"none", "every": 2, "order": "random"}` or

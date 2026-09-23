@@ -4,9 +4,10 @@
 
 1. **VJ Engine:** האפליקציה שמציירת. חלון שאפשר להעביר למסך או לפרוג'קטור ולהגדיל למסך מלא. היא גם שולחת את התמונה ב-Spout ל-Resolume, OBS וכו'.
 2. **VJ Analyzer:** פלאגין VST3 שיושב ב-Ableton על ערוץ. הוא מנתח את הסאונד (עוצמה, תדרים, מכות, ה-BPM וה-bar של Live, תווי MIDI) ושולט במנוע: 8 מאקרו, בחירת פריסט, HIT ו-BLACKOUT.
-3. **10 סצנות גנרטיביות**:
+3. **12 סצנות גנרטיביות**:
    Hot Blobs (נוזלי), Dot Relief, One Bit, Corridor, Fibers, Terminal, Ink,
-   Signal Fog (חלקיקים וצורות שמתגבשות, בהשראת Kohlberger), Mesh Body (גוף רשת שנשחק, בהשראת The Noise Diary), Morphogen (צמיחה אורגנית, Reaction-Diffusion).
+   Signal Fog (חלקיקים וצורות שמתגבשות, בהשראת Kohlberger), Mesh Body (גוף רשת שנשחק, בהשראת The Noise Diary), Morphogen (צמיחה אורגנית, Reaction-Diffusion),
+   Halo Ring (טבעת עם שערות שהסאונד מעוות), Emergence (צורה שעולה מהחושך עם פסי אור ומתפרקת לאבק).
 
 ## הפעלה (פעם ראשונה)
 
