@@ -66,6 +66,8 @@ private:
     void listBoxItemClicked (int row, const juce::MouseEvent&) override;
 
     void setParameter (const juce::String& id, float plainValue);
+    void openEngine();
+    void launchEngineAt (const juce::File& exe);
     void selectPreset (int engineIndex);
 
     void paintSignalPanel (juce::Graphics&, juce::Rectangle<int>);
@@ -81,6 +83,9 @@ private:
     juce::ToggleButton sendControls { "Send macros" };
     juce::TextButton previous { "<" }, next { ">" }, hit { "HIT" }, blackout { "BLACKOUT" };
     juce::ListBox presetList;
+    juce::TextButton engineButton { "OPEN ENGINE" }, fullscreenButton { "FULLSCREEN" };
+    std::unique_ptr<juce::FileChooser> engineChooser;
+    double launchedAt = -100.0;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> responseAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> sendAttachment, blackoutAttachment;

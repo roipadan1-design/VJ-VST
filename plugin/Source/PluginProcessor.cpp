@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "EngineLocation.h"
 
 const juce::StringArray VJAnalyzerProcessor::roleNames { "Mix", "Kick", "Snare", "Hat", "Bass", "Texture" };
 const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Motion", "Color", "Space",
@@ -43,6 +44,7 @@ VJAnalyzerProcessor::VJAnalyzerProcessor()
 {
     state.state.setProperty ("engineHost", "127.0.0.1", nullptr);
     state.state.setProperty ("enginePort", vj::protocol::defaultPort, nullptr);
+    state.state.setProperty ("enginePath", VJ_DEFAULT_ENGINE_PATH, nullptr);
     startTimerHz (30);
 }
 

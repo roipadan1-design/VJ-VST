@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "EngineLauncher.h"
 
 namespace
 {
@@ -206,12 +207,20 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     addAndMakeVisible (previous);
     addAndMakeVisible (next);
 
+    engineButton.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
+    engineButton.onClick = [this] { openEngine(); };
+    addAndMakeVisible (engineButton);
+
+    fullscreenButton.setColour (juce::TextButton::buttonOnColourId, vjui::violet);
+    fullscreenButton.onClick = [this] { processor.getWorker().toggleEngineFullscreen(); };
+    addAndMakeVisible (fullscreenButton);
+
     presetList.setModel (this);
     presetList.setRowHeight (24);
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (900, 440);
+    setSize (1020, 440);
     startTimerHz (30);
 }
 
@@ -230,6 +239,38 @@ void VJAnalyzerEditor::setParameter (const juce::String& id, float plainValue)
         param->setValueNotifyingHost (param->convertTo0to1 (plainValue));
         param->endChangeGesture();
     }
+}
+
+void VJAnalyzerEditor::openEngine()
+{
+    // Already running: just bring the window forward.
+    if (EngineLauncher::bringEngineToFront())
+        return;
+
+    juce::File exe (processor.getState().state.getProperty ("enginePath").toString());
+    if (exe.existsAsFile())
+    {
+        launchEngineAt (exe);
+        return;
+    }
+
+    // Not where this checkout builds it: let the user point at VJ Engine.exe once.
+    engineChooser = std::make_unique<juce::FileChooser> ("Locate VJ Engine.exe", exe.getParentDirectory(), "*.exe");
+    engineChooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                [this] (const juce::FileChooser& chooser) {
+                                    auto picked = chooser.getResult();
+                                    if (picked.existsAsFile())
+                                    {
+                                        processor.getState().state.setProperty ("enginePath", picked.getFullPathName(), nullptr);
+                                        launchEngineAt (picked);
+                                    }
+                                });
+}
+
+void VJAnalyzerEditor::launchEngineAt (const juce::File& exe)
+{
+    if (EngineLauncher::launchEngine (exe.getFullPathName().toRawUTF8()))
+        launchedAt = now();
 }
 
 void VJAnalyzerEditor::selectPreset (int engineIndex)
@@ -256,6 +297,12 @@ void VJAnalyzerEditor::timerCallback()
         if (juce::isPositiveAndBelow (status.presetIndex, status.presetNames.size()))
             presetList.scrollToEnsureRowIsOnscreen (status.presetIndex);
     }
+
+    // Engine button reflects reality: launching... / show / open.
+    auto starting = ! status.connected && now() - launchedAt < 8.0;
+    engineButton.setButtonText (status.connected ? "SHOW ENGINE" : (starting ? "STARTING..." : "OPEN ENGINE"));
+    engineButton.setToggleState (! status.connected && ! starting, juce::dontSendNotification);
+    fullscreenButton.setEnabled (status.connected);
 
     auto role = (int) processor.getState().getRawParameterValue ("role")->load();
     for (int i = 0; i < roleButtons.size(); ++i)
@@ -423,8 +470,11 @@ void VJAnalyzerEditor::resized()
     auto r = getLocalBounds().reduced (12);
     headerArea = r.removeFromTop (44);
 
-    // Role selector in the header centre.
-    auto roles = headerArea.withTrimmedLeft (160).withTrimmedRight (310).withSizeKeepingCentre (400, 28);
+    // Engine buttons just left of the status pill; role selector in the remaining centre.
+    auto engineArea = headerArea.withTrimmedRight (306).removeFromRight (216).withSizeKeepingCentre (216, 30);
+    engineButton.setBounds (engineArea.removeFromLeft (112));
+    fullscreenButton.setBounds (engineArea.withTrimmedLeft (6));
+    auto roles = headerArea.withTrimmedLeft (150).withTrimmedRight (530).withSizeKeepingCentre (324, 28);
     auto roleW = roles.getWidth() / roleButtons.size();
     for (auto* b : roleButtons)
         b->setBounds (roles.removeFromLeft (roleW).reduced (2, 0));

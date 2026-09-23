@@ -65,6 +65,7 @@ public:
     void setControls (const Controls& c);
     void sendUserTrigger() { userTriggerPending = true; }
     void selectPresetNow (int index) { presetOverride = index; }
+    void toggleEngineFullscreen() { fullscreenPending = true; }
     Meters getMeters() const;
     EngineStatus getEngineStatus() const;
     void setTarget (const juce::String& host, int port);
@@ -99,6 +100,7 @@ private:
     bool controlsNeverSent = true, presetNeverSent = true;
     std::atomic<bool> userTriggerPending { false };
     std::atomic<int> presetOverride { -1 };
+    std::atomic<bool> fullscreenPending { false };
 
     mutable juce::SpinLock metersLock;
     Meters meters;

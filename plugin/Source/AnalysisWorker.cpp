@@ -189,6 +189,12 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    if (fullscreenPending.exchange (false))
+    {
+        writer.begin ("/fullscreen"); // no argument = toggle
+        sendPacket (writer.finish());
+    }
+
     if (auto index = presetOverride.exchange (-1); index >= 0)
     {
         writer.begin ("/v2/preset");
