@@ -103,6 +103,11 @@ private:
     std::unique_ptr<juce::FileChooser> engineChooser;
     double launchedAt = -100.0;
 
+    juce::OwnedArray<juce::TextButton> reactButtons;
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> reactAttachments;
+    juce::TooltipWindow tooltips { this, 600 };
+    juce::Rectangle<int> reactArea;
+
     juce::OwnedArray<MacroKnob> lookKnobs;
     juce::ComboBox paletteBox;
     juce::OwnedArray<ColourSwatch> swatches;

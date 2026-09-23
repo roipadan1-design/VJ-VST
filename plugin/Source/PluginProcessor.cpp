@@ -5,6 +5,8 @@
 const juce::StringArray VJAnalyzerProcessor::roleNames { "Mix", "Kick", "Snare", "Hat", "Bass", "Texture" };
 const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Motion", "Color", "Space",
                                                           "Impact", "Gravity", "Viscosity", "Detail" };
+const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
+const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
 const juce::StringArray VJAnalyzerProcessor::lookIds { "grain", "crush", "flash", "glitch", "trails", "symbols", "cutRate" };
 const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flash", "Glitch", "Trails", "Symbols", "Cut Rate" };
 const juce::StringArray VJAnalyzerProcessor::paletteNames { "Blood", "Ember", "Bone", "Ice", "Acid", "Violet", "Rust",
@@ -86,6 +88,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
         layout.add (std::make_unique<AudioParameterFloat> (ParameterID { lookIds[i], 1 }, lookNames[i],
                                                            NormalisableRange<float> (0.0f, 1.0f), lookDefaults[i]));
     layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "palette", 1 }, "Palette", paletteNames, 0));
+
+    for (int i = 0; i < reactIds.size(); ++i)
+        layout.add (std::make_unique<AudioParameterBool> (ParameterID { reactIds[i], 1 }, "React " + reactNames[i], true));
     return layout;
 }
 
@@ -186,6 +191,8 @@ void VJAnalyzerProcessor::timerCallback()
         c.palette[(size_t) i * 3 + 2] = colours[(size_t) i].getFloatBlue();
     }
     c.paletteMix = (int) state.getRawParameterValue ("palette")->load() == sceneColours ? 0.0f : 1.0f;
+    for (int i = 0; i < reactIds.size(); ++i)
+        c.react[(size_t) i] = state.getRawParameterValue (reactIds[i])->load() > 0.5f;
     worker.setControls (c);
 
     worker.setTarget (state.state.getProperty ("engineHost", "127.0.0.1").toString(),

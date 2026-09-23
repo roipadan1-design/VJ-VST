@@ -90,6 +90,7 @@ private:
     };
 
     float readSource (const ResolvedRoute&, const Signals&, const Clock&, const MacroBank&) const noexcept;
+    bool isClosedByReact (const ResolvedRoute&, const ReactMask&) const noexcept;
     void fireTrigger (ResolvedTrigger&, float strength);
 
     const PresetV2& preset;

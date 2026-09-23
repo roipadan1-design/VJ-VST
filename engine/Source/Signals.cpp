@@ -28,6 +28,23 @@ bool parseEventName (const juce::String& name, EventType& out) noexcept
     return false;
 }
 
+void applyReactMask (Signals& s, const ReactMask& mask)
+{
+    s.react = mask;
+    s.events.removeIf ([&mask] (const SignalEvent& e) {
+        switch (e.type)
+        {
+            case EventType::kick:
+            case EventType::bassTransient: return ! mask.kick;
+            case EventType::snare:
+            case EventType::midTransient:  return ! mask.snare;
+            case EventType::hat:
+            case EventType::highTransient: return ! mask.hat;
+            default:                       return false; // HIT button, MIDI notes
+        }
+    });
+}
+
 void Clock::update (const Signals& s, double now) noexcept
 {
     const auto dt = lastNow < 0.0 ? 0.0 : juce::jlimit (0.0, 0.25, now - lastNow);

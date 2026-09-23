@@ -46,6 +46,11 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
   Only enable **Send macros** on one analyzer (normally the MIX one).
 - **Preset**: 0 = leave the engine's choice; the list on the right selects directly and records the choice in
   the parameter, so the Live set recalls it.
+- **VISUALS REACT TO** (KICK / SNARE / HAT / BASS / LEVEL): global gate on what drives the picture. A closed
+  channel's hits are dropped and its continuous signals fade to neutral (LEVEL = whole-mix loudness, brightness
+  and build-ups). HIT, MIDI notes and the tempo clock always pass. The role buttons at the top say what is on
+  *this* track; REACT TO says what the *visuals* follow. Macros, LOOK and REACT TO are sent only by the instance
+  with **Send macros** on - on other instances they are shown dimmed.
 - **LOOK** (global, on top of every scene): Grain, Crush (soft -> posterised -> hard two-tone), Flash (chance a kick
   drops a black / colour frame), Glitch (row tears, pixel blocks, RGB split), Trails, Symbols (braille strips,
   re-dealt on snares) and Cut Rate (automatic cuts between scenes: off, every 16/8/4/2/1 beats, every kick).
@@ -92,6 +97,7 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/event` | i sourceId, s role, i eventId, s type, f strength, i note, i velocity, f ageMs | hits and notes (de-duplicated, expire after 150 ms) |
 | `/v2/macro` | i slot 0-7, f 0-1 | macro base value |
 | `/v2/look` | i slot 0-6, f 0-1 | global look: grain, crush, flash, glitch, trails, symbols, cut rate |
+| `/v2/react` | 5 i (kick, snare, hat, bass, level; 0/1) | REACT TO gate |
 | `/v2/palette` | 9 f (rgb x3, 0-1) [, f mix] | shadow / mid / light colours of the global gradient map (mix 0 = scene colours) |
 | `/v2/preset` | i index **or** s name | select preset (name = case-insensitive substring) |
 | `/v2/preset/next`, `/v2/preset/previous` | | |

@@ -213,6 +213,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         b->setColour (juce::TextButton::buttonOnColourId, vjui::mint);
         b->setClickingTogglesState (false);
         b->onClick = [this, i] { setParameter ("role", (float) i); };
+        b->setTooltip ("What is on THIS track - the analysis role of this instance");
         addAndMakeVisible (b);
     }
 
@@ -253,6 +254,18 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     fullscreenButton.onClick = [this] { processor.getWorker().toggleEngineFullscreen(); };
     addAndMakeVisible (fullscreenButton);
 
+    const juce::Colour reactAccents[] = { vjui::magenta, vjui::violet, vjui::mint, vjui::amber, vjui::text };
+    for (int i = 0; i < VJAnalyzerProcessor::reactIds.size(); ++i)
+    {
+        auto* b = reactButtons.add (new juce::TextButton (VJAnalyzerProcessor::reactNames[i].toUpperCase()));
+        b->setClickingTogglesState (true);
+        b->setColour (juce::TextButton::buttonOnColourId, reactAccents[i]);
+        b->setTooltip ("Visuals react to " + VJAnalyzerProcessor::reactNames[i].toLowerCase() + " (global - sent by the instance with Send macros on)");
+        addAndMakeVisible (b);
+        reactAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+            state, VJAnalyzerProcessor::reactIds[i], *b));
+    }
+
     const juce::Colour lookAccents[] = { vjui::amber, vjui::magenta, vjui::danger, vjui::violet, vjui::mint, vjui::text, vjui::amber };
     for (int i = 0; i < VJAnalyzerProcessor::lookIds.size(); ++i)
         addAndMakeVisible (lookKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[i], VJAnalyzerProcessor::lookNames[i],
@@ -275,7 +288,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1020, 580);
+    setSize (1020, 600);
     startTimerHz (30);
 }
 
@@ -371,6 +384,16 @@ void VJAnalyzerEditor::timerCallback()
     auto role = (int) processor.getState().getRawParameterValue ("role")->load();
     for (int i = 0; i < roleButtons.size(); ++i)
         roleButtons[i]->setToggleState (i == role, juce::dontSendNotification);
+
+    // Macros, LOOK and REACT TO only reach the engine from the instance with
+    // "Send macros" on - everywhere else they are shown dimmed.
+    const bool sending = processor.getState().getRawParameterValue ("sendControls")->load() > 0.5f;
+    const auto alpha = sending ? 1.0f : 0.35f;
+    for (auto* c : macros)       c->setAlpha (alpha);
+    for (auto* c : lookKnobs)    c->setAlpha (alpha);
+    for (auto* c : reactButtons) c->setAlpha (alpha);
+    for (auto* c : swatches)     c->setAlpha (alpha);
+    paletteBox.setAlpha (alpha);
 
     auto colours = processor.getPaletteColours();
     for (int i = 0; i < swatches.size(); ++i)
@@ -521,6 +544,10 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     drawPanel (g, scenesArea, "SCENES");
     drawPanel (g, lookArea, "LOOK");
 
+    g.setColour (vjui::dim);
+    g.setFont (uiFont (10.5f, true));
+    g.drawText ("VISUALS REACT TO", reactArea.withHeight (14), juce::Justification::centredLeft);
+
     // Current scene name, large.
     auto nameArea = scenesArea.reduced (14).withTrimmedTop (18).removeFromTop (30);
     g.setColour (status.connected ? vjui::text : vjui::dim);
@@ -552,6 +579,13 @@ void VJAnalyzerEditor::resized()
     lookArea = r.removeFromBottom (130);
     r.removeFromBottom (10);
     signalArea = r.removeFromLeft (280);
+    reactArea = signalArea.reduced (14).removeFromBottom (16 + 6 + 42).removeFromTop (42);
+    {
+        auto chips = reactArea.withTrimmedTop (16);
+        auto chipW = chips.getWidth() / reactButtons.size();
+        for (auto* b : reactButtons)
+            b->setBounds (chips.removeFromLeft (chipW).reduced (2, 0));
+    }
     r.removeFromLeft (10);
     scenesArea = r.removeFromRight (270);
     r.removeFromRight (10);

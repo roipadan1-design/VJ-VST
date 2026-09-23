@@ -34,6 +34,21 @@ struct RoleActivity
     float levelRel = 0.0f, levelAbs = 0.0f;
 };
 
+// The performer's REACT TO gate (plugin toggles, OSC /v2/react). Each audio
+// signal belongs to exactly one channel:
+//   kick   kick / bass-transient hits, kick-track activity
+//   snare  snare / mid-transient hits, mid band, snare-track activity
+//   hat    hat / high-transient hits, high band, hat-track activity
+//   bass   the continuous low end (bass level, bands 0-1)
+//   level  whole-mix loudness, brightness and build-ups (level, descriptors)
+// A closed channel's hits are dropped before anything sees the frame, and
+// routes reading its continuous signals glide back to neutral. The manual HIT
+// (userTrigger), MIDI notes and the transport clock always pass.
+struct ReactMask
+{
+    bool kick = true, snare = true, hat = true, bass = true, level = true;
+};
+
 struct Signals
 {
     // Mix source (or the first live source if none declared "mix").
@@ -57,10 +72,15 @@ struct Signals
 
     juce::Array<SignalEvent> events;
 
+    ReactMask react; // which channels may drive the visuals this frame
+
     // Seconds since the last kick-like hit (kick / bassTransient), for the
     // legacy "onset" uniform.
     double lastImpactTime = -1000.0;
 };
+
+// Stores the mask in the frame and drops the hits of closed channels.
+void applyReactMask (Signals&, const ReactMask&);
 
 // Musical time for the render thread. Follows the host transport when one is
 // reporting (extrapolating between packets at the reported tempo), otherwise

@@ -8,6 +8,8 @@ MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
 {
     featureBus.setDemoEnabled (startWithDemo);
 
+    for (auto& open : reactValues)
+        open = true;
     for (int i = 0; i < LookSettings::numSlots; ++i)
         lookValues[(size_t) i] = look.values[(size_t) i];
     for (int i = 0; i < 3; ++i)
@@ -152,6 +154,13 @@ void MainComponent::render()
     }
 
     auto signals = featureBus.takeSnapshot (now);
+    ReactMask react;
+    react.kick = reactValues[0];
+    react.snare = reactValues[1];
+    react.hat = reactValues[2];
+    react.bass = reactValues[3];
+    react.level = reactValues[4];
+    applyReactMask (signals, react);
     clock.update (signals, now);
     clockBpm = (float) clock.bpm();
     clockFollowing = clock.isFollowingTransport();
@@ -548,6 +557,13 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         auto slot = (int) numberArg (0, -1.0f);
         if (juce::isPositiveAndBelow (slot, LookSettings::numSlots) && message.size() > 1)
             lookValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+        return;
+    }
+
+    if (address == "/v2/react")
+    {
+        for (int i = 0; i < juce::jmin (message.size(), (int) reactValues.size()); ++i)
+            reactValues[(size_t) i] = numberArg (i, 1.0f) > 0.5f;
         return;
     }
 

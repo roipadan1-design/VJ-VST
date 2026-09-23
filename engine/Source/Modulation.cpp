@@ -158,6 +158,31 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
     }
 }
 
+bool ModulationRuntime::isClosedByReact (const ResolvedRoute& r, const ReactMask& m) const noexcept
+{
+    switch (r.kind)
+    {
+        case SourceKind::kickActivity:  return ! m.kick;
+        case SourceKind::bassRel:
+        case SourceKind::bassAbs:       return ! m.bass;
+        case SourceKind::midRel:
+        case SourceKind::midAbs:
+        case SourceKind::snareActivity: return ! m.snare;
+        case SourceKind::highRel:
+        case SourceKind::highAbs:
+        case SourceKind::hatActivity:   return ! m.hat;
+        case SourceKind::band:          return r.index < 2 ? ! m.bass : (r.index < 4 ? ! m.snare : ! m.hat);
+        case SourceKind::levelRel:
+        case SourceKind::levelAbs:
+        case SourceKind::centroid:
+        case SourceKind::flatness:
+        case SourceKind::rolloff:
+        case SourceKind::flux:
+        case SourceKind::energyTrend:   return ! m.level;
+        default:                        return false; // macros, envelopes, LFOs, clock
+    }
+}
+
 float ModulationRuntime::readSource (const ResolvedRoute& r, const Signals& s, const Clock& clock, const MacroBank& macros) const noexcept
 {
     const auto& kick = s.roles[(size_t) SourceRole::kick];
@@ -293,6 +318,11 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
         float q = u;
         if (r.def.curve == V2Route::Curve::power)           q = std::pow (u, r.def.exponent);
         else if (r.def.curve == V2Route::Curve::smoothstep) q = u * u * (3.0f - 2.0f * u);
+
+        // REACT TO: a closed channel reads as "no influence" (the route's
+        // centre); the smoothing below glides there instead of jumping.
+        if (isClosedByReact (r, signals.react))
+            q = r.def.center;
 
         if (! r.initialised)
         {

@@ -43,6 +43,9 @@ public:
     static const juce::StringArray roleNames;
     static const juce::StringArray macroNames;
 
+    // REACT TO: which channels may drive the visuals (engine /v2/react, same order).
+    static const juce::StringArray reactIds, reactNames;
+
     // Global look (engine /v2/look slots 0-6, same order).
     static const juce::StringArray lookIds, lookNames;
 

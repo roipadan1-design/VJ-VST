@@ -227,6 +227,14 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    if (controlsNeverSent || c.react != sentControls.react)
+    {
+        writer.begin ("/v2/react");
+        for (auto open : c.react)
+            writer.addInt (open ? 1 : 0);
+        sendPacket (writer.finish());
+    }
+
     // Preset only on change (never re-asserted): the engine keyboard, other
     // devices or scene links may have moved on and must not be overridden.
     // preset 0 means "leave the engine's choice alone"; 1..64 select index-1.
