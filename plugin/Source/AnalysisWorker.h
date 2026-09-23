@@ -29,7 +29,7 @@ public:
         std::array<float, 8> macros {};
         int preset = 0;            // 0 = engine's choice, n = engine preset n-1
         bool blackout = false;
-        std::array<float, 7> look {};     // /v2/look slots
+        std::array<float, 14> look {};    // /v2/look slots 0-13
         std::array<float, 9> palette {};  // 3 x rgb, 0-1
         float paletteMix = 1.0f;
         std::array<bool, 5> react { true, true, true, true, true }; // kick snare hat bass level

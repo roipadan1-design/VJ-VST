@@ -7,8 +7,11 @@ const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Motion",
                                                           "Impact", "Gravity", "Viscosity", "Detail" };
 const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
 const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
-const juce::StringArray VJAnalyzerProcessor::lookIds { "grain", "crush", "flash", "glitch", "trails", "symbols", "cutRate" };
-const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flash", "Glitch", "Trails", "Symbols", "Cut Rate" };
+// Index = engine /v2/look slot. Slot 13 (Calm) is the separate bool parameter "calm".
+const juce::StringArray VJAnalyzerProcessor::lookIds { "grain", "crush", "flash", "glitch", "trails", "symbols", "cutRate",
+                                                       "smear", "halation", "weave", "dust", "blacks", "reactivity" };
+const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flash", "Glitch", "Trails", "Symbols", "Cut Rate",
+                                                         "Smear", "Halation", "Weave", "Dust", "Blacks", "Reactivity" };
 const juce::StringArray VJAnalyzerProcessor::paletteNames { "Blood", "Ember", "Bone", "Ice", "Acid", "Violet", "Rust",
                                                             "Custom", "Scene Colors" };
 
@@ -83,10 +86,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
                                                          [] (int v, int) { return v == 0 ? String ("Engine") : String (v); })));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "blackout", 1 }, "Blackout", false));
 
-    const float lookDefaults[] = { 0.25f, 0.35f, 0.2f, 0.1f, 0.1f, 0.2f, 0.0f };
+    const float lookDefaults[] = { 0.3f, 0.35f, 0.15f, 0.1f, 0.1f, 0.15f, 0.0f,
+                                   0.1f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f };
     for (int i = 0; i < lookIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterFloat> (ParameterID { lookIds[i], 1 }, lookNames[i],
                                                            NormalisableRange<float> (0.0f, 1.0f), lookDefaults[i]));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { "calm", 1 }, "Calm", false));
     layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "palette", 1 }, "Palette", paletteNames, 0));
 
     for (int i = 0; i < reactIds.size(); ++i)
@@ -183,6 +188,7 @@ void VJAnalyzerProcessor::timerCallback()
     c.blackout = state.getRawParameterValue ("blackout")->load() > 0.5f;
     for (int i = 0; i < lookIds.size(); ++i)
         c.look[(size_t) i] = state.getRawParameterValue (lookIds[i])->load();
+    c.look[13] = state.getRawParameterValue ("calm")->load() > 0.5f ? 1.0f : 0.0f;
     auto colours = getPaletteColours();
     for (int i = 0; i < 3; ++i)
     {

@@ -47,6 +47,9 @@ struct RoleActivity
 struct ReactMask
 {
     bool kick = true, snare = true, hat = true, bass = true, level = true;
+    // Master amount of every audio-driven reaction (LOOK Reactivity x Calm),
+    // already smoothed by the caller: 1 = as designed, 0 = only macros/LFOs move.
+    float amount = 1.0f;
 };
 
 struct Signals

@@ -183,6 +183,19 @@ bool ModulationRuntime::isClosedByReact (const ResolvedRoute& r, const ReactMask
     }
 }
 
+bool ModulationRuntime::isAudioDriven (SourceKind k) noexcept
+{
+    switch (k)
+    {
+        case SourceKind::zero:
+        case SourceKind::macro:
+        case SourceKind::lfo:
+        case SourceKind::beatPhase:
+        case SourceKind::barPhase: return false;
+        default:                   return true; // audio, descriptors, hit envelopes
+    }
+}
+
 float ModulationRuntime::readSource (const ResolvedRoute& r, const Signals& s, const Clock& clock, const MacroBank& macros) const noexcept
 {
     const auto& kick = s.roles[(size_t) SourceRole::kick];
@@ -341,6 +354,8 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
             auto& m = preset.macros.getReference (r.scaleMacro);
             gain = 2.0f * (macros.set[(size_t) m.slot] ? macros.values[(size_t) m.slot] : m.defaultValue);
         }
+        if (isAudioDriven (r.kind))
+            gain *= signals.react.amount; // Reactivity / Calm
         accumulators.getReference (r.stage).getReference (r.parameter) += gain * r.def.amount * (r.smoothed - r.def.center);
     }
 

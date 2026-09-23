@@ -105,6 +105,7 @@ private:
 
     // REACT TO gate (/v2/react <kick> <snare> <hat> <bass> <level>, 0/1 each).
     std::array<std::atomic<bool>, 5> reactValues {};
+    float reactAmount = 1.0f; // GL thread: smoothed Reactivity x Calm
     double lastFrameSeconds = -1.0;
     static constexpr double onsetPulseDurationSeconds = 0.15;
 

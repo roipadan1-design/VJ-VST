@@ -160,6 +160,16 @@ void MainComponent::render()
     react.hat = reactValues[2];
     react.bass = reactValues[3];
     react.level = reactValues[4];
+    {
+        // Calm ramps every reaction out (and back in) over one bar; the
+        // Reactivity knob itself only gets a short de-zipper.
+        const bool calm = look.get (LookSettings::calm) > 0.5f;
+        const auto target = calm ? 0.0f : look.get (LookSettings::reactivity);
+        const auto barSeconds = clock.barBeats() * 60.0 / juce::jmax (20.0, clock.bpm());
+        const auto tau = std::abs (target - reactAmount) > 0.2f ? barSeconds / 3.0 : 0.08;
+        reactAmount += (target - reactAmount) * (float) (1.0 - std::exp (-dt / tau));
+        react.amount = reactAmount;
+    }
     applyReactMask (signals, react);
     clock.update (signals, now);
     clockBpm = (float) clock.bpm();

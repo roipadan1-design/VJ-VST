@@ -221,7 +221,7 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
         return;
 
     const auto& look = frame.look != nullptr ? *frame.look : defaultLook;
-    lookPass.update (frame.signals, look, frame.dt);
+    lookPass.update (frame.signals, look, frame.dt, frame.now);
     updateAutoCut (frame, look);
 
     // Pick up a new request; schema-2 presets may wait for the next beat/bar.
@@ -348,7 +348,8 @@ void PresetManager::updateAutoCut (const FrameContext& frame, const LookSettings
     {
         // Top of the range: every kick is a cut (with a short guard).
         for (auto& e : frame.signals.events)
-            if ((e.type == EventType::kick || e.type == EventType::userTrigger) && frame.now - lastKickCut > 0.12)
+            if ((e.type == EventType::kick || e.type == EventType::userTrigger) && frame.now - lastKickCut > 0.34
+                && (e.type == EventType::userTrigger || frame.signals.react.amount > 0.5f)) // max 3 cuts/s; none while calm
                 cut = true;
         if (cut)
             lastKickCut = frame.now;

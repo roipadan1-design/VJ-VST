@@ -108,7 +108,10 @@ private:
     juce::TooltipWindow tooltips { this, 600 };
     juce::Rectangle<int> reactArea;
 
-    juce::OwnedArray<MacroKnob> lookKnobs;
+    juce::OwnedArray<MacroKnob> lookKnobs, filmKnobs; // filmKnobs[4] = Reactivity
+    juce::TextButton calm { "CALM" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> calmAttachment;
+    juce::Rectangle<int> filmCaption, reactionCaption, paletteCaption, lookDivider;
     juce::ComboBox paletteBox;
     juce::OwnedArray<ColourSwatch> swatches;
 

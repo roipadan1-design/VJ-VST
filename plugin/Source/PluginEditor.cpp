@@ -266,10 +266,22 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
             state, VJAnalyzerProcessor::reactIds[i], *b));
     }
 
-    const juce::Colour lookAccents[] = { vjui::amber, vjui::magenta, vjui::danger, vjui::violet, vjui::mint, vjui::text, vjui::amber };
-    for (int i = 0; i < VJAnalyzerProcessor::lookIds.size(); ++i)
-        addAndMakeVisible (lookKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[i], VJAnalyzerProcessor::lookNames[i],
-                                                         lookAccents[i], false)));
+    // LOOK row (image treatment), FILM row (35mm physics), then Reactivity.
+    struct KnobDef { int slot; juce::Colour accent; };
+    const KnobDef lookRow[] = { { 0, vjui::amber }, { 1, vjui::magenta }, { 7, vjui::violet }, { 3, vjui::violet },
+                                { 4, vjui::mint }, { 5, vjui::text }, { 2, vjui::danger }, { 6, vjui::amber } };
+    const KnobDef filmRow[] = { { 8, vjui::danger }, { 9, vjui::amber }, { 10, vjui::text }, { 11, vjui::dim.brighter (0.4f) },
+                                { 12, vjui::mint } };
+    for (auto& k : lookRow)
+        addAndMakeVisible (lookKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false)));
+    for (auto& k : filmRow)
+        addAndMakeVisible (filmKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false)));
+
+    calm.setClickingTogglesState (true);
+    calm.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
+    calm.setTooltip ("Fades every audio reaction out over one bar (and back in) - for breakdowns");
+    addAndMakeVisible (calm);
+    calmAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "calm", calm);
 
     paletteBox.addItemList (VJAnalyzerProcessor::paletteNames, 1);
     addAndMakeVisible (paletteBox);
@@ -288,7 +300,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1020, 600);
+    setSize (1060, 700);
     startTimerHz (30);
 }
 
@@ -391,6 +403,8 @@ void VJAnalyzerEditor::timerCallback()
     const auto alpha = sending ? 1.0f : 0.35f;
     for (auto* c : macros)       c->setAlpha (alpha);
     for (auto* c : lookKnobs)    c->setAlpha (alpha);
+    for (auto* c : filmKnobs)    c->setAlpha (alpha);
+    calm.setAlpha (alpha);
     for (auto* c : reactButtons) c->setAlpha (alpha);
     for (auto* c : swatches)     c->setAlpha (alpha);
     paletteBox.setAlpha (alpha);
@@ -543,6 +557,15 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     drawPanel (g, performArea, "PERFORM");
     drawPanel (g, scenesArea, "SCENES");
     drawPanel (g, lookArea, "LOOK");
+    {
+        g.setColour (vjui::dim);
+        g.setFont (uiFont (10.5f, true));
+        g.drawText ("FILM", filmCaption, juce::Justification::centredLeft);
+        g.drawText ("REACTION", reactionCaption, juce::Justification::centredLeft);
+        g.drawText ("PALETTE", paletteCaption, juce::Justification::centredLeft);
+        g.setColour (vjui::outline);
+        g.fillRect (lookDivider);
+    }
 
     g.setColour (vjui::dim);
     g.setFont (uiFont (10.5f, true));
@@ -576,7 +599,7 @@ void VJAnalyzerEditor::resized()
         b->setBounds (roles.removeFromLeft (roleW).reduced (2, 0));
 
     r.removeFromTop (8);
-    lookArea = r.removeFromBottom (130);
+    lookArea = r.removeFromBottom (228);
     r.removeFromBottom (10);
     signalArea = r.removeFromLeft (280);
     reactArea = signalArea.reduced (14).removeFromBottom (16 + 6 + 42).removeFromTop (42);
@@ -605,18 +628,34 @@ void VJAnalyzerEditor::resized()
     bottom.removeFromLeft (10);
     sendControls.setBounds (bottom.reduced (0, 4));
 
-    // Look: seven knobs, then the palette selector and its three colours.
+    // Look: row 1 = image treatment (8 knobs); row 2 = FILM (4) | REACTION
+    // (Reactivity + CALM) | PALETTE (preset + three colour chips).
     auto l = lookArea.reduced (14).withTrimmedTop (20);
-    auto paletteArea = l.removeFromRight (330);
-    auto knobW = l.getWidth() / lookKnobs.size();
+    auto row1 = l.removeFromTop (l.getHeight() / 2 - 4);
+    l.removeFromTop (8);
+    auto row2 = l;
+    auto knobW = row1.getWidth() / lookKnobs.size();
     for (auto* k : lookKnobs)
-        k->setBounds (l.removeFromLeft (knobW).reduced (4, 0));
-    paletteArea.removeFromLeft (16);
-    paletteBox.setBounds (paletteArea.removeFromLeft (130).withSizeKeepingCentre (130, 28));
-    paletteArea.removeFromLeft (10);
-    auto swatchW = paletteArea.getWidth() / 3;
+        k->setBounds (row1.removeFromLeft (knobW).reduced (6, 0));
+    lookDivider = juce::Rectangle<int> (lookArea.getX() + 14, row2.getY() - 5, lookArea.getWidth() - 28, 1);
+
+    const int filmW = 96;
+    auto film = row2.removeFromLeft (filmW * 4);
+    filmCaption = film.removeFromTop (14);
+    for (int i = 0; i < 4; ++i)
+        filmKnobs[i]->setBounds (film.removeFromLeft (filmW).reduced (4, 0));
+    row2.removeFromLeft (18);
+    auto reaction = row2.removeFromLeft (filmW + 104);
+    reactionCaption = reaction.removeFromTop (14);
+    filmKnobs[4]->setBounds (reaction.removeFromLeft (filmW).reduced (4, 0));
+    calm.setBounds (reaction.withSizeKeepingCentre (92, 34).translated (0, -8));
+    row2.removeFromLeft (18);
+    paletteCaption = row2.removeFromTop (14);
+    paletteBox.setBounds (row2.removeFromLeft (124).withSizeKeepingCentre (124, 28).translated (0, -8));
+    row2.removeFromLeft (10);
+    auto swatchW = row2.getWidth() / 3;
     for (auto* s : swatches)
-        s->setBounds (paletteArea.removeFromLeft (swatchW).reduced (3, 4));
+        s->setBounds (row2.removeFromLeft (swatchW).reduced (3, 2));
 
     // Scenes: name (painted), list, transport buttons, hit/blackout, sensitivity/trim.
     auto s = scenesArea.reduced (14).withTrimmedTop (52);

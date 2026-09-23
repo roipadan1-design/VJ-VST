@@ -51,6 +51,12 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
   and build-ups). HIT, MIDI notes and the tempo clock always pass. The role buttons at the top say what is on
   *this* track; REACT TO says what the *visuals* follow. Macros, LOOK and REACT TO are sent only by the instance
   with **Send macros** on - on other instances they are shown dimmed.
+- **FILM** (in the LOOK panel): a real 35mm chain - band-limited grain that follows luminance and steps at
+  24 fps (added *before* Crush, so it dithers the threshold), Halation (red glow out of highlights), Weave
+  (gate weave, rare frame slips, flicker, soft fringing), Dust (specks, hairs, scratches - rare and
+  correlated), Blacks (lifted, tinted film base); output is blue-noise dithered against banding.
+- **REACTION**: Reactivity scales every audio-driven movement (1 = as designed, 0 = only macros and LFOs);
+  **CALM** fades all reactions out over one bar and back in. Flash and kick-cuts are capped at 3 per second.
 - **LOOK** (global, on top of every scene): Grain, Crush (soft -> posterised -> hard two-tone), Flash (chance a kick
   drops a black / colour frame), Glitch (row tears, pixel blocks, RGB split), Trails, Symbols (braille strips,
   re-dealt on snares) and Cut Rate (automatic cuts between scenes: off, every 16/8/4/2/1 beats, every kick).
@@ -96,7 +102,7 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/spectrum` | i sourceId, i seq, 32 f | log spectrum (~60 Hz) |
 | `/v2/event` | i sourceId, s role, i eventId, s type, f strength, i note, i velocity, f ageMs | hits and notes (de-duplicated, expire after 150 ms) |
 | `/v2/macro` | i slot 0-7, f 0-1 | macro base value |
-| `/v2/look` | i slot 0-6, f 0-1 | global look: grain, crush, flash, glitch, trails, symbols, cut rate |
+| `/v2/look` | i slot 0-13, f 0-1 | global look: 0 grain, 1 crush, 2 flash, 3 glitch, 4 trails, 5 symbols, 6 cut rate, 7 smear, 8 halation, 9 weave, 10 dust, 11 blacks, 12 reactivity, 13 calm (0/1) |
 | `/v2/react` | 5 i (kick, snare, hat, bass, level; 0/1) | REACT TO gate |
 | `/v2/palette` | 9 f (rgb x3, 0-1) [, f mix] | shadow / mid / light colours of the global gradient map (mix 0 = scene colours) |
 | `/v2/preset` | i index **or** s name | select preset (name = case-insensitive substring) |

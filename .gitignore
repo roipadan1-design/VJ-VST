@@ -10,3 +10,6 @@ engine/soak_test_output.log
 # runtime logs
 engine/engine_stdout.log
 engine/*.log
+
+# third-party reference media (kept local, not redistributed)
+references/
