@@ -15,7 +15,8 @@
 //  - analysis:  /v2/hello /v2/frame /v2/spectrum /v2/event (VJ Analyzer plugin,
 //               analyze_wav --send) and the legacy /audio/* messages
 //  - control:   /v2/macro <slot 0-7> <0-1>, /v2/preset <index>, /v2/preset/next|previous,
-//               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>
+//               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>,
+//               /v2/look <slot 0-6> <0-1>, /v2/palette <9 floats rgb x3> [mix]
 //  - legacy:    /preset/select|next|previous, /preset/transitionduration,
 //               /effect/toggle, /effect/param, /display/*, /fullscreen,
 //               /camera/open, /video/load, /debug/snapshot
@@ -93,6 +94,13 @@ private:
     MacroBank macroBank; // GL thread copy of the macro slots below
     std::array<std::atomic<float>, MacroBank::numSlots> macroValues {};
     std::array<std::atomic<bool>, MacroBank::numSlots> macroSet {};
+
+    // Global look (/v2/look <slot> <0-1>, /v2/palette r g b r g b r g b [mix]).
+    // Written on the message thread, copied into `look` at the top of render().
+    LookSettings look;
+    std::array<std::atomic<float>, LookSettings::numSlots> lookValues {};
+    std::array<std::atomic<float>, 9> paletteValues {};
+    std::atomic<float> paletteMixValue { 1.0f };
     double lastFrameSeconds = -1.0;
     static constexpr double onsetPulseDurationSeconds = 0.15;
 

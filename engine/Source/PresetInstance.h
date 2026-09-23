@@ -5,6 +5,7 @@
 #include "FinishPass.h"
 #include "GLHelpers.h"
 #include "ISFShader.h"
+#include "LookPass.h"
 #include "Modulation.h"
 #include "Preset.h"
 #include "PresetV2.h"
@@ -21,6 +22,7 @@ struct FrameContext
     const Signals& signals;
     const Clock& clock;
     const MacroBank& macros;
+    const LookSettings* look = nullptr; // global look (grade, grain, cut rate...), owned by the caller
     unsigned int videoTexture = 0;
     int width = 0, height = 0;
 

@@ -43,6 +43,23 @@ public:
     static const juce::StringArray roleNames;
     static const juce::StringArray macroNames;
 
+    // Global look (engine /v2/look slots 0-6, same order).
+    static const juce::StringArray lookIds, lookNames;
+
+    // Palette presets (choice parameter "palette"); the last two entries are
+    // "Custom" (the three colours stored in the state) and "Scene Colors"
+    // (palette mapping off - each scene's own colours).
+    static const juce::StringArray paletteNames;
+    static constexpr int customPalette = 7, sceneColours = 8;
+    static std::array<juce::Colour, 3> presetPalette (int index);
+
+    // The three colours actually sent to the engine (preset or custom).
+    std::array<juce::Colour, 3> getPaletteColours() const;
+    juce::Colour getCustomColour (int i) const;
+    // Sets one custom colour; if a preset palette was active it becomes the
+    // starting point, so editing a preset turns it into "Custom".
+    void setCustomColour (int i, juce::Colour c);
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void timerCallback() override; // pushes parameter values to the worker (message thread)

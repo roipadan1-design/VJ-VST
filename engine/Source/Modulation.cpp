@@ -110,6 +110,9 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
             if (p.stages.getReference (r.stage).parameters.getReference (i).name == parts[2])
                 r.parameter = i;
 
+        if (def.scaleBy.isNotEmpty())
+            r.scaleMacro = indexOf (p.macros, def.scaleBy.fromFirstOccurrenceOf (".", false, false));
+
         const auto& s = def.source;
         auto rest = s.fromFirstOccurrenceOf (".", false, false);
 
@@ -302,7 +305,13 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
             r.smoothed = coeff * r.smoothed + (1.0f - coeff) * q;
         }
 
-        accumulators.getReference (r.stage).getReference (r.parameter) += r.def.amount * (r.smoothed - r.def.center);
+        auto gain = 1.0f;
+        if (r.scaleMacro >= 0)
+        {
+            auto& m = preset.macros.getReference (r.scaleMacro);
+            gain = 2.0f * (macros.set[(size_t) m.slot] ? macros.values[(size_t) m.slot] : m.defaultValue);
+        }
+        accumulators.getReference (r.stage).getReference (r.parameter) += gain * r.def.amount * (r.smoothed - r.def.center);
     }
 
     // 5-6. Clamp (or wrap) once, then to physical units.

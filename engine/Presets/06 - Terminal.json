@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0",
-  "id": "zebra-warp",
-  "name": "Zebra Warp",
-  "description": "Op-art stripes bent by a flowing field over a violet-cyan gradient, stepped bars jump in on kicks.",
+  "id": "terminal",
+  "name": "Terminal",
+  "description": "An invented machine script scrolling over dark blots; kicks jump the scroll, snares invert a band.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -19,83 +19,84 @@
   },
   "stages": [
     {
-      "id": "zebra",
+      "id": "term",
       "kind": "generator",
-      "shader": "Instrument/zebra_warp.fs",
+      "shader": "Instrument/terminal.fs",
       "targetFormat": "rgba16f",
       "scale": 1.0,
       "inputs": {},
       "parameters": [
         {
-          "name": "stripes",
-          "label": "Stripes",
-          "min": 4,
-          "max": 40,
-          "default": 14,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "warp",
-          "label": "Warp",
-          "min": 0,
-          "max": 4,
-          "default": 1.4,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "flow",
-          "label": "Flow",
+          "name": "scroll",
+          "label": "Scroll",
           "min": 0.0,
-          "max": 1.0,
-          "default": 0.18,
+          "max": 6.0,
+          "default": 1.0,
           "unit": "normalized",
           "cyclic": false,
           "integrate": true
         },
         {
-          "name": "band",
-          "label": "Band",
-          "min": 0.1,
+          "name": "rows",
+          "label": "Rows",
+          "min": 10,
+          "max": 60,
+          "default": 26,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fill",
+          "label": "Fill",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "jump",
+          "label": "Jump",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "invert",
+          "label": "Invert",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "background",
+          "label": "Background",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "morph",
+          "label": "Morph",
+          "min": 0.0,
           "max": 1.0,
-          "default": 0.35,
+          "default": 0.2,
           "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "bars",
-          "label": "Bars",
-          "min": 0,
-          "max": 1,
-          "default": 0,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "hue",
-          "label": "Hue",
-          "min": 0,
-          "max": 1,
-          "default": 0,
-          "unit": "normalized",
-          "cyclic": true
+          "cyclic": false,
+          "integrate": true
         },
         {
           "name": "emission",
           "label": "Emission",
-          "min": 0.3,
-          "max": 3.5,
-          "default": 1.2,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "twist",
-          "label": "Twist",
-          "min": 0,
-          "max": 1,
-          "default": 0,
+          "min": 0.2,
+          "max": 4.0,
+          "default": 1.3,
           "unit": "normalized",
           "cyclic": false
         }
@@ -126,6 +127,30 @@
       "slot": 3,
       "label": "Space",
       "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.5
+    },
+    {
+      "id": "gravity",
+      "slot": 5,
+      "label": "Gravity",
+      "default": 0.5
+    },
+    {
+      "id": "viscosity",
+      "slot": 6,
+      "label": "Viscosity",
+      "default": 0.5
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "Detail",
+      "default": 0.5
     }
   ],
   "modulators": [
@@ -154,6 +179,22 @@
       "retrigger": "restart"
     },
     {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 60,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
       "id": "drift",
       "type": "lfo",
       "shape": "sine",
@@ -164,35 +205,22 @@
   ],
   "routes": [
     {
-      "id": "macro-intensity-zebra-emission",
+      "id": "macro-intensity-term-emission",
       "source": "macro.intensity",
-      "destination": "stage.zebra.emission",
+      "destination": "stage.term.emission",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.5,
+      "amount": 0.6,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-intensity-zebra-stripes",
-      "source": "macro.intensity",
-      "destination": "stage.zebra.stripes",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.4,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-motion-zebra-flow",
+      "id": "macro-motion-term-scroll",
       "source": "macro.motion",
-      "destination": "stage.zebra.flow",
+      "destination": "stage.term.scroll",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -203,22 +231,22 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-color-zebra-hue",
+      "id": "macro-color-term-background",
       "source": "macro.color",
-      "destination": "stage.zebra.hue",
+      "destination": "stage.term.background",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 1.0,
+      "amount": 0.9,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-space-zebra-band",
+      "id": "macro-space-term-rows",
       "source": "macro.space",
-      "destination": "stage.zebra.band",
+      "destination": "stage.term.rows",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -229,9 +257,48 @@
       "releaseMs": 180
     },
     {
-      "id": "env-kick-zebra-bars",
+      "id": "macro-detail-term-fill",
+      "source": "macro.detail",
+      "destination": "stage.term.fill",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-gravity-term-scroll",
+      "source": "macro.gravity",
+      "destination": "stage.term.scroll",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.3,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-viscosity-term-morph",
+      "source": "macro.viscosity",
+      "destination": "stage.term.morph",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-kick-term-jump",
       "source": "env.kick",
-      "destination": "stage.zebra.bars",
+      "destination": "stage.term.jump",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -239,33 +306,35 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
-      "id": "audio-bass-activity-zebra-warp",
-      "source": "audio.bass.activity",
-      "destination": "stage.zebra.warp",
+      "id": "env-snare-term-invert",
+      "source": "env.snare",
+      "destination": "stage.term.invert",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.25,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-high-activity-term-fill",
+      "source": "audio.high.activity",
+      "destination": "stage.term.fill",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.2,
       "attackMs": 30,
       "releaseMs": 220
-    },
-    {
-      "id": "descriptor-energytrend-zebra-twist",
-      "source": "descriptor.energyTrend",
-      "destination": "stage.zebra.twist",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.8,
-      "attackMs": 120,
-      "releaseMs": 400
     }
   ],
   "triggers": [
@@ -280,6 +349,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     },
@@ -322,19 +404,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "palette",
-      "on": "event.snare",
-      "minStrength": 0.3,
-      "refractoryMs": 1500,
-      "quantize": "beat",
-      "actions": [
+        },
         {
-          "type": "palette-advance",
-          "steps": 1
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     }
@@ -349,15 +431,15 @@
   "post": {
     "bloom": {
       "enabled": true,
-      "amount": 0.25,
-      "threshold": 0.9,
-      "levels": 5
+      "amount": 0.15,
+      "threshold": 1.0,
+      "levels": 4
     },
     "toneMap": "reinhard",
-    "exposureEv": 0.3,
+    "exposureEv": 0.5,
     "outputColorSpace": "srgb",
-    "grain": 0.025,
-    "vignette": 0.2
+    "grain": 0.0,
+    "vignette": 0.15
   },
   "performance": {
     "qualityTier": "medium",

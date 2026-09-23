@@ -74,6 +74,7 @@ private:
         SourceKind kind = SourceKind::zero;
         int index = 0;             // band / macro / modulator index
         int stage = 0, parameter = 0;
+        int scaleMacro = -1;       // "scaleBy" macro index, -1 = none
         V2Route def;
         float smoothed = 0.0f;
         bool initialised = false;

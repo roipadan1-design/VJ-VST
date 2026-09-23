@@ -79,6 +79,8 @@ private:
     bool activate (int index, FrameContext& frame);
     bool ensurePrograms (juce::OpenGLContext&);
 
+    void updateAutoCut (const FrameContext& frame, const LookSettings& look);
+
     juce::Array<Entry> entries;
     juce::File shadersDirectory;
     SourceLibrary sourceLibrary;
@@ -99,6 +101,14 @@ private:
     std::unique_ptr<juce::OpenGLShaderProgram> blendProgram, outputProgram;
     FullscreenQuad quad;
     bool programsFailed = false;
+
+    LookPass lookPass;
+    LookSettings defaultLook;
+    // Auto-cut (look slot "Cut Rate"): counts beats and jumps to a random
+    // other scene with a hard cut, bypassing the preset's own transition.
+    int beatsSinceCut = 0;
+    double lastKickCut = -10.0;
+    bool forceCut = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PresetManager)
 };

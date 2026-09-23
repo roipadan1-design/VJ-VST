@@ -46,6 +46,21 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
 };
 
+// One of the three palette colours; click to open a colour picker.
+class ColourSwatch : public juce::Component
+{
+public:
+    ColourSwatch (const juce::String& labelText) : label (labelText) {}
+    void setColour (juce::Colour c) { if (c != colour) { colour = c; repaint(); } }
+    void paint (juce::Graphics&) override;
+    void mouseUp (const juce::MouseEvent&) override { if (onClick) onClick(); }
+    std::function<void()> onClick;
+
+private:
+    juce::String label;
+    juce::Colour colour;
+};
+
 class VJAnalyzerEditor : public juce::AudioProcessorEditor,
                          private juce::Timer,
                          private juce::ListBoxModel
@@ -70,6 +85,7 @@ private:
     void launchEngineAt (const juce::File& exe);
     void selectPreset (int engineIndex);
 
+    void editColour (int index);
     void paintSignalPanel (juce::Graphics&, juce::Rectangle<int>);
     void paintHeader (juce::Graphics&, juce::Rectangle<int>);
 
@@ -87,12 +103,16 @@ private:
     std::unique_ptr<juce::FileChooser> engineChooser;
     double launchedAt = -100.0;
 
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> responseAttachment;
+    juce::OwnedArray<MacroKnob> lookKnobs;
+    juce::ComboBox paletteBox;
+    juce::OwnedArray<ColourSwatch> swatches;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> responseAttachment, paletteAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> sendAttachment, blackoutAttachment;
 
     AnalysisWorker::Meters meters;
     AnalysisWorker::EngineStatus status;
-    juce::Rectangle<int> headerArea, signalArea, performArea, scenesArea;
+    juce::Rectangle<int> headerArea, signalArea, performArea, scenesArea, lookArea;
     double hitFlash = -10.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VJAnalyzerEditor)

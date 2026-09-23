@@ -4,7 +4,54 @@
 
 const juce::StringArray VJAnalyzerProcessor::roleNames { "Mix", "Kick", "Snare", "Hat", "Bass", "Texture" };
 const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Motion", "Color", "Space",
-                                                          "Macro 5", "Macro 6", "Macro 7", "Macro 8" };
+                                                          "Impact", "Gravity", "Viscosity", "Detail" };
+const juce::StringArray VJAnalyzerProcessor::lookIds { "grain", "crush", "flash", "glitch", "trails", "symbols", "cutRate" };
+const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flash", "Glitch", "Trails", "Symbols", "Cut Rate" };
+const juce::StringArray VJAnalyzerProcessor::paletteNames { "Blood", "Ember", "Bone", "Ice", "Acid", "Violet", "Rust",
+                                                            "Custom", "Scene Colors" };
+
+std::array<juce::Colour, 3> VJAnalyzerProcessor::presetPalette (int index)
+{
+    using C = juce::Colour;
+    switch (index)
+    {
+        case 1:  return { C (0xff080200), C (0xffff4a00), C (0xffffd27a) }; // Ember
+        case 2:  return { C (0xff060606), C (0xff8a8580), C (0xfff4f0e8) }; // Bone
+        case 3:  return { C (0xff00040a), C (0xff1a6cff), C (0xffc8f4ff) }; // Ice
+        case 4:  return { C (0xff020600), C (0xff5cff1a), C (0xfff0ffc0) }; // Acid
+        case 5:  return { C (0xff05000a), C (0xff8a1aff), C (0xffffa8f0) }; // Violet
+        case 6:  return { C (0xff0a0402), C (0xff9a3a12), C (0xffe8b890) }; // Rust
+        default: return { C (0xff050000), C (0xffe01008), C (0xffff9a86) }; // Blood
+    }
+}
+
+juce::Colour VJAnalyzerProcessor::getCustomColour (int i) const
+{
+    auto fallback = presetPalette (0)[(size_t) i];
+    auto v = state.state.getProperty ("colour" + juce::String (i), fallback.toString()).toString();
+    return juce::Colour::fromString (v);
+}
+
+void VJAnalyzerProcessor::setCustomColour (int i, juce::Colour c)
+{
+    auto palette = (int) state.getRawParameterValue ("palette")->load();
+    if (palette < customPalette)
+        for (int k = 0; k < 3; ++k)
+            state.state.setProperty ("colour" + juce::String (k), presetPalette (palette)[(size_t) k].toString(), nullptr);
+    state.state.setProperty ("colour" + juce::String (i), c.toString(), nullptr);
+
+    if (palette != customPalette)
+        if (auto* p = state.getParameter ("palette"))
+            p->setValueNotifyingHost (p->convertTo0to1 ((float) customPalette));
+}
+
+std::array<juce::Colour, 3> VJAnalyzerProcessor::getPaletteColours() const
+{
+    auto palette = (int) state.getRawParameterValue ("palette")->load();
+    if (palette < customPalette)
+        return presetPalette (palette);
+    return { getCustomColour (0), getCustomColour (1), getCustomColour (2) };
+}
 
 juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createLayout()
 {
@@ -33,6 +80,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
                                                      AudioParameterIntAttributes().withStringFromValueFunction (
                                                          [] (int v, int) { return v == 0 ? String ("Engine") : String (v); })));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "blackout", 1 }, "Blackout", false));
+
+    const float lookDefaults[] = { 0.25f, 0.35f, 0.2f, 0.1f, 0.1f, 0.2f, 0.0f };
+    for (int i = 0; i < lookIds.size(); ++i)
+        layout.add (std::make_unique<AudioParameterFloat> (ParameterID { lookIds[i], 1 }, lookNames[i],
+                                                           NormalisableRange<float> (0.0f, 1.0f), lookDefaults[i]));
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "palette", 1 }, "Palette", paletteNames, 0));
     return layout;
 }
 
@@ -123,6 +176,16 @@ void VJAnalyzerProcessor::timerCallback()
         c.macros[(size_t) i] = state.getRawParameterValue ("macro" + juce::String (i + 1))->load();
     c.preset = (int) state.getRawParameterValue ("preset")->load();
     c.blackout = state.getRawParameterValue ("blackout")->load() > 0.5f;
+    for (int i = 0; i < lookIds.size(); ++i)
+        c.look[(size_t) i] = state.getRawParameterValue (lookIds[i])->load();
+    auto colours = getPaletteColours();
+    for (int i = 0; i < 3; ++i)
+    {
+        c.palette[(size_t) i * 3]     = colours[(size_t) i].getFloatRed();
+        c.palette[(size_t) i * 3 + 1] = colours[(size_t) i].getFloatGreen();
+        c.palette[(size_t) i * 3 + 2] = colours[(size_t) i].getFloatBlue();
+    }
+    c.paletteMix = (int) state.getRawParameterValue ("palette")->load() == sceneColours ? 0.0f : 1.0f;
     worker.setControls (c);
 
     worker.setTarget (state.state.getProperty ("engineHost", "127.0.0.1").toString(),

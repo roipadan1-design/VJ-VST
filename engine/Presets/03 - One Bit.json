@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0",
-  "id": "thermal-slices",
-  "name": "Thermal Slices",
-  "description": "Heat-map false colour on the masks, torn into horizontal slices on every hit.",
+  "id": "one-bit",
+  "name": "One Bit",
+  "description": "Hard 1-bit threshold of abstract 3D forms with halftone edges and speckle; forms swap on every second snare, hats flip polarity.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -19,44 +19,62 @@
   },
   "stages": [
     {
-      "id": "thermal",
+      "id": "bits",
       "kind": "generator",
-      "shader": "Instrument/thermal_slices.fs",
+      "shader": "Instrument/one_bit.fs",
       "targetFormat": "rgba16f",
       "scale": 1.0,
       "inputs": {},
       "parameters": [
         {
-          "name": "zoom",
-          "label": "Zoom",
-          "min": 0.7,
-          "max": 3.2,
-          "default": 1.5,
+          "name": "threshold",
+          "label": "Threshold",
+          "min": 0.2,
+          "max": 0.8,
+          "default": 0.45,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "drift",
-          "label": "Drift",
-          "min": -0.5,
-          "max": 0.5,
-          "default": 0.08,
+          "name": "dither",
+          "label": "Dither",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "cell",
+          "label": "Cell",
+          "min": 2,
+          "max": 14,
+          "default": 5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.6,
+          "max": 3.2,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "spin",
+          "label": "Spin",
+          "min": -0.6,
+          "max": 0.6,
+          "default": 0.1,
           "unit": "normalized",
           "cyclic": false,
           "integrate": true
         },
         {
-          "name": "slices",
-          "label": "Slices",
-          "min": 4,
-          "max": 60,
-          "default": 18,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "tear",
-          "label": "Tear",
+          "name": "invert",
+          "label": "Invert",
           "min": 0,
           "max": 1,
           "default": 0,
@@ -64,29 +82,29 @@
           "cyclic": false
         },
         {
-          "name": "map_offset",
-          "label": "Map Offset",
-          "min": -0.5,
-          "max": 0.5,
+          "name": "frame",
+          "label": "Frame",
+          "min": 0,
+          "max": 1,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "contrast",
-          "label": "Contrast",
-          "min": 0.5,
-          "max": 3,
-          "default": 1.3,
+          "name": "speckle",
+          "label": "Speckle",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "aberration",
-          "label": "Aberration",
+          "name": "surge",
+          "label": "Surge",
           "min": 0,
-          "max": 0.04,
-          "default": 0.006,
+          "max": 1,
+          "default": 0,
           "unit": "normalized",
           "cyclic": false
         },
@@ -95,16 +113,7 @@
           "label": "Texture Amt",
           "min": 0,
           "max": 1,
-          "default": 0.45,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "emission",
-          "label": "Emission",
-          "min": 0.3,
-          "max": 3.5,
-          "default": 1.3,
+          "default": 0.5,
           "unit": "normalized",
           "cyclic": false
         }
@@ -112,8 +121,8 @@
       "sources": {
         "source": {
           "type": "images",
-          "folder": "Images/Masks",
-          "advance": "bar",
+          "folder": "Images/Forms",
+          "advance": "event.snare",
           "every": 2,
           "order": "random"
         }
@@ -144,6 +153,30 @@
       "slot": 3,
       "label": "Space",
       "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.5
+    },
+    {
+      "id": "gravity",
+      "slot": 5,
+      "label": "Gravity",
+      "default": 0.5
+    },
+    {
+      "id": "viscosity",
+      "slot": 6,
+      "label": "Viscosity",
+      "default": 0.5
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "Detail",
+      "default": 0.5
     }
   ],
   "modulators": [
@@ -172,6 +205,22 @@
       "retrigger": "restart"
     },
     {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 60,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
       "id": "drift",
       "type": "lfo",
       "shape": "sine",
@@ -182,9 +231,9 @@
   ],
   "routes": [
     {
-      "id": "macro-intensity-thermal-emission",
+      "id": "macro-intensity-bits-texture_amt",
       "source": "macro.intensity",
-      "destination": "stage.thermal.emission",
+      "destination": "stage.bits.texture_amt",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -195,35 +244,35 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-intensity-thermal-contrast",
+      "id": "macro-intensity-bits-speckle",
       "source": "macro.intensity",
-      "destination": "stage.thermal.contrast",
+      "destination": "stage.bits.speckle",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.4,
+      "amount": 0.5,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-motion-thermal-drift",
+      "id": "macro-motion-bits-spin",
       "source": "macro.motion",
-      "destination": "stage.thermal.drift",
+      "destination": "stage.bits.spin",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.4,
-      "amount": 0.7,
+      "amount": 0.8,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-color-thermal-map_offset",
+      "id": "macro-color-bits-dither",
       "source": "macro.color",
-      "destination": "stage.thermal.map_offset",
+      "destination": "stage.bits.dither",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -234,9 +283,9 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-space-thermal-zoom",
+      "id": "macro-space-bits-zoom",
       "source": "macro.space",
-      "destination": "stage.thermal.zoom",
+      "destination": "stage.bits.zoom",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -247,67 +296,95 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-space-thermal-slices",
+      "id": "macro-space-bits-frame",
       "source": "macro.space",
-      "destination": "stage.thermal.slices",
+      "destination": "stage.bits.frame",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "smoothstep",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-detail-bits-cell",
+      "source": "macro.detail",
+      "destination": "stage.bits.cell",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.5,
+      "amount": -0.8,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "env-kick-thermal-tear",
-      "source": "env.kick",
-      "destination": "stage.thermal.tear",
+      "id": "macro-gravity-bits-threshold",
+      "source": "macro.gravity",
+      "destination": "stage.bits.threshold",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.9,
-      "attackMs": 0,
-      "releaseMs": 0
-    },
-    {
-      "id": "env-snare-thermal-tear",
-      "source": "env.snare",
-      "destination": "stage.thermal.tear",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.6,
-      "attackMs": 0,
-      "releaseMs": 0
-    },
-    {
-      "id": "env-hat-thermal-aberration",
-      "source": "env.hat",
-      "destination": "stage.thermal.aberration",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
+      "center": 0.5,
       "amount": 0.4,
-      "attackMs": 0,
-      "releaseMs": 0
+      "attackMs": 20,
+      "releaseMs": 180
     },
     {
-      "id": "descriptor-centroid-thermal-map_offset",
+      "id": "env-kick-bits-surge",
+      "source": "env.kick",
+      "destination": "stage.bits.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "env-hat-bits-invert",
+      "source": "env.hat",
+      "destination": "stage.bits.invert",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-high-activity-bits-speckle",
+      "source": "audio.high.activity",
+      "destination": "stage.bits.speckle",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "descriptor-centroid-bits-threshold",
       "source": "descriptor.centroid",
-      "destination": "stage.thermal.map_offset",
+      "destination": "stage.bits.threshold",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.2,
+      "amount": -0.2,
       "attackMs": 120,
       "releaseMs": 400
     }
@@ -324,6 +401,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     },
@@ -366,6 +456,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     }
@@ -380,20 +483,20 @@
   "post": {
     "bloom": {
       "enabled": true,
-      "amount": 0.25,
+      "amount": 0.22,
       "threshold": 0.9,
       "levels": 5
     },
     "toneMap": "reinhard",
     "exposureEv": 0.3,
     "outputColorSpace": "srgb",
-    "grain": 0.025,
-    "vignette": 0.2
+    "grain": 0.0,
+    "vignette": 0.25
   },
   "performance": {
     "qualityTier": "medium",
     "sceneBudgetMs1080p": 3.0,
-    "deterministicSeed": 505,
+    "deterministicSeed": 404,
     "notes": "target, not measured"
   }
 }

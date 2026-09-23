@@ -1,188 +1,215 @@
-"""Generates the engine's default source imagery: original, shaded 3D-looking
-masks/skulls/heads (RGBA, transparent background) for the schema-2 presets.
+"""Generates the engine's default source imagery: abstract 3D forms (RGBA,
+transparent background) for the schema-2 presets - nothing figurative, no
+faces or masks, just objects with strong silhouettes and deep relief that
+survive a hard threshold / dot treatment.
 
-The reference analysis (docs/REFERENCE-ZWOBOT-V3-TRAILER.md) shows the look
-comes from strong raw material - masks, skulls, faces - pushed through one bold
-treatment. These are procedurally drawn (signed-distance shapes -> height map
--> lit relief) so the project ships its own content; drop your own PNGs into
-Media/Images/User (or any folder a preset points at) to use real material.
+Each form is a signed-distance field raymarched on the CPU (numpy), lit with
+a key light, a rim light and cheap ambient occlusion, then written as a
+grey-scale RGBA PNG. The engine's look pass colours everything, so the forms
+only carry light and shape.
 
-    python make_source_assets.py            # writes engine/Media/Images/Masks/*.png
+    python make_source_assets.py            # writes engine/Media/Images/Forms/*.png
 """
 import os
 import numpy as np
 from PIL import Image
 
 SIZE = 1024
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Media', 'Images', 'Masks')
-
-yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(np.float32)
-X = (xx - SIZE / 2) / (SIZE / 2)   # -1..1, +x right
-Y = (SIZE / 2 - yy) / (SIZE / 2)   # -1..1, +y up
-rng = np.random.default_rng(7)
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Media', 'Images', 'Forms')
 
 
-# --- signed-distance primitives (negative inside) ---------------------------
-def ellipse(cx, cy, rx, ry):
-    return (np.sqrt(((X - cx) / rx) ** 2 + ((Y - cy) / ry) ** 2) - 1.0) * min(rx, ry)
+# --- SDF helpers on (N,3) point arrays ---------------------------------------
+def length(v): return np.sqrt((v * v).sum(axis=-1))
 
-def circle(cx, cy, r):
-    return np.sqrt((X - cx) ** 2 + (Y - cy) ** 2) - r
+def sphere(p, r): return length(p) - r
 
-def box(cx, cy, hx, hy, r=0.0):
-    qx = np.abs(X - cx) - hx + r
-    qy = np.abs(Y - cy) - hy + r
-    return np.sqrt(np.maximum(qx, 0) ** 2 + np.maximum(qy, 0) ** 2) + np.minimum(np.maximum(qx, qy), 0) - r
+def box(p, b, r=0.0):
+    q = np.abs(p) - (np.asarray(b) - r)
+    return length(np.maximum(q, 0)) + np.minimum(q.max(axis=-1), 0) - r
+
+def torus(p, R, r):
+    q = np.stack([np.sqrt(p[:, 0] ** 2 + p[:, 2] ** 2) - R, p[:, 1]], axis=-1)
+    return length(q) - r
+
+def cyl_z(p, r): return np.sqrt(p[:, 0] ** 2 + p[:, 1] ** 2) - r
 
 def smin(a, b, k):
     h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1)
     return b * (1 - h) + a * h - k * h * (1 - h)
 
-def union(a, b): return np.minimum(a, b)
-def subtract(a, b): return np.maximum(a, -b)
+def rot(p, ax, a):
+    c, s = np.cos(a), np.sin(a)
+    q = p.copy()
+    i, j = {'x': (1, 2), 'y': (0, 2), 'z': (0, 1)}[ax]
+    q[:, i] = c * p[:, i] - s * p[:, j]
+    q[:, j] = s * p[:, i] + c * p[:, j]
+    return q
+
+def gyroid(p, f):
+    q = p * f
+    return (np.sin(q[:, 0]) * np.cos(q[:, 1]) + np.sin(q[:, 1]) * np.cos(q[:, 2]) + np.sin(q[:, 2]) * np.cos(q[:, 0])) / f
 
 
-def value_noise(scale, octaves=5):
-    out = np.zeros_like(X)
-    amp, freq = 0.5, scale
-    for _ in range(octaves):
-        grid = rng.random((int(freq) + 3, int(freq) + 3)).astype(np.float32)
-        gx = (X * 0.5 + 0.5) * freq
-        gy = (Y * 0.5 + 0.5) * freq
-        ix, iy = np.floor(gx).astype(int), np.floor(gy).astype(int)
-        fx, fy = gx - ix, gy - iy
-        fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
-        a, b = grid[iy, ix], grid[iy, ix + 1]
-        c, d = grid[iy + 1, ix], grid[iy + 1, ix + 1]
-        out += amp * ((a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy)
-        amp *= 0.5
-        freq *= 2.0
+# --- the forms -----------------------------------------------------------------
+def gyroid_core(p):
+    """Sphere hollowed into a gyroid lattice, with a solid inner core."""
+    p = rot(rot(p, 'y', 0.5), 'x', 0.35)
+    shell = np.maximum(sphere(p, 0.95), np.abs(gyroid(p, 7.0)) - 0.035)
+    return np.minimum(shell, sphere(p, 0.42))
+
+def twisted_ring(p):
+    """Thick torus twisted along its length, cut with ribs."""
+    p = rot(rot(p, 'x', 1.1), 'z', 0.3)
+    a = np.arctan2(p[:, 2], p[:, 0])
+    q = p.copy()
+    rr = np.sqrt(p[:, 0] ** 2 + p[:, 2] ** 2) - 0.62
+    c, s = np.cos(a * 1.5), np.sin(a * 1.5)
+    x2, y2 = c * rr - s * p[:, 1], s * rr + c * p[:, 1]
+    d = np.maximum(np.abs(x2) - 0.2, np.abs(y2) - 0.09)
+    ribs = np.abs(np.sin(a * 22.0)) * 0.04 - 0.012
+    return np.maximum(d, -ribs) * 0.7
+
+def fractured_shell(p):
+    """Sphere shell broken into drifting slabs."""
+    p = rot(p, 'y', 0.6)
+    out = np.full(len(p), 10.0)
+    rng = np.random.default_rng(3)
+    for i in range(7):
+        n = rng.normal(size=3); n /= np.linalg.norm(n)
+        off = n * (0.05 + 0.1 * rng.random())
+        q = p - off
+        shell = np.abs(sphere(q, 0.82)) - 0.07
+        slab = np.abs((q @ n) - (i - 3) * 0.22) - 0.1
+        out = np.minimum(out, np.maximum(shell, slab))
     return out
 
+def cluster(p):
+    """Viscous cluster of merging spheres - frozen liquid."""
+    p = rot(p, 'z', 0.2)
+    rng = np.random.default_rng(11)
+    d = np.full(len(p), 10.0)
+    for _ in range(9):
+        c = np.clip(rng.normal(size=3), -1.6, 1.6) * np.array([0.3, 0.3, 0.25])
+        d = smin(d, sphere(p - c, 0.18 + 0.2 * rng.random()), 0.22)
+    return d
 
-def render(sdf, bulge=0.9, detail=0.0, strokes=None, light=(-0.45, 0.55, 0.7), tint=(1.0, 1.0, 1.0)):
-    """Height from the SDF (dome profile), lit with a key + rim light."""
-    depth = np.clip(-sdf, 0, None)
-    height = np.sqrt(np.clip(depth / 0.25, 0, 1)) * bulge
-    if detail > 0:
-        height += detail * (value_noise(12) - 0.5)
-    if strokes is not None:
-        height -= 0.12 * strokes  # carved lines
+def perforated_slab(p):
+    """Tilted thick slab drilled with a grid of holes."""
+    p = rot(rot(p, 'y', 0.55), 'x', -0.4)
+    d = box(p, (0.62, 0.85, 0.12), 0.03)
+    q = p.copy()
+    q[:, 0] = np.mod(p[:, 0] + 0.1, 0.2) - 0.1
+    q[:, 1] = np.mod(p[:, 1] + 0.1, 0.2) - 0.1
+    return np.maximum(d, -cyl_z(q, 0.055))
 
-    gy, gx = np.gradient(height)
-    n = np.dstack([-gx * SIZE * 0.06, -gy * SIZE * 0.06 * -1, np.ones_like(height)])
-    n /= np.linalg.norm(n, axis=2, keepdims=True)
-    l = np.array(light, dtype=np.float32)
-    l /= np.linalg.norm(l)
-    diffuse = np.clip((n * l).sum(axis=2), 0, 1)
-    rim = np.clip(1 - n[..., 2], 0, 1) ** 2
-    spec = np.clip((n * np.array([0.2, 0.4, 1.0]) / np.linalg.norm([0.2, 0.4, 1.0])).sum(axis=2), 0, 1) ** 24
-    shade = 0.12 + 0.78 * diffuse + 0.35 * rim + 0.6 * spec
-    if strokes is not None:
-        shade *= 1 - 0.85 * strokes
+def ribbon(p):
+    """A wide band folded and twisted through space."""
+    p = rot(p, 'x', 0.3)
+    t = p[:, 1] * 2.2
+    c, s = np.cos(t), np.sin(t)
+    q = p.copy()
+    q[:, 0] = c * p[:, 0] - s * p[:, 2]
+    q[:, 2] = s * p[:, 0] + c * p[:, 2]
+    q[:, 0] += 0.18 * np.sin(p[:, 1] * 3.0)
+    return box(q, (0.42, 0.9, 0.035), 0.02) * 0.6
 
-    alpha = np.clip(0.5 - sdf * SIZE * 0.5, 0, 1)  # ~1px antialiased edge
-    rgb = np.clip(np.dstack([shade * t for t in tint]), 0, 1)
-    return np.dstack([rgb, alpha])
+def sponge(p):
+    """Two iterations of a Menger sponge, turned on its corner."""
+    p = rot(rot(p, 'y', 0.78), 'x', 0.6)
+    d = box(p, (0.6, 0.6, 0.6))
+    s = 1.0
+    for _ in range(3):
+        a = np.mod(p * s / 0.6 * 1.0 + 1.0, 2.0) - 1.0
+        s *= 3.0
+        r = np.abs(1.0 - 3.0 * np.abs(a))
+        da = np.maximum(r[:, 0], r[:, 1]); db = np.maximum(r[:, 1], r[:, 2]); dc = np.maximum(r[:, 2], r[:, 0])
+        c = (np.minimum(da, np.minimum(db, dc)) - 1.0) / s * 0.6
+        d = np.maximum(d, c)
+    return d
 
-
-def stroke_line(points, width):
-    """Distance field of a polyline -> 0..1 stroke mask."""
-    d = np.full_like(X, 10.0)
-    for (ax, ay), (bx, by) in zip(points[:-1], points[1:]):
-        px, py = X - ax, Y - ay
-        vx, vy = bx - ax, by - ay
-        h = np.clip((px * vx + py * vy) / (vx * vx + vy * vy), 0, 1)
-        d = np.minimum(d, np.sqrt((px - vx * h) ** 2 + (py - vy * h) ** 2))
-    return np.clip((width - d) / (width * 0.4), 0, 1)
-
-
-def skull():
-    head = smin(circle(0, 0.18, 0.62), box(0, -0.42, 0.34, 0.26, 0.12), 0.18)
-    head = subtract(head, ellipse(-0.25, 0.05, 0.19, 0.22))
-    head = subtract(head, ellipse(0.25, 0.05, 0.19, 0.22))
-    head = subtract(head, smin(ellipse(0, -0.2, 0.07, 0.11), circle(0, -0.26, 0.05), 0.04))
-    for i in range(6):
-        head = subtract(head, box(-0.25 + i * 0.1, -0.5, 0.012, 0.09))
-    head = subtract(head, box(0, -0.43, 0.32, 0.012))
-    cracks = stroke_line([(0.1, 0.78), (0.18, 0.55), (0.12, 0.4), (0.22, 0.28)], 0.012)
-    return render(head, 0.95, 0.06, cracks)
-
-
-def hockey():
-    m = ellipse(0, 0, 0.55, 0.78)
-    m = subtract(m, ellipse(-0.2, 0.18, 0.12, 0.08))
-    m = subtract(m, ellipse(0.2, 0.18, 0.12, 0.08))
-    for (hx, hy) in [(-0.3, -0.1), (0.3, -0.1), (-0.15, -0.25), (0.15, -0.25), (0, -0.35), (-0.22, -0.42), (0.22, -0.42),
-                     (0, -0.55), (-0.1, 0.45), (0.1, 0.45), (0, 0.6), (-0.35, 0.3), (0.35, 0.3)]:
-        m = subtract(m, circle(hx, hy, 0.032))
-    ridge = stroke_line([(0, 0.7), (0, -0.05)], 0.02)
-    chevrons = stroke_line([(-0.42, 0.5), (-0.3, 0.62), (-0.18, 0.5)], 0.02) + stroke_line([(0.18, 0.5), (0.3, 0.62), (0.42, 0.5)], 0.02)
-    return render(m, 0.8, 0.02, np.clip(chevrons, 0, 1) - 0.5 * ridge, tint=(0.95, 1.0, 0.92))
+def spine(p):
+    """Discs stacked along a bending curve, fused together."""
+    d = np.full(len(p), 10.0)
+    for i in range(11):
+        t = (i - 5) / 5.0
+        c = np.array([0.35 * np.sin(t * 2.2), t * 0.85, 0.2 * np.cos(t * 1.7)])
+        q = rot(p - c, 'z', t * 0.9)
+        disc = np.maximum(np.sqrt(q[:, 0] ** 2 + q[:, 2] ** 2) - (0.34 - 0.12 * abs(t)), np.abs(q[:, 1]) - 0.035)
+        d = smin(d, disc, 0.05)
+    return d
 
 
-def grin():
-    f = circle(0, 0, 0.7)
-    f = subtract(f, circle(-0.26, 0.2, 0.14))
-    f = subtract(f, circle(0.26, 0.2, 0.14))
-    mouth = box(0, -0.3, 0.42, 0.13, 0.12)
-    f = subtract(f, mouth)
-    f = union(f, box(0, -0.3, 0.38, 0.004))
-    teeth = sum(stroke_line([(-0.32 + i * 0.08, -0.2), (-0.32 + i * 0.08, -0.4)], 0.008) for i in range(9))
-    graffiti = stroke_line([(-0.55, 0.55), (-0.35, 0.4), (-0.45, 0.3), (-0.2, 0.22)], 0.018)
-    return render(f, 0.9, 0.03, np.clip(teeth + graffiti, 0, 1), tint=(1.0, 0.97, 0.95))
+# --- renderer ------------------------------------------------------------------
+def render(sdf, steps=110):
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(np.float32)
+    u = (xx - SIZE / 2) / (SIZE / 2)
+    v = (SIZE / 2 - yy) / (SIZE / 2)
+    ro = np.array([0.0, 0.0, 3.2])
+    rd = np.stack([u.ravel(), v.ravel(), np.full(u.size, -2.7)], axis=-1)
+    rd /= length(rd)[:, None]
+
+    t = np.full(u.size, 1.6)
+    hit = np.zeros(u.size, bool)
+    alive = np.ones(u.size, bool)
+    for _ in range(steps):
+        idx = np.nonzero(alive)[0]
+        if idx.size == 0:
+            break
+        pos = ro + rd[idx] * t[idx, None]
+        d = sdf(pos)
+        t[idx] += d * 0.8
+        done = d < 5e-4
+        hit[idx[done]] = True
+        alive[idx[done | (t[idx] > 5.0)]] = False
+
+    rgb = np.zeros((u.size, 3), np.float32)
+    idx = np.nonzero(hit)[0]
+    p = ro + rd[idx] * t[idx, None]
+    e = 1e-3
+    n = np.stack([sdf(p + [e, 0, 0]) - sdf(p - [e, 0, 0]),
+                  sdf(p + [0, e, 0]) - sdf(p - [0, e, 0]),
+                  sdf(p + [0, 0, e]) - sdf(p - [0, 0, e])], axis=-1)
+    n /= length(n)[:, None] + 1e-9
+
+    key = np.array([-0.5, 0.7, 0.6]); key /= np.linalg.norm(key)
+    back = np.array([0.7, -0.2, -0.6]); back /= np.linalg.norm(back)
+    diffuse = np.clip(n @ key, 0, 1)
+    rim = np.clip(1 + (n * rd[idx]).sum(-1), 0, 1) ** 3
+    backlight = np.clip(n @ back, 0, 1)
+    h = (key - rd[idx]); h /= length(h)[:, None]
+    spec = np.clip((n * h).sum(-1), 0, 1) ** 40
+
+    ao = np.ones(len(idx), np.float32)
+    for k in range(1, 6):
+        dist = 0.04 * k
+        ao -= (dist - sdf(p + n * dist)) * (0.5 ** k) * 6.0
+    ao = np.clip(ao, 0, 1)
+
+    shade = (0.06 + 0.8 * diffuse * ao + 0.45 * rim + 0.25 * backlight + 0.7 * spec) * (0.35 + 0.65 * ao)
+    rgb[idx] = np.clip(shade, 0, 1)[:, None]
+    alpha = hit.astype(np.float32)
+    img = np.concatenate([rgb, alpha[:, None]], axis=-1).reshape(SIZE, SIZE, 4)
+    # 2x2 box filter on the silhouette for a softer edge
+    img[..., 3] = (img[..., 3] + np.roll(img[..., 3], 1, 0) + np.roll(img[..., 3], 1, 1) + np.roll(np.roll(img[..., 3], 1, 0), 1, 1)) / 4
+    return img
 
 
-def tribal():
-    m = smin(ellipse(0, -0.05, 0.45, 0.7), union(box(-0.45, 0.62, 0.05, 0.2, 0.05), box(0.45, 0.62, 0.05, 0.2, 0.05)), 0.12)
-    diamond = lambda cx: np.abs(X - cx) * 1.3 + np.abs(Y - 0.18) - 0.14
-    m = subtract(subtract(m, diamond(-0.2)), diamond(0.2))
-    zig = stroke_line([(-0.3, -0.35), (-0.18, -0.25), (-0.06, -0.35), (0.06, -0.25), (0.18, -0.35), (0.3, -0.25)], 0.03)
-    brow = stroke_line([(-0.4, 0.38), (0, 0.46), (0.4, 0.38)], 0.02)
-    return render(m, 1.0, 0.08, np.clip(zig + brow, 0, 1), tint=(0.9, 0.95, 1.0))
-
-
-def alien():
-    h = smin(ellipse(0, 0.12, 0.55, 0.6), ellipse(0, -0.45, 0.18, 0.3), 0.3)
-    eye = lambda s: ((X * s - 0.22) * np.cos(0.5) + (Y - 0.02) * np.sin(0.5)) ** 2 / 0.05 + (-(X * s - 0.22) * np.sin(0.5) + (Y - 0.02) * np.cos(0.5)) ** 2 / 0.01 - 1.0
-    h = subtract(subtract(h, eye(1.0) * 0.1), eye(-1.0) * 0.1)
-    return render(h, 1.0, 0.04)
-
-
-def stone_head():
-    h = smin(ellipse(0, 0.05, 0.5, 0.72), box(0, 0.3, 0.52, 0.06, 0.05), 0.1)
-    h = subtract(h, box(-0.2, 0.16, 0.12, 0.035, 0.02))
-    h = subtract(h, box(0.2, 0.16, 0.12, 0.035, 0.02))
-    h = smin(h, box(0, -0.05, 0.06, 0.18, 0.05), 0.05)
-    h = subtract(h, box(0, -0.42, 0.2, 0.025, 0.02))
-    return render(h, 0.9, 0.18, tint=(0.92, 0.9, 0.86))
-
-
-def orb():
-    o = circle(0, 0, 0.72)
-    rings = sum(stroke_line([(np.cos(a) * 0.72, np.sin(a) * 0.72 * 0.3 + k * 0.2), (-np.cos(a) * 0.72, -np.sin(a) * 0.72 * 0.3 + k * 0.2)], 0.01)
-                for k, a in [(-2, 0.1), (-1, 0.1), (0, 0.1), (1, 0.1), (2, 0.1)])
-    return render(o, 1.2, 0.02, np.clip(rings, 0, 1))
-
-
-def monolith():
-    m = box(0, 0, 0.32, 0.78, 0.04)
-    for i in range(7):
-        m = subtract(m, box(0, 0.6 - i * 0.2, 0.2, 0.025))
-    return render(m, 0.6, 0.05, light=(0.6, 0.4, 0.7))
-
-
-SHAPES = {
-    '01_skull': skull, '02_hockey': hockey, '03_grin': grin, '04_tribal': tribal,
-    '05_alien': alien, '06_stone_head': stone_head, '07_orb': orb, '08_monolith': monolith,
+FORMS = {
+    '01_gyroid_core': gyroid_core, '02_twisted_ring': twisted_ring, '03_fractured_shell': fractured_shell,
+    '04_cluster': cluster, '05_perforated_slab': perforated_slab, '06_ribbon': ribbon,
+    '07_sponge': sponge, '08_spine': spine,
 }
 
 if __name__ == '__main__':
+    import sys
     os.makedirs(OUT, exist_ok=True)
-    for name, make in SHAPES.items():
-        rgba = make()
+    only = set(sys.argv[1:])
+    for name, sdf in FORMS.items():
+        if only and name not in only:
+            continue
+        rgba = render(sdf)
         Image.fromarray((np.clip(rgba, 0, 1) * 255).astype(np.uint8), 'RGBA').save(os.path.join(OUT, name + '.png'), optimize=True)
-        print('wrote', name)
+        print('wrote', name, flush=True)
     user = os.path.join(OUT, '..', 'User')
     os.makedirs(user, exist_ok=True)
     open(os.path.join(user, 'README.txt'), 'w').write('Drop your own PNG/JPG sources here (transparent PNGs work best).\n')

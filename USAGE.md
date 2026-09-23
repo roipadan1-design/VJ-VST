@@ -41,11 +41,17 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
   instead of guessing drums from the full mix. With no role sources, the mix's bass/mid/high transients stand in.
 - **MIDI**: route a MIDI track's output to the analyzer's track (*MIDI To*). Played notes arrive as zero-guess
   events; on a KICK-role analyzer a note *is* a kick (and suppresses audio-detected kicks for 2 s).
-- **Macros 1-8** (Intensity, Motion, Color, Space, 5-8): real host parameters - automate them, or MIDI-map with
+- **Macros 1-8** (Intensity, Motion, Color, Space, Impact, Gravity, Viscosity, Detail): real host parameters - automate them, or MIDI-map with
   Live's MIDI Map mode (if a parameter doesn't show up for mapping, click *Configure* on the device and touch it).
   Only enable **Send macros** on one analyzer (normally the MIX one).
 - **Preset**: 0 = leave the engine's choice; the list on the right selects directly and records the choice in
   the parameter, so the Live set recalls it.
+- **LOOK** (global, on top of every scene): Grain, Crush (soft -> posterised -> hard two-tone), Flash (chance a kick
+  drops a black / colour frame), Glitch (row tears, pixel blocks, RGB split), Trails, Symbols (braille strips,
+  re-dealt on snares) and Cut Rate (automatic cuts between scenes: off, every 16/8/4/2/1 beats, every kick).
+  **Palette** maps the image through 3 colours (shadow / mid / light): pick a preset (Blood, Ember, Bone, Ice,
+  Acid, Violet, Rust), click a colour chip to edit it (that makes it *Custom*), or *Scene Colors* to switch the
+  mapping off.
 - **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black.
 - **Hit Sens** (0.25-4) scales onset thresholds; **Trim** adjusts analysis input only; **Adaptive / Locked**
   selects the normaliser mode.
@@ -69,7 +75,7 @@ Command line: `"VJ Engine.exe" [--osc-port N] [--demo] [video file]`.
 
 **Adaptive quality**: the engine renders internally at a fraction of the output resolution and upscales,
 lowering the scale when it falls under 50 fps and climbing back after 6 stable seconds (logged to
-`VJEngine.log`). Measured on this machine's Intel Iris Xe: Liquid Chrome holds ~57 fps at 84 %.
+`VJEngine.log`). Measured on this machine's Intel Iris Xe: Hot Blobs holds ~42 fps at 76 % (with the look pass).
 
 `VJEngine.log` (next to the exe) records preset loads/rejections, shader errors, fps with the live sources and
 clock, and quality changes.
@@ -85,6 +91,8 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/spectrum` | i sourceId, i seq, 32 f | log spectrum (~60 Hz) |
 | `/v2/event` | i sourceId, s role, i eventId, s type, f strength, i note, i velocity, f ageMs | hits and notes (de-duplicated, expire after 150 ms) |
 | `/v2/macro` | i slot 0-7, f 0-1 | macro base value |
+| `/v2/look` | i slot 0-6, f 0-1 | global look: grain, crush, flash, glitch, trails, symbols, cut rate |
+| `/v2/palette` | 9 f (rgb x3, 0-1) [, f mix] | shadow / mid / light colours of the global gradient map (mix 0 = scene colours) |
 | `/v2/preset` | i index **or** s name | select preset (name = case-insensitive substring) |
 | `/v2/preset/next`, `/v2/preset/previous` | | |
 | `/v2/blackout` | [i 0/1] | set / toggle |
@@ -105,7 +113,7 @@ render scale) and `/v2/presets` (names, every ~2 s).
 - **Schema 2** (`10`+, `"schemaVersion": "2.0"`): the format in
   `visual_instrument_research/preset.schema.json`, plus engine extensions:
   - `stages[].sources`: raw material bound to an ISF image input -
-    `{"type": "images", "folder": "Images/Masks", "advance": "bar"|"beat"|"event.snare"|"none", "every": 2, "order": "random"}` or
+    `{"type": "images", "folder": "Images/Forms", "advance": "bar"|"beat"|"event.snare"|"none", "every": 2, "order": "random"}` or
     `{"type": "text", "words": [...], "font": "Arial Black", "advance": "beat"}`.
   - `parameters[].integrate: true`: the value is a rate; the shader receives its running integral (speed changes never jump).
   - Route sources: `audio.level|bass|mid|high.activity|absolute`, `audio.kick|snare|hat.activity`, `audio.band0..5.activity`,
@@ -121,7 +129,7 @@ Every preset shader may use the engine uniforms `vj_beat` (musical position), `v
 
 ### Source material
 
-`engine/Media/Images/Masks` holds original generated masks (`engine/tools/make_source_assets.py`). Put your own
+`engine/Media/Images/Forms` holds original abstract 3D forms raymarched by `engine/tools/make_source_assets.py`. Put your own
 PNG/JPG (transparent PNG works best) into `engine/Media/Images/User` and point a preset's source `folder` at it.
 
 ## Tests and tools

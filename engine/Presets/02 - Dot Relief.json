@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0",
-  "id": "hot-blobs",
-  "name": "Hot Blobs",
-  "description": "Thresholded liquid shapes filled with a vivid gradient and white rims; the palette steps on snares.",
+  "id": "dot-relief",
+  "name": "Dot Relief",
+  "description": "Abstract 3D forms rebuilt as a tilted relief of dots; kicks lift the relief, a new form every 2 bars.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -19,68 +19,67 @@
   },
   "stages": [
     {
-      "id": "blobs",
+      "id": "dots",
       "kind": "generator",
-      "shader": "Instrument/hot_blobs.fs",
+      "shader": "Instrument/dot_relief.fs",
       "targetFormat": "rgba16f",
       "scale": 1.0,
       "inputs": {},
       "parameters": [
         {
-          "name": "scale",
-          "label": "Scale",
-          "min": 0.8,
-          "max": 4.0,
-          "default": 1.8,
+          "name": "grid",
+          "label": "Grid",
+          "min": 40,
+          "max": 200,
+          "default": 90,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "flow",
-          "label": "Flow",
-          "min": 0.0,
+          "name": "depth",
+          "label": "Depth",
+          "min": 0,
           "max": 0.6,
-          "default": 0.12,
-          "unit": "normalized",
-          "cyclic": false,
-          "integrate": true
-        },
-        {
-          "name": "threshold",
-          "label": "Threshold",
-          "min": 0.38,
-          "max": 0.64,
-          "default": 0.53,
+          "default": 0.22,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "rim",
-          "label": "Rim",
+          "name": "tilt",
+          "label": "Tilt",
           "min": 0,
-          "max": 2,
-          "default": 0.7,
+          "max": 0.8,
+          "default": 0.35,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "gradient",
-          "label": "Gradient",
+          "name": "dot_size",
+          "label": "Dot Size",
+          "min": 0.1,
+          "max": 0.9,
+          "default": 0.45,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.7,
+          "max": 2.6,
+          "default": 1.15,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "sway",
+          "label": "Sway",
           "min": 0.0,
-          "max": 1.5,
-          "default": 0.3,
+          "max": 1.0,
+          "default": 0.2,
           "unit": "normalized",
           "cyclic": false,
           "integrate": true
-        },
-        {
-          "name": "hue",
-          "label": "Hue",
-          "min": 0,
-          "max": 1,
-          "default": 0.5,
-          "unit": "normalized",
-          "cyclic": true
         },
         {
           "name": "surge",
@@ -92,24 +91,42 @@
           "cyclic": false
         },
         {
-          "name": "emission",
-          "label": "Emission",
-          "min": 0.3,
-          "max": 3.0,
-          "default": 1.2,
+          "name": "tint",
+          "label": "Tint",
+          "min": 0,
+          "max": 1,
+          "default": 0,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "grain",
-          "label": "Grain",
+          "name": "hue",
+          "label": "Hue",
           "min": 0,
           "max": 1,
-          "default": 0.35,
+          "default": 0.1,
+          "unit": "normalized",
+          "cyclic": true
+        },
+        {
+          "name": "noise_floor",
+          "label": "Noise Floor",
+          "min": 0,
+          "max": 1,
+          "default": 0.12,
           "unit": "normalized",
           "cyclic": false
         }
-      ]
+      ],
+      "sources": {
+        "source": {
+          "type": "images",
+          "folder": "Images/Forms",
+          "advance": "bar",
+          "every": 2,
+          "order": "random"
+        }
+      }
     }
   ],
   "macros": [
@@ -135,6 +152,30 @@
       "id": "space",
       "slot": 3,
       "label": "Space",
+      "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.5
+    },
+    {
+      "id": "gravity",
+      "slot": 5,
+      "label": "Gravity",
+      "default": 0.5
+    },
+    {
+      "id": "viscosity",
+      "slot": 6,
+      "label": "Viscosity",
+      "default": 0.5
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "Detail",
       "default": 0.5
     }
   ],
@@ -164,6 +205,22 @@
       "retrigger": "restart"
     },
     {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 60,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
       "id": "drift",
       "type": "lfo",
       "shape": "sine",
@@ -174,22 +231,9 @@
   ],
   "routes": [
     {
-      "id": "macro-intensity-blobs-emission",
+      "id": "macro-intensity-dots-dot_size",
       "source": "macro.intensity",
-      "destination": "stage.blobs.emission",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.6,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-intensity-blobs-rim",
-      "source": "macro.intensity",
-      "destination": "stage.blobs.rim",
+      "destination": "stage.dots.dot_size",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -200,9 +244,22 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-motion-blobs-flow",
+      "id": "macro-intensity-dots-depth",
+      "source": "macro.intensity",
+      "destination": "stage.dots.depth",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.4,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-motion-dots-sway",
       "source": "macro.motion",
-      "destination": "stage.blobs.flow",
+      "destination": "stage.dots.sway",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -213,61 +270,74 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-motion-blobs-gradient",
-      "source": "macro.motion",
-      "destination": "stage.blobs.gradient",
+      "id": "macro-color-dots-noise_floor",
+      "source": "macro.color",
+      "destination": "stage.dots.noise_floor",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.4,
+      "center": 0.5,
       "amount": 0.6,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-color-blobs-hue",
-      "source": "macro.color",
-      "destination": "stage.blobs.hue",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-space-blobs-scale",
+      "id": "macro-space-dots-zoom",
       "source": "macro.space",
-      "destination": "stage.blobs.scale",
+      "destination": "stage.dots.zoom",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": -0.7,
+      "amount": -0.4,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-space-blobs-threshold",
-      "source": "macro.space",
-      "destination": "stage.blobs.threshold",
+      "id": "macro-detail-dots-grid",
+      "source": "macro.detail",
+      "destination": "stage.dots.grid",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.4,
+      "amount": 0.8,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "env-kick-blobs-surge",
+      "id": "macro-gravity-dots-tilt",
+      "source": "macro.gravity",
+      "destination": "stage.dots.tilt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-viscosity-dots-sway",
+      "source": "macro.viscosity",
+      "destination": "stage.dots.sway",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.4,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-kick-dots-surge",
       "source": "env.kick",
-      "destination": "stage.blobs.surge",
+      "destination": "stage.dots.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -275,31 +345,46 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
-      "id": "env-hat-blobs-grain",
-      "source": "env.hat",
-      "destination": "stage.blobs.grain",
+      "id": "env-swell-dots-depth",
+      "source": "env.swell",
+      "destination": "stage.dots.depth",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.4,
+      "amount": 0.3,
       "attackMs": 0,
-      "releaseMs": 0
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
-      "id": "audio-level-activity-blobs-threshold",
-      "source": "audio.level.activity",
-      "destination": "stage.blobs.threshold",
+      "id": "audio-bass-activity-dots-depth",
+      "source": "audio.bass.activity",
+      "destination": "stage.dots.depth",
       "inputMin": 0.0,
       "inputMax": 1.0,
-      "curve": "power",
-      "exponent": 1.4,
+      "curve": "linear",
+      "exponent": 1.0,
       "center": 0.0,
-      "amount": -0.25,
+      "amount": 0.2,
+      "attackMs": 30,
+      "releaseMs": 220
+    },
+    {
+      "id": "audio-high-activity-dots-noise_floor",
+      "source": "audio.high.activity",
+      "destination": "stage.dots.noise_floor",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
       "attackMs": 30,
       "releaseMs": 220
     }
@@ -316,6 +401,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     },
@@ -358,19 +456,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "palette",
-      "on": "event.snare",
-      "minStrength": 0.3,
-      "refractoryMs": 1500,
-      "quantize": "beat",
-      "actions": [
+        },
         {
-          "type": "palette-advance",
-          "steps": 1
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     }
@@ -385,20 +483,20 @@
   "post": {
     "bloom": {
       "enabled": true,
-      "amount": 0.25,
+      "amount": 0.22,
       "threshold": 0.9,
       "levels": 5
     },
     "toneMap": "reinhard",
     "exposureEv": 0.3,
     "outputColorSpace": "srgb",
-    "grain": 0.025,
-    "vignette": 0.2
+    "grain": 0.0,
+    "vignette": 0.25
   },
   "performance": {
     "qualityTier": "medium",
     "sceneBudgetMs1080p": 3.0,
-    "deterministicSeed": 202,
+    "deterministicSeed": 303,
     "notes": "target, not measured"
   }
 }

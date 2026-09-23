@@ -93,6 +93,10 @@ struct V2Route
     Curve curve = Curve::linear;
     float exponent = 1.0f, center = 0.0f, amount = 0.0f;
     float attackMs = 0.0f, releaseMs = 0.0f;
+    // Engine extension: "scaleBy": "macro.<id>" multiplies this route's
+    // contribution by 2 x that macro (x1 at the macro's centre, x0..x2) - how
+    // one "Impact" knob scales every hit reaction of a scene.
+    juce::String scaleBy;
 };
 
 struct V2Action

@@ -7,6 +7,15 @@ MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
     : oscPort (oscPortIn)
 {
     featureBus.setDemoEnabled (startWithDemo);
+
+    for (int i = 0; i < LookSettings::numSlots; ++i)
+        lookValues[(size_t) i] = look.values[(size_t) i];
+    for (int i = 0; i < 3; ++i)
+    {
+        paletteValues[(size_t) i * 3]     = look.palette[(size_t) i].getFloatRed();
+        paletteValues[(size_t) i * 3 + 1] = look.palette[(size_t) i].getFloatGreen();
+        paletteValues[(size_t) i * 3 + 2] = look.palette[(size_t) i].getFloatBlue();
+    }
     setSize (1280, 720);
     // Deliberately NOT forcing a Core profile: defaultGLVersion gives the GPU's newest
     // compatibility-profile context, which is what ISF/Shadertoy-style shaders expect
@@ -106,6 +115,14 @@ void MainComponent::render()
         macroBank.set[(size_t) i] = macroSet[(size_t) i].load();
     }
 
+    for (int i = 0; i < LookSettings::numSlots; ++i)
+        look.values[(size_t) i] = lookValues[(size_t) i].load();
+    for (int i = 0; i < 3; ++i)
+        look.palette[(size_t) i] = juce::Colour::fromFloatRGBA (paletteValues[(size_t) i * 3].load(),
+                                                               paletteValues[(size_t) i * 3 + 1].load(),
+                                                               paletteValues[(size_t) i * 3 + 2].load(), 1.0f);
+    look.paletteMix = paletteMixValue.load();
+
     auto desktopScale = (float) openGLContext.getRenderingScale();
     juce::OpenGLHelpers::clear (juce::Colours::black);
 
@@ -141,7 +158,7 @@ void MainComponent::render()
 
     videoPlayer.updateGLTexture();
 
-    FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank };
+    FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank, &look };
     frame.videoTexture = videoPlayer.getTextureID();
     frame.width = physicalWidth;
     frame.height = physicalHeight;
@@ -523,6 +540,24 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             macroValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
             macroSet[(size_t) slot] = true;
         }
+        return;
+    }
+
+    if (address == "/v2/look")
+    {
+        auto slot = (int) numberArg (0, -1.0f);
+        if (juce::isPositiveAndBelow (slot, LookSettings::numSlots) && message.size() > 1)
+            lookValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+        return;
+    }
+
+    if (address == "/v2/palette")
+    {
+        if (message.size() >= 9)
+            for (int i = 0; i < 9; ++i)
+                paletteValues[(size_t) i] = juce::jlimit (0.0f, 1.0f, numberArg (i, 0.0f));
+        if (message.size() >= 10)
+            paletteMixValue = juce::jlimit (0.0f, 1.0f, numberArg (9, 1.0f));
         return;
     }
 

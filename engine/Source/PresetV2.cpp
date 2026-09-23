@@ -222,6 +222,12 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
             route.amount = juce::jlimit (-2.0f, 2.0f, num (r, "amount", 0.0f));
             route.attackMs = juce::jmax (0.0f, num (r, "attackMs", 0.0f));
             route.releaseMs = juce::jmax (0.0f, num (r, "releaseMs", 0.0f));
+            route.scaleBy = str (r, "scaleBy");
+            if (route.scaleBy.isNotEmpty() && ! route.scaleBy.startsWith ("macro."))
+            {
+                error = "route '" + route.id + "': scaleBy must name a macro (macro.<id>)";
+                return false;
+            }
 
             if (! (route.inputMax > route.inputMin))
             {

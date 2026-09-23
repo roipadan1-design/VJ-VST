@@ -34,6 +34,7 @@ target_sources(VJEngine PRIVATE
     Source/Modulation.cpp
     Source/GLHelpers.cpp
     Source/FinishPass.cpp
+    Source/LookPass.cpp
     Source/PresetInstance.cpp
     Source/SourceLibrary.cpp
 )
@@ -48,6 +49,8 @@ set_target_properties(SpoutLibrary PROPERTIES
 )
 
 add_custom_command(TARGET VJEngine POST_BUILD
+    # Presets are mirrored (not merged) so a deleted preset never lingers next to the exe.
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:VJEngine>/Presets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
         "$<TARGET_FILE_DIR:VJEngine>/Shaders"

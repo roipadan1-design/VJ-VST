@@ -146,6 +146,7 @@ bool PresetManager::activate (int index, FrameContext& frame)
 {
     auto& entry = entries.getReference (index);
     juce::String error;
+    const bool cutNow = std::exchange (forceCut, false);
 
     auto instance = entry.v2 != nullptr
                       ? V2Instance::create (*entry.v2, shadersDirectory, sourceLibrary, frame.gl, error)
@@ -159,6 +160,8 @@ bool PresetManager::activate (int index, FrameContext& frame)
     }
 
     auto type = entry.v2 != nullptr ? entry.v2->transition.type : V2Transition::Type::crossfade;
+    if (cutNow)
+        type = V2Transition::Type::cut;
     auto duration = durationOverrideMs >= 0.0 ? durationOverrideMs
                   : (entry.v2 != nullptr ? (double) entry.v2->transition.durationMs : 600.0);
     if (type == V2Transition::Type::cut)
@@ -216,6 +219,10 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     if (entries.isEmpty() || ! ensurePrograms (frame.gl))
         return;
 
+    const auto& look = frame.look != nullptr ? *frame.look : defaultLook;
+    lookPass.update (frame.signals, look, frame.dt);
+    updateAutoCut (frame, look);
+
     // Pick up a new request; schema-2 presets may wait for the next beat/bar.
     auto requested = requestedIndex.exchange (-1);
     if (requested >= 0)
@@ -231,7 +238,7 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
         const bool onGrid = (quantize == Quantize::beat && frame.clock.crossedBeat())
                          || (quantize == Quantize::bar && frame.clock.crossedBar());
 
-        if (! waitForGrid || onGrid)
+        if (forceCut || ! waitForGrid || onGrid)
         {
             activate (pendingIndex, frame);
             pendingIndex = -1;
@@ -310,6 +317,10 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
 
     frame.width = outputWidth;
     frame.height = outputHeight;
+    if (lookPass.render (frame.gl, compositeSource, w, h, finalTargetFbo, outputWidth, outputHeight,
+                         look, frame.time, outputGain))
+        return;
+
     glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);
     glViewport (0, 0, outputWidth, outputHeight); // bilinear upscale when renderScale < 1
     outputProgram->use();
@@ -320,6 +331,46 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
 
     bindTexture (1, 0);
     bindTexture (0, 0);
+}
+
+void PresetManager::updateAutoCut (const FrameContext& frame, const LookSettings& look)
+{
+    const auto rate = look.get (LookSettings::cutRate);
+    if (rate < 0.04f || current == nullptr || pendingIndex >= 0 || requestedIndex.load() >= 0)
+    {
+        beatsSinceCut = 0;
+        return;
+    }
+
+    bool cut = false;
+    if (rate >= 0.9f)
+    {
+        // Top of the range: every kick is a cut (with a short guard).
+        for (auto& e : frame.signals.events)
+            if ((e.type == EventType::kick || e.type == EventType::userTrigger) && frame.now - lastKickCut > 0.12)
+                cut = true;
+        if (cut)
+            lastKickCut = frame.now;
+    }
+    else if (frame.clock.crossedBeat())
+    {
+        const int beatsPerCut = rate < 0.2f ? 16 : rate < 0.4f ? 8 : rate < 0.6f ? 4 : rate < 0.75f ? 2 : 1;
+        cut = ++beatsSinceCut >= beatsPerCut;
+    }
+
+    if (! cut)
+        return;
+
+    juce::Array<int> candidates;
+    for (int i = 0; i < entries.size(); ++i)
+        if (entries.getReference (i).v2 != nullptr && i != currentIndex.load())
+            candidates.add (i);
+    if (candidates.isEmpty())
+        return;
+
+    beatsSinceCut = 0;
+    forceCut = true;
+    pendingIndex = candidates[juce::Random::getSystemRandom().nextInt (candidates.size())];
 }
 
 void PresetManager::toggleEffectStage (int stageIndex)
@@ -347,6 +398,7 @@ void PresetManager::releaseGLObjects()
     sourceLibrary.release();
 
     quad.release();
+    lookPass.release();
     blendProgram.reset();
     outputProgram.reset();
 }

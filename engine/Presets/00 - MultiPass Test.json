@@ -1,6 +1,0 @@
-{
-    "name": "MultiPass Test (diagnostic)",
-    "shader": "MultiPassTest.fs",
-    "params": {},
-    "audioMappings": {}
-}

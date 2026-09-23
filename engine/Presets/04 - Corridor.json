@@ -1,8 +1,8 @@
 {
   "schemaVersion": "2.0",
-  "id": "liquid-chrome",
-  "name": "Liquid Chrome",
-  "description": "Flowing black/white chrome with a mask floating in it; kicks surge the metal, masks change every 2 bars.",
+  "id": "corridor",
+  "name": "Corridor",
+  "description": "Moving forward through an endless service corridor; kicks surge the camera and blow the lights, hats flicker them.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -19,31 +19,50 @@
   },
   "stages": [
     {
-      "id": "chrome",
+      "id": "hall",
       "kind": "generator",
-      "shader": "Instrument/liquid_chrome.fs",
+      "shader": "Instrument/corridor.fs",
       "targetFormat": "rgba16f",
       "scale": 1.0,
       "inputs": {},
       "parameters": [
         {
-          "name": "scale",
-          "label": "Scale",
-          "min": 0.6,
-          "max": 3.2,
-          "default": 1.1,
+          "name": "travel",
+          "label": "Travel",
+          "min": 0.0,
+          "max": 8.0,
+          "default": 1.6,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "sway",
+          "label": "Sway",
+          "min": 0.0,
+          "max": 1.5,
+          "default": 0.4,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "sway_amt",
+          "label": "Sway Amt",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "flow",
-          "label": "Flow",
-          "min": 0.0,
-          "max": 0.8,
-          "default": 0.14,
+          "name": "width",
+          "label": "Width",
+          "min": 0.5,
+          "max": 2.5,
+          "default": 1.0,
           "unit": "normalized",
-          "cyclic": false,
-          "integrate": true
+          "cyclic": false
         },
         {
           "name": "surge",
@@ -55,69 +74,42 @@
           "cyclic": false
         },
         {
-          "name": "contrast",
-          "label": "Contrast",
-          "min": 0.8,
-          "max": 2.8,
-          "default": 1.9,
-          "unit": "normalized",
-          "cyclic": false
-        },
-        {
-          "name": "tint",
-          "label": "Tint",
+          "name": "flicker",
+          "label": "Flicker",
           "min": 0,
           "max": 1,
-          "default": 0.12,
+          "default": 0,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "hue",
-          "label": "Hue",
+          "name": "detail",
+          "label": "Detail",
           "min": 0,
           "max": 1,
-          "default": 0.6,
-          "unit": "normalized",
-          "cyclic": true
-        },
-        {
-          "name": "mask_mix",
-          "label": "Mask Mix",
-          "min": 0,
-          "max": 1,
-          "default": 0.85,
+          "default": 0.5,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "mask_zoom",
-          "label": "Mask Zoom",
-          "min": 0.8,
-          "max": 2.6,
-          "default": 1.35,
+          "name": "fog",
+          "label": "Fog",
+          "min": 0.05,
+          "max": 1.0,
+          "default": 0.35,
           "unit": "normalized",
           "cyclic": false
         },
         {
-          "name": "glow",
-          "label": "Glow",
-          "min": 0,
-          "max": 2,
-          "default": 0.4,
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.2,
+          "max": 4.0,
+          "default": 1.1,
           "unit": "normalized",
           "cyclic": false
         }
-      ],
-      "sources": {
-        "mask": {
-          "type": "images",
-          "folder": "Images/Masks",
-          "advance": "bar",
-          "every": 2,
-          "order": "random"
-        }
-      }
+      ]
     }
   ],
   "macros": [
@@ -143,6 +135,30 @@
       "id": "space",
       "slot": 3,
       "label": "Space",
+      "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.5
+    },
+    {
+      "id": "gravity",
+      "slot": 5,
+      "label": "Gravity",
+      "default": 0.5
+    },
+    {
+      "id": "viscosity",
+      "slot": 6,
+      "label": "Viscosity",
+      "default": 0.5
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "Detail",
       "default": 0.5
     }
   ],
@@ -172,6 +188,22 @@
       "retrigger": "restart"
     },
     {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 60,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
       "id": "drift",
       "type": "lfo",
       "shape": "sine",
@@ -182,61 +214,9 @@
   ],
   "routes": [
     {
-      "id": "macro-intensity-chrome-contrast",
+      "id": "macro-intensity-hall-emission",
       "source": "macro.intensity",
-      "destination": "stage.chrome.contrast",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-intensity-chrome-glow",
-      "source": "macro.intensity",
-      "destination": "stage.chrome.glow",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-motion-chrome-flow",
-      "source": "macro.motion",
-      "destination": "stage.chrome.flow",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-chrome-hue",
-      "source": "macro.color",
-      "destination": "stage.chrome.hue",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-chrome-tint",
-      "source": "macro.color",
-      "destination": "stage.chrome.tint",
+      "destination": "stage.hall.emission",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -247,35 +227,87 @@
       "releaseMs": 180
     },
     {
-      "id": "macro-space-chrome-scale",
-      "source": "macro.space",
-      "destination": "stage.chrome.scale",
+      "id": "macro-motion-hall-travel",
+      "source": "macro.motion",
+      "destination": "stage.hall.travel",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.9,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-color-hall-fog",
+      "source": "macro.color",
+      "destination": "stage.hall.fog",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": -0.6,
+      "amount": 0.7,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "macro-space-chrome-mask_zoom",
+      "id": "macro-space-hall-width",
       "source": "macro.space",
-      "destination": "stage.chrome.mask_zoom",
+      "destination": "stage.hall.width",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.5,
+      "amount": 0.7,
       "attackMs": 20,
       "releaseMs": 180
     },
     {
-      "id": "env-kick-chrome-surge",
-      "source": "env.kick",
-      "destination": "stage.chrome.surge",
+      "id": "macro-detail-hall-detail",
+      "source": "macro.detail",
+      "destination": "stage.hall.detail",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-gravity-hall-sway_amt",
+      "source": "macro.gravity",
+      "destination": "stage.hall.sway_amt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "macro-viscosity-hall-sway",
+      "source": "macro.viscosity",
+      "destination": "stage.hall.sway",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.5,
+      "attackMs": 20,
+      "releaseMs": 180
+    },
+    {
+      "id": "env-swell-hall-travel",
+      "source": "env.swell",
+      "destination": "stage.hall.travel",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -283,59 +315,49 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
-      "id": "env-snare-chrome-tint",
-      "source": "env.snare",
-      "destination": "stage.chrome.tint",
+      "id": "env-kick-hall-surge",
+      "source": "env.kick",
+      "destination": "stage.hall.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.4,
+      "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
-      "id": "audio-bass-activity-chrome-scale",
+      "id": "env-hat-hall-flicker",
+      "source": "env.hat",
+      "destination": "stage.hall.flicker",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.8,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-bass-activity-hall-emission",
       "source": "audio.bass.activity",
-      "destination": "stage.chrome.scale",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "power",
-      "exponent": 1.5,
-      "center": 0.0,
-      "amount": -0.1,
-      "attackMs": 30,
-      "releaseMs": 220
-    },
-    {
-      "id": "audio-high-activity-chrome-glow",
-      "source": "audio.high.activity",
-      "destination": "stage.chrome.glow",
+      "destination": "stage.hall.emission",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.25,
+      "amount": 0.15,
       "attackMs": 30,
       "releaseMs": 220
-    },
-    {
-      "id": "lfo-drift-chrome-mask_zoom",
-      "source": "lfo.drift",
-      "destination": "stage.chrome.mask_zoom",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.08,
-      "attackMs": 0,
-      "releaseMs": 0
     }
   ],
   "triggers": [
@@ -350,6 +372,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     },
@@ -392,6 +427,19 @@
           "type": "envelope",
           "target": "kick",
           "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "reseed"
         }
       ]
     }
@@ -406,20 +454,20 @@
   "post": {
     "bloom": {
       "enabled": true,
-      "amount": 0.25,
+      "amount": 0.22,
       "threshold": 0.9,
       "levels": 5
     },
     "toneMap": "reinhard",
     "exposureEv": 0.3,
     "outputColorSpace": "srgb",
-    "grain": 0.025,
-    "vignette": 0.2
+    "grain": 0.0,
+    "vignette": 0.25
   },
   "performance": {
     "qualityTier": "medium",
     "sceneBudgetMs1080p": 3.0,
-    "deterministicSeed": 101,
+    "deterministicSeed": 505,
     "notes": "target, not measured"
   }
 }

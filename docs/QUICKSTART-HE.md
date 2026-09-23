@@ -4,8 +4,8 @@
 
 1. **VJ Engine:** האפליקציה שמציירת. חלון שאפשר להעביר למסך או לפרוג'קטור ולהגדיל למסך מלא. היא גם שולחת את התמונה ב-Spout ל-Resolume, OBS וכו'.
 2. **VJ Analyzer:** פלאגין VST3 שיושב ב-Ableton על ערוץ. הוא מנתח את הסאונד (עוצמה, תדרים, מכות, ה-BPM וה-bar של Live, תווי MIDI) ושולט במנוע: 8 מאקרו, בחירת פריסט, HIT ו-BLACKOUT.
-3. **11 פריסטים חדשים ("Instrument")** שמבוססים על ניתוח הטריילר של Zwobot:
-   Liquid Chrome, Hot Blobs, Dot Relief, One Bit, Thermal Slices, Holo Shards, Zebra Warp, Ikeda Bars, Signal Type, Mask Kaleido, Molten Smear.
+3. **7 סצנות גנרטיביות** בשפה האדומה של הרפרנסים:
+   Hot Blobs (נוזלי), Dot Relief, One Bit, Corridor, Fibers, Terminal, Ink.
 
 ## הפעלה (פעם ראשונה)
 
@@ -23,6 +23,14 @@
    - **Motion:** מהירות וזרימה
    - **Color:** פלטה וגוון
    - **Space:** קנה מידה וקומפוזיציה
+
+   ו-4 הקטנים:
+   - **Impact:** כמה חזק כל מכה משפיעה
+   - **Gravity:** משיכה, נפילה, סחף
+   - **Viscosity:** כמה סמיך ואיטי
+   - **Detail:** צפיפות ופירוט
+5. **LOOK** (למטה, חל על כל הסצנות): Grain, Crush, Flash, Glitch, Trails, Symbols (ברייל), Cut Rate (חיתוכים אוטומטיים בין סצנות).
+   **Palette:** פלטה מוכנה, או לחיצה על אחד מ-3 הצבעים (Shadow / Mid / Light) ובחירה חופשית. **Scene Colors** מכבה את המיפוי.
 
 ## לשלוט עם הקונטרולר (הקורג)
 

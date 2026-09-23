@@ -209,6 +209,24 @@ void AnalysisWorker::sendControlsIfChanged()
         if (controlsNeverSent || std::abs (c.macros[(size_t) i] - sentControls.macros[(size_t) i]) > 1.0e-4f)
             sendPacket (vj::protocol::encodeMacro (writer, i, c.macros[(size_t) i]));
 
+    for (int i = 0; i < (int) c.look.size(); ++i)
+        if (controlsNeverSent || std::abs (c.look[(size_t) i] - sentControls.look[(size_t) i]) > 1.0e-4f)
+        {
+            writer.begin ("/v2/look");
+            writer.addInt (i);
+            writer.addFloat (c.look[(size_t) i]);
+            sendPacket (writer.finish());
+        }
+
+    if (controlsNeverSent || c.palette != sentControls.palette || c.paletteMix != sentControls.paletteMix)
+    {
+        writer.begin ("/v2/palette");
+        for (auto v : c.palette)
+            writer.addFloat (v);
+        writer.addFloat (c.paletteMix);
+        sendPacket (writer.finish());
+    }
+
     // Preset only on change (never re-asserted): the engine keyboard, other
     // devices or scene links may have moved on and must not be overridden.
     // preset 0 means "leave the engine's choice alone"; 1..64 select index-1.

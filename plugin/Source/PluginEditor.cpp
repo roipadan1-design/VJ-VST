@@ -161,6 +161,44 @@ void MacroKnob::paint (juce::Graphics& g)
 }
 
 //==============================================================================
+void ColourSwatch::paint (juce::Graphics& g)
+{
+    auto r = getLocalBounds().toFloat();
+    auto chip = r.removeFromTop (r.getHeight() - 15.0f).reduced (4.0f, 2.0f);
+    g.setColour (colour);
+    g.fillRoundedRectangle (chip, 6.0f);
+    g.setColour (isMouseOver() ? vjui::text : vjui::outline.brighter (0.4f));
+    g.drawRoundedRectangle (chip, 6.0f, 1.2f);
+    g.setColour (vjui::dim);
+    g.setFont (uiFont (10.0f, true));
+    g.drawText (label, r, juce::Justification::centred);
+}
+
+namespace
+{
+    // Colour picker shown in a call-out; every change goes straight to the processor.
+    class ColourPicker : public juce::Component, private juce::ChangeListener
+    {
+    public:
+        ColourPicker (juce::Colour start, std::function<void (juce::Colour)> onChangeIn)
+            : onChange (std::move (onChangeIn))
+        {
+            selector.setCurrentColour (start, juce::dontSendNotification);
+            selector.addChangeListener (this);
+            addAndMakeVisible (selector);
+            setSize (300, 320);
+        }
+        void resized() override { selector.setBounds (getLocalBounds()); }
+
+    private:
+        void changeListenerCallback (juce::ChangeBroadcaster*) override { onChange (selector.getCurrentColour()); }
+        juce::ColourSelector selector { juce::ColourSelector::showColourAtTop | juce::ColourSelector::showSliders
+                                        | juce::ColourSelector::showColourspace };
+        std::function<void (juce::Colour)> onChange;
+    };
+}
+
+//==============================================================================
 VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     : AudioProcessorEditor (p), processor (p),
       sensitivity (p.getState(), "sensitivity", "Hit Sens", vjui::amber, false),
@@ -215,12 +253,29 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     fullscreenButton.onClick = [this] { processor.getWorker().toggleEngineFullscreen(); };
     addAndMakeVisible (fullscreenButton);
 
+    const juce::Colour lookAccents[] = { vjui::amber, vjui::magenta, vjui::danger, vjui::violet, vjui::mint, vjui::text, vjui::amber };
+    for (int i = 0; i < VJAnalyzerProcessor::lookIds.size(); ++i)
+        addAndMakeVisible (lookKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[i], VJAnalyzerProcessor::lookNames[i],
+                                                         lookAccents[i], false)));
+
+    paletteBox.addItemList (VJAnalyzerProcessor::paletteNames, 1);
+    addAndMakeVisible (paletteBox);
+    paletteAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "palette", paletteBox);
+
+    const char* swatchNames[] = { "SHADOW", "MID", "LIGHT" };
+    for (int i = 0; i < 3; ++i)
+    {
+        auto* s = swatches.add (new ColourSwatch (swatchNames[i]));
+        s->onClick = [this, i] { editColour (i); };
+        addAndMakeVisible (s);
+    }
+
     presetList.setModel (this);
     presetList.setRowHeight (24);
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1020, 440);
+    setSize (1020, 580);
     startTimerHz (30);
 }
 
@@ -273,6 +328,15 @@ void VJAnalyzerEditor::launchEngineAt (const juce::File& exe)
         launchedAt = now();
 }
 
+void VJAnalyzerEditor::editColour (int index)
+{
+    auto start = processor.getPaletteColours()[(size_t) index];
+    auto picker = std::make_unique<ColourPicker> (start, [this, index] (juce::Colour c) {
+        processor.setCustomColour (index, c);
+    });
+    juce::CallOutBox::launchAsynchronously (std::move (picker), swatches[index]->getScreenBounds(), nullptr);
+}
+
 void VJAnalyzerEditor::selectPreset (int engineIndex)
 {
     if (status.numPresets > 0)
@@ -307,6 +371,10 @@ void VJAnalyzerEditor::timerCallback()
     auto role = (int) processor.getState().getRawParameterValue ("role")->load();
     for (int i = 0; i < roleButtons.size(); ++i)
         roleButtons[i]->setToggleState (i == role, juce::dontSendNotification);
+
+    auto colours = processor.getPaletteColours();
+    for (int i = 0; i < swatches.size(); ++i)
+        swatches[i]->setColour (colours[(size_t) i]);
 
     repaint (headerArea);
     repaint (signalArea);
@@ -451,6 +519,7 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     paintSignalPanel (g, signalArea);
     drawPanel (g, performArea, "PERFORM");
     drawPanel (g, scenesArea, "SCENES");
+    drawPanel (g, lookArea, "LOOK");
 
     // Current scene name, large.
     auto nameArea = scenesArea.reduced (14).withTrimmedTop (18).removeFromTop (30);
@@ -480,6 +549,8 @@ void VJAnalyzerEditor::resized()
         b->setBounds (roles.removeFromLeft (roleW).reduced (2, 0));
 
     r.removeFromTop (8);
+    lookArea = r.removeFromBottom (130);
+    r.removeFromBottom (10);
     signalArea = r.removeFromLeft (280);
     r.removeFromLeft (10);
     scenesArea = r.removeFromRight (270);
@@ -499,6 +570,19 @@ void VJAnalyzerEditor::resized()
     response.setBounds (bottom.removeFromLeft (110).reduced (0, 4));
     bottom.removeFromLeft (10);
     sendControls.setBounds (bottom.reduced (0, 4));
+
+    // Look: seven knobs, then the palette selector and its three colours.
+    auto l = lookArea.reduced (14).withTrimmedTop (20);
+    auto paletteArea = l.removeFromRight (330);
+    auto knobW = l.getWidth() / lookKnobs.size();
+    for (auto* k : lookKnobs)
+        k->setBounds (l.removeFromLeft (knobW).reduced (4, 0));
+    paletteArea.removeFromLeft (16);
+    paletteBox.setBounds (paletteArea.removeFromLeft (130).withSizeKeepingCentre (130, 28));
+    paletteArea.removeFromLeft (10);
+    auto swatchW = paletteArea.getWidth() / 3;
+    for (auto* s : swatches)
+        s->setBounds (paletteArea.removeFromLeft (swatchW).reduced (3, 4));
 
     // Scenes: name (painted), list, transport buttons, hit/blackout, sensitivity/trim.
     auto s = scenesArea.reduced (14).withTrimmedTop (52);
