@@ -254,6 +254,31 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     fullscreenButton.onClick = [this] { processor.getWorker().toggleEngineFullscreen(); };
     addAndMakeVisible (fullscreenButton);
 
+    for (int i = 0; i < VJAnalyzerProcessor::numSnapshots; ++i)
+    {
+        auto* b = snapshotButtons.add (new juce::TextButton (juce::String::charToString ((juce::juce_wchar) ('A' + i))));
+        b->setColour (juce::TextButton::buttonOnColourId, vjui::violet);
+        b->setTooltip ("Recall snapshot (morphs over the selected time). With STORE lit: save the current macros, LOOK and palette here.");
+        b->onClick = [this, i] {
+            if (storeButton.getToggleState())
+            {
+                processor.storeSnapshot (i);
+                storeButton.setToggleState (false, juce::dontSendNotification);
+            }
+            else
+                processor.recallSnapshot (i);
+        };
+        addAndMakeVisible (b);
+    }
+    storeButton.setClickingTogglesState (true);
+    storeButton.setColour (juce::TextButton::buttonOnColourId, vjui::amber);
+    storeButton.setTooltip ("Arm, then click A-D to store the current state there");
+    addAndMakeVisible (storeButton);
+    morphBox.addItemList (VJAnalyzerProcessor::morphNames, 1);
+    morphBox.setTooltip ("How long a recalled snapshot takes to morph in");
+    addAndMakeVisible (morphBox);
+    morphAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "morphTime", morphBox);
+
     const juce::Colour reactAccents[] = { vjui::magenta, vjui::violet, vjui::mint, vjui::amber, vjui::text };
     for (int i = 0; i < VJAnalyzerProcessor::reactIds.size(); ++i)
     {
@@ -300,7 +325,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1060, 700);
+    setSize (1060, 740);
     startTimerHz (30);
 }
 
@@ -408,6 +433,15 @@ void VJAnalyzerEditor::timerCallback()
     for (auto* c : reactButtons) c->setAlpha (alpha);
     for (auto* c : swatches)     c->setAlpha (alpha);
     paletteBox.setAlpha (alpha);
+
+    for (int i = 0; i < snapshotButtons.size(); ++i)
+    {
+        auto* b = snapshotButtons[i];
+        b->setToggleState (i == processor.getActiveSnapshot(), juce::dontSendNotification);
+        b->setAlpha ((processor.hasSnapshot (i) || storeButton.getToggleState() ? 1.0f : 0.4f) * alpha);
+    }
+    storeButton.setAlpha (alpha);
+    morphBox.setAlpha (alpha);
 
     auto colours = processor.getPaletteColours();
     for (int i = 0; i < swatches.size(); ++i)
@@ -563,6 +597,7 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
         g.drawText ("FILM", filmCaption, juce::Justification::centredLeft);
         g.drawText ("REACTION", reactionCaption, juce::Justification::centredLeft);
         g.drawText ("PALETTE", paletteCaption, juce::Justification::centredLeft);
+        g.drawText ("SNAPSHOTS", snapshotCaption, juce::Justification::centredLeft);
         g.setColour (vjui::outline);
         g.fillRect (lookDivider);
     }
@@ -616,8 +651,17 @@ void VJAnalyzerEditor::resized()
 
     // Perform: 4 large macros in a 2x2 grid, 4 small below, then response controls.
     auto p = performArea.reduced (14).withTrimmedTop (20);
+    auto snaps = p.removeFromBottom (32);
+    p.removeFromBottom (6);
     auto bottom = p.removeFromBottom (34);
     auto small = p.removeFromBottom (78);
+    snapshotCaption = snaps.removeFromLeft (76);
+    for (auto* b : snapshotButtons)
+        b->setBounds (snaps.removeFromLeft (40).reduced (2, 0));
+    snaps.removeFromLeft (8);
+    storeButton.setBounds (snaps.removeFromLeft (72).reduced (2, 0));
+    snaps.removeFromLeft (8);
+    morphBox.setBounds (snaps.removeFromLeft (100).reduced (0, 2));
     auto cellW = p.getWidth() / 2, cellH = p.getHeight() / 2;
     for (int i = 0; i < 4; ++i)
         macros[i]->setBounds (p.getX() + (i % 2) * cellW, p.getY() + (i / 2) * cellH, cellW, cellH);

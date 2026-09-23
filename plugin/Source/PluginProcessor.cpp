@@ -13,6 +13,7 @@ const juce::StringArray VJAnalyzerProcessor::lookIds { "grain", "crush", "flash"
 const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flash", "Glitch", "Trails", "Symbols", "Cut Rate",
                                                          "Smear", "Halation", "Weave", "Dust", "Blacks", "Reactivity" };
 const juce::StringArray VJAnalyzerProcessor::paletteNames { "Blood", "Ember", "Bone", "Ice", "Acid", "Violet", "Rust",
+                                                            "Nitrate", "Cyanotype", "Tungsten", "Ash",
                                                             "Custom", "Scene Colors" };
 
 std::array<juce::Colour, 3> VJAnalyzerProcessor::presetPalette (int index)
@@ -26,6 +27,11 @@ std::array<juce::Colour, 3> VJAnalyzerProcessor::presetPalette (int index)
         case 4:  return { C (0xff020600), C (0xff5cff1a), C (0xfff0ffc0) }; // Acid
         case 5:  return { C (0xff05000a), C (0xff8a1aff), C (0xffffa8f0) }; // Violet
         case 6:  return { C (0xff0a0402), C (0xff9a3a12), C (0xffe8b890) }; // Rust
+        // Film families from the research style bible (docs/RESEARCH-REPORT.md).
+        case 7:  return { C (0xff0d0b09), C (0xff7f6b52), C (0xfff3e6ce) }; // Nitrate (warm sepia)
+        case 8:  return { C (0xff05080c), C (0xff2f5f79), C (0xffd8eef2) }; // Cyanotype night
+        case 9:  return { C (0xff070504), C (0xff86461f), C (0xffffd9a8) }; // Tungsten halation
+        case 10: return { C (0xff0a0a0a), C (0xff6b6a66), C (0xffedebe4) }; // Ash mono
         default: return { C (0xff050000), C (0xffe01008), C (0xffff9a86) }; // Blood
     }
 }
@@ -56,6 +62,93 @@ std::array<juce::Colour, 3> VJAnalyzerProcessor::getPaletteColours() const
     if (palette < customPalette)
         return presetPalette (palette);
     return { getCustomColour (0), getCustomColour (1), getCustomColour (2) };
+}
+
+const juce::StringArray VJAnalyzerProcessor::morphNames { "Cut", "1 Beat", "1 Bar", "4 Bars", "16 Bars" };
+
+juce::StringArray VJAnalyzerProcessor::snapshotParamIds()
+{
+    juce::StringArray ids;
+    for (int i = 0; i < 8; ++i)
+        ids.add ("macro" + juce::String (i + 1));
+    ids.addArray (lookIds);
+    return ids;
+}
+
+bool VJAnalyzerProcessor::hasSnapshot (int slot) const
+{
+    return state.state.getChildWithName ("Snapshots").getChildWithName ("S" + juce::String (slot)).isValid();
+}
+
+void VJAnalyzerProcessor::storeSnapshot (int slot)
+{
+    auto snapshots = state.state.getOrCreateChildWithName ("Snapshots", nullptr);
+    auto existing = snapshots.getChildWithName ("S" + juce::String (slot));
+    if (existing.isValid())
+        snapshots.removeChild (existing, nullptr);
+
+    juce::ValueTree s ("S" + juce::String (slot));
+    for (auto& id : snapshotParamIds())
+        s.setProperty (id, state.getRawParameterValue (id)->load(), nullptr);
+    s.setProperty ("palette", (int) state.getRawParameterValue ("palette")->load(), nullptr);
+    for (int i = 0; i < 3; ++i)
+        s.setProperty ("colour" + juce::String (i), getCustomColour (i).toString(), nullptr);
+    snapshots.addChild (s, -1, nullptr);
+    activeSnapshot = slot;
+}
+
+void VJAnalyzerProcessor::recallSnapshot (int slot)
+{
+    auto s = state.state.getChildWithName ("Snapshots").getChildWithName ("S" + juce::String (slot));
+    if (! s.isValid())
+        return;
+
+    morph = {};
+    for (auto& id : snapshotParamIds())
+    {
+        morph.from.add (state.getRawParameterValue (id)->load());
+        morph.to.add ((float) s.getProperty (id, state.getRawParameterValue (id)->load()));
+    }
+    morph.toPalette = (int) s.getProperty ("palette", 0);
+    for (int i = 0; i < 3; ++i)
+        morph.toColours.add (s.getProperty ("colour" + juce::String (i)).toString());
+
+    const double beatsFor[] = { 0.0, 1.0, 4.0, 16.0, 64.0 };
+    const auto choice = juce::jlimit (0, 4, (int) state.getRawParameterValue ("morphTime")->load());
+    morph.seconds = beatsFor[choice] * 60.0 / juce::jlimit (20.0, 400.0, hostBpm.load());
+    morph.start = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    morph.active = true;
+    activeSnapshot = slot;
+    advanceMorph(); // a cut lands immediately
+}
+
+void VJAnalyzerProcessor::advanceMorph()
+{
+    if (! morph.active)
+        return;
+
+    const auto now = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    auto t = morph.seconds <= 0.0 ? 1.0 : juce::jlimit (0.0, 1.0, (now - morph.start) / morph.seconds);
+    const auto eased = (float) (t * t * (3.0 - 2.0 * t));
+
+    auto ids = snapshotParamIds();
+    for (int i = 0; i < ids.size(); ++i)
+        if (auto* p = state.getParameter (ids[i]))
+            p->setValueNotifyingHost (p->convertTo0to1 (morph.from[i] + (morph.to[i] - morph.from[i]) * eased));
+
+    // Discrete parts (palette choice, custom colours) switch half-way.
+    if (! morph.switchedDiscrete && t >= 0.5)
+    {
+        for (int i = 0; i < 3 && i < morph.toColours.size(); ++i)
+            if (morph.toColours[i].isNotEmpty())
+                state.state.setProperty ("colour" + juce::String (i), morph.toColours[i], nullptr);
+        if (auto* p = state.getParameter ("palette"))
+            p->setValueNotifyingHost (p->convertTo0to1 ((float) morph.toPalette));
+        morph.switchedDiscrete = true;
+    }
+
+    if (t >= 1.0)
+        morph.active = false;
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createLayout()
@@ -92,6 +185,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
         layout.add (std::make_unique<AudioParameterFloat> (ParameterID { lookIds[i], 1 }, lookNames[i],
                                                            NormalisableRange<float> (0.0f, 1.0f), lookDefaults[i]));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "calm", 1 }, "Calm", false));
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "morphTime", 1 }, "Snapshot Morph", morphNames, 2));
     layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "palette", 1 }, "Palette", paletteNames, 0));
 
     for (int i = 0; i < reactIds.size(); ++i)
@@ -158,7 +252,7 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         if (auto pos = head->getPosition())
         {
             t.playing = pos->getIsPlaying();
-            if (auto bpm = pos->getBpm())          t.bpm = *bpm;
+            if (auto bpm = pos->getBpm())          { t.bpm = *bpm; hostBpm = *bpm; }
             if (auto ppq = pos->getPpqPosition()) { t.ppqPosition = *ppq; t.valid = true; }
             if (auto sig = pos->getTimeSignature()) { t.meterNumerator = sig->numerator; t.meterDenominator = sig->denominator; }
 
@@ -176,6 +270,8 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
 
 void VJAnalyzerProcessor::timerCallback()
 {
+    advanceMorph();
+
     AnalysisWorker::Controls c;
     c.role = (int) state.getRawParameterValue ("role")->load();
     c.sensitivity = state.getRawParameterValue ("sensitivity")->load();

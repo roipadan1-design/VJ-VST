@@ -53,8 +53,19 @@ public:
     // "Custom" (the three colours stored in the state) and "Scene Colors"
     // (palette mapping off - each scene's own colours).
     static const juce::StringArray paletteNames;
-    static constexpr int customPalette = 7, sceneColours = 8;
+    static constexpr int customPalette = 11, sceneColours = 12;
     static std::array<juce::Colour, 3> presetPalette (int index);
+
+    // Snapshots: four stored states (macros, LOOK, palette) recalled with a
+    // musical morph ("morphTime": cut / 1 beat / 1 bar / 4 bars / 16 bars).
+    // Stored in the plug-in state, so they are saved with the Live set.
+    static constexpr int numSnapshots = 4;
+    static const juce::StringArray morphNames;
+    void storeSnapshot (int slot);
+    void recallSnapshot (int slot);
+    bool hasSnapshot (int slot) const;
+    int getActiveSnapshot() const noexcept { return activeSnapshot; }
+    bool isMorphing() const noexcept { return morph.active; }
 
     // The three colours actually sent to the engine (preset or custom).
     std::array<juce::Colour, 3> getPaletteColours() const;
@@ -66,6 +77,21 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void timerCallback() override; // pushes parameter values to the worker (message thread)
+    void advanceMorph();
+    static juce::StringArray snapshotParamIds();
+
+    struct Morph
+    {
+        bool active = false;
+        double start = 0.0, seconds = 0.0;
+        bool switchedDiscrete = false;
+        juce::Array<float> from, to;       // plain values, parallel to snapshotParamIds()
+        int toPalette = 0;
+        juce::StringArray toColours;
+    };
+    Morph morph;
+    int activeSnapshot = -1;
+    std::atomic<double> hostBpm { 120.0 };
 
     juce::AudioProcessorValueTreeState state;
     AnalysisWorker worker;

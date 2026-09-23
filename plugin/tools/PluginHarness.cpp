@@ -69,9 +69,65 @@ private:
 };
 }
 
+// --selftest: exercises processor logic that has no audio/visual output of
+// its own (snapshots: store, cut recall, timed morph, state round-trip).
+// Prints each check and returns non-zero if any failed.
+static int runSelfTest()
+{
+    int failures = 0;
+    auto check = [&failures] (bool ok, const char* what) {
+        std::printf ("%s  %s\n", ok ? "PASS" : "FAIL", what);
+        if (! ok) ++failures;
+    };
+    auto pump = [] (double seconds) {
+        auto until = juce::Time::getMillisecondCounterHiRes() + seconds * 1000.0;
+        while (juce::Time::getMillisecondCounterHiRes() < until)
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (5);
+    };
+
+    VJAnalyzerProcessor processor;
+    auto& st = processor.getState();
+    auto set = [&st] (const char* id, float plain) {
+        auto* p = st.getParameter (id);
+        p->setValueNotifyingHost (p->convertTo0to1 (plain));
+    };
+    auto get = [&st] (const char* id) { return st.getRawParameterValue (id)->load(); };
+
+    set ("macro1", 0.2f); set ("grain", 0.7f); set ("palette", 8.0f);
+    processor.storeSnapshot (0);
+    check (processor.hasSnapshot (0) && ! processor.hasSnapshot (1), "store fills slot A only");
+
+    set ("macro1", 0.9f); set ("grain", 0.1f); set ("palette", 0.0f);
+    set ("morphTime", 0.0f); // cut
+    processor.recallSnapshot (0);
+    check (std::abs (get ("macro1") - 0.2f) < 0.01f && std::abs (get ("grain") - 0.7f) < 0.01f, "cut recall restores knobs");
+    check ((int) get ("palette") == 8, "cut recall restores palette");
+
+    set ("macro1", 0.9f);
+    set ("morphTime", 1.0f); // 1 beat = 0.5 s at the default 120 BPM
+    processor.recallSnapshot (0);
+    pump (0.25);
+    auto mid = get ("macro1");
+    check (mid < 0.88f && mid > 0.22f && processor.isMorphing(), "morph is part-way after a quarter second");
+    pump (0.5);
+    check (std::abs (get ("macro1") - 0.2f) < 0.01f && ! processor.isMorphing(), "morph lands on the snapshot");
+
+    juce::MemoryBlock saved;
+    processor.getStateInformation (saved);
+    VJAnalyzerProcessor restored;
+    restored.setStateInformation (saved.getData(), (int) saved.getSize());
+    check (restored.hasSnapshot (0) && ! restored.hasSnapshot (1), "snapshots survive a save/load of the Live set");
+
+    std::printf ("%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILED", failures, failures == 1 ? "" : "s");
+    return failures == 0 ? 0 : 1;
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+
+    if (argc > 1 && juce::String (argv[1]) == "--selftest")
+        return runSelfTest();
 
     juce::String outPath = argc > 1 ? juce::String (argv[1]) : juce::String ("plugin_ui.png");
     double seconds = argc > 2 ? juce::String (argv[2]).getDoubleValue() : 6.0;

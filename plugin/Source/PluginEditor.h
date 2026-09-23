@@ -103,6 +103,12 @@ private:
     std::unique_ptr<juce::FileChooser> engineChooser;
     double launchedAt = -100.0;
 
+    juce::OwnedArray<juce::TextButton> snapshotButtons;
+    juce::TextButton storeButton { "STORE" };
+    juce::ComboBox morphBox;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> morphAttachment;
+    juce::Rectangle<int> snapshotCaption;
+
     juce::OwnedArray<juce::TextButton> reactButtons;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> reactAttachments;
     juce::TooltipWindow tooltips { this, 600 };
