@@ -28,10 +28,26 @@ void ModulationRuntime::Envelope::trigger (float amount) noexcept
     target = newPeak;
     elapsed = 0.0f;
     attacking = true;
+    fresh = true;
 }
 
 void ModulationRuntime::Envelope::advance (float dt) noexcept
 {
+    // A hit that arrived this frame is shown at its full peak now and decays
+    // from the next frame. (Advancing it by a whole frame first used to show
+    // only 30-70% of the peak on the frame the hit landed.)
+    if (fresh)
+    {
+        fresh = false;
+        if (attackSeconds <= dt)
+        {
+            attacking = false;
+            elapsed = 0.0f;
+            value = target;
+            return;
+        }
+    }
+
     elapsed += dt;
 
     if (attacking)

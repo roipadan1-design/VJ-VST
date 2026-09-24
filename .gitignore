@@ -13,3 +13,6 @@ engine/*.log
 
 # third-party reference media (kept local, not redistributed)
 references/
+
+# python bytecode
+__pycache__/

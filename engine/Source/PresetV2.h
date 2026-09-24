@@ -132,6 +132,10 @@ struct V2Post
     int bloomLevels = 4;
     bool reinhard = true;
     float exposureEv = 0.0f, grain = 0.0f, vignette = 0.0f;
+    // "palette": "duo" - the scene writes two layers (red = body, green =
+    // detail) and the look pass colours them separately with the palette's
+    // mid and light colours, instead of one gradient map on luminance.
+    bool duoPalette = false;
 };
 
 struct PresetV2

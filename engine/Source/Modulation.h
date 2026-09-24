@@ -58,6 +58,7 @@ private:
         bool retriggerMax = true;
         float value = 0.0f, start = 0.0f, target = 0.0f, elapsed = 0.0f;
         bool attacking = false;
+        bool fresh = false;   // triggered since the last advance()
         void trigger (float amount) noexcept;
         void advance (float dt) noexcept;
     };

@@ -14,7 +14,9 @@ const juce::StringArray VJAnalyzerProcessor::lookNames { "Grain", "Crush", "Flas
                                                          "Smear", "Halation", "Weave", "Dust", "Blacks", "Reactivity" };
 const juce::StringArray VJAnalyzerProcessor::paletteNames { "Blood", "Ember", "Bone", "Ice", "Acid", "Violet", "Rust",
                                                             "Nitrate", "Cyanotype", "Tungsten", "Ash",
-                                                            "Custom", "Scene Colors" };
+                                                            "Custom", "Scene Colors",
+                                                            // Appended after Custom / Scene Colors so saved sets keep their indices.
+                                                            "Split" };
 
 std::array<juce::Colour, 3> VJAnalyzerProcessor::presetPalette (int index)
 {
@@ -32,6 +34,7 @@ std::array<juce::Colour, 3> VJAnalyzerProcessor::presetPalette (int index)
         case 8:  return { C (0xff05080c), C (0xff2f5f79), C (0xffd8eef2) }; // Cyanotype night
         case 9:  return { C (0xff070504), C (0xff86461f), C (0xffffd9a8) }; // Tungsten halation
         case 10: return { C (0xff0a0a0a), C (0xff6b6a66), C (0xffedebe4) }; // Ash mono
+        case 13: return { C (0xff000000), C (0xffff1a12), C (0xff1ae6ff) }; // Split: black / red / cyan (Negative scene)
         default: return { C (0xff050000), C (0xffe01008), C (0xffff9a86) }; // Blood
     }
 }
@@ -46,7 +49,7 @@ juce::Colour VJAnalyzerProcessor::getCustomColour (int i) const
 void VJAnalyzerProcessor::setCustomColour (int i, juce::Colour c)
 {
     auto palette = (int) state.getRawParameterValue ("palette")->load();
-    if (palette < customPalette)
+    if (isPresetPalette (palette))
         for (int k = 0; k < 3; ++k)
             state.state.setProperty ("colour" + juce::String (k), presetPalette (palette)[(size_t) k].toString(), nullptr);
     state.state.setProperty ("colour" + juce::String (i), c.toString(), nullptr);
@@ -59,7 +62,7 @@ void VJAnalyzerProcessor::setCustomColour (int i, juce::Colour c)
 std::array<juce::Colour, 3> VJAnalyzerProcessor::getPaletteColours() const
 {
     auto palette = (int) state.getRawParameterValue ("palette")->load();
-    if (palette < customPalette)
+    if (isPresetPalette (palette))
         return presetPalette (palette);
     return { getCustomColour (0), getCustomColour (1), getCustomColour (2) };
 }

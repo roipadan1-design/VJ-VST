@@ -11,8 +11,6 @@ struct AnalysisWorker::Listener : vj::Analyzer::Listener
 
     void featureFrame (const vj::FeatureFrame& f) override
     {
-        auto now = nowSeconds();
-
         vj::protocol::Transport t;
         t.valid = worker.tValid.load();
         t.playing = worker.tPlaying.load();
@@ -29,16 +27,28 @@ struct AnalysisWorker::Listener : vj::Analyzer::Listener
             worker.meters.overflowed = worker.overflowFlag.load();
         }
 
-        if (now - worker.lastFrameSent >= 1.0 / 120.0) // latest-wins snapshots, ~120 Hz
-        {
-            worker.lastFrameSent = now;
-            worker.sendPacket (vj::protocol::encodeFrame (worker.writer, worker.sourceId, role, ++worker.frameSeq, f, t));
-        }
+        // Frames come in bursts (one host block = several hops). Keep only the
+        // newest; run() sends it once the burst is analysed, so the engine
+        // never gets the oldest frame of a block.
+        latest = f;
+        latestTransport = t;
+        hasLatest = true;
+    }
+
+    // Called from run() after each burst: latest-wins snapshots, ~120 Hz.
+    void sendLatest (double now)
+    {
+        if (! hasLatest || now - worker.lastFrameSent < 1.0 / 120.0)
+            return;
+
+        hasLatest = false;
+        worker.lastFrameSent = now;
+        worker.sendPacket (vj::protocol::encodeFrame (worker.writer, worker.sourceId, role, ++worker.frameSeq, latest, latestTransport));
 
         if (now - worker.lastSpectrumSent >= 1.0 / 60.0)
         {
             worker.lastSpectrumSent = now;
-            worker.sendPacket (vj::protocol::encodeSpectrum (worker.writer, worker.sourceId, worker.frameSeq, f));
+            worker.sendPacket (vj::protocol::encodeSpectrum (worker.writer, worker.sourceId, worker.frameSeq, latest));
         }
     }
 
@@ -56,6 +66,9 @@ struct AnalysisWorker::Listener : vj::Analyzer::Listener
 
     AnalysisWorker& worker;
     int role = 0;
+    vj::FeatureFrame latest;
+    vj::protocol::Transport latestTransport;
+    bool hasLatest = false;
 };
 
 AnalysisWorker::AnalysisWorker() : juce::Thread ("VJ Analyzer worker")
@@ -289,6 +302,7 @@ void AnalysisWorker::run()
             fifoR.pop (scratchR.data(), n);
             analyzer.process (scratchL.data(), scratchR.data(), (int) n, listener);
         }
+        listener.sendLatest (nowSeconds());
 
         Note note;
         while (notes.pop (&note, 1) == 1)

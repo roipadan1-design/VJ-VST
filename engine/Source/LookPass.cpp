@@ -84,6 +84,7 @@ namespace
         uniform vec3 c1;
         uniform vec3 c2;
         uniform float paletteMix;
+        uniform float duo;            // 1 = two-layer scene: red = body, green = detail
 
         float hash (vec2 p)
         {
@@ -219,7 +220,18 @@ namespace
             // --- crush + palette
             float lt = crushTone (clamp (l, 0.0, 1.0));
             vec3 own = col * (lt / max (lum, 1e-3)) + n.gba * sigma * 0.2 * response; // some colour grain when the palette is off
-            col = mix (own, gradientMap (lt), paletteMix);
+            vec3 mapped = gradientMap (lt);
+            if (duo > 0.5)
+            {
+                // Two layers, each with its own grain and crush (so Grain +
+                // Crush break them into independent 1-bit noise); body takes
+                // the mid colour, detail screens the light colour on top.
+                float body = crushTone (clamp ((col.r + n.r * sigma) * (1.0 + flicker), 0.0, 1.0));
+                float detail = crushTone (clamp ((col.g + n.g * sigma) * (1.0 + flicker), 0.0, 1.0));
+                own = vec3 (body, detail, detail);                     // scene colours: red and cyan
+                mapped = 1.0 - (1.0 - mix (c0, c1, body)) * (1.0 - c2 * detail);
+            }
+            col = mix (own, mapped, paletteMix);
 
             // --- lifted, tinted blacks (the film base)
             vec3 base = (c1 * 0.35 + vec3 (0.02)) * blacks * 0.12;
@@ -656,6 +668,7 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
         finalProgram->setUniform (names[i], c.getFloatRed(), c.getFloatGreen(), c.getFloatBlue());
     }
     finalProgram->setUniform ("paletteMix", look.paletteMix);
+    finalProgram->setUniform ("duo", look.duo);
     quad.draw (*finalProgram);
 
     for (int unit = 3; unit >= 0; --unit)

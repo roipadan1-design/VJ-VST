@@ -291,6 +291,7 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
     p.post.exposureEv = juce::jlimit (-8.0f, 8.0f, num (post, "exposureEv", 0.0f));
     p.post.grain = juce::jlimit (0.0f, 0.2f, num (post, "grain", 0.0f));
     p.post.vignette = juce::jlimit (0.0f, 1.0f, num (post, "vignette", 0.0f));
+    p.post.duoPalette = str (post, "palette", "gradient") == "duo";
 
     // Cross-reference validation (what JSON Schema alone can't check).
     if (! uniqueIds (p.stages, "stage", error) || ! uniqueIds (p.macros, "macro", error)

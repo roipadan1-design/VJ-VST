@@ -75,7 +75,8 @@ def param(name, lo, hi, default, label=None, cyclic=False, integrate=False):
     return p
 
 
-def route(src, dst, amount, center=0.0, curve='linear', exponent=1.0, attack=None, release=None, lo=0.0, hi=1.0):
+def route(src, dst, amount, center=0.0, curve='linear', exponent=1.0, attack=None, release=None, lo=0.0, hi=1.0,
+          scale_by=None):
     kind = src.split('.')[0]
     if attack is None:
         attack = {'macro': 20, 'audio': 30, 'descriptor': 120}.get(kind, 0)
@@ -86,6 +87,8 @@ def route(src, dst, amount, center=0.0, curve='linear', exponent=1.0, attack=Non
          'amount': amount, 'attackMs': attack, 'releaseMs': release}
     if kind == 'env':
         r['scaleBy'] = 'macro.impact'   # every hit reaction follows the Impact knob
+    if scale_by:
+        r['scaleBy'] = scale_by         # e.g. audio pushing a speed only as far as Motion allows
     return r
 
 
@@ -176,17 +179,22 @@ PRESETS = [
     preset('04 - Corridor.json', 'corridor', 'Corridor',
            'Moving forward through an endless service corridor; kicks surge the camera and blow the lights, hats flicker them.',
            [stage('hall', 'corridor.fs', [
-               param('travel', 0.0, 8.0, 1.6, integrate=True), param('sway', 0.0, 1.5, 0.4, integrate=True),
+               # Capped at 2.5 u/s: faster, the wall texture aliases at 60 fps and reads as strobing.
+               param('travel', 0.0, 2.5, 1.0, integrate=True), param('sway', 0.0, 1.5, 0.4, integrate=True),
                param('sway_amt', 0, 1, 0.3), param('width', 0.5, 2.5, 1.0), param('surge', 0, 1, 0),
                param('flicker', 0, 1, 0), param('detail', 0, 1, 0.5), param('fog', 0.05, 1.0, 0.35),
                param('emission', 0.2, 4.0, 1.1)])],
-           [route('macro.intensity', 'hall.emission', 0.6, 0.5), route('macro.motion', 'hall.travel', 0.9, 0.4),
+           # Motion 0 = standing still: every speed's default sits at amount x centre of its
+           # Motion route, and audio / Viscosity only scale speed as far as Motion allows.
+           # Hits never feed speed (the kick swell used to add up to the full 8 u/s).
+           [route('macro.intensity', 'hall.emission', 0.6, 0.5), route('macro.motion', 'hall.travel', 1.0, 0.4),
+            route('macro.motion', 'hall.sway', 0.667, 0.4),
             route('macro.color', 'hall.fog', 0.7, 0.5), route('macro.space', 'hall.width', 0.7, 0.5),
             route('macro.detail', 'hall.detail', 1.0, 0.5), route('macro.gravity', 'hall.sway_amt', 1.0, 0.5),
-            route('macro.viscosity', 'hall.sway', -0.5, 0.5),
-            route('env.swell', 'hall.travel', 1.0), route('env.kick', 'hall.surge', 1.0), route('env.hat', 'hall.flicker', 0.8),
+            route('macro.viscosity', 'hall.sway', -0.5, 0.5, scale_by='macro.motion'),
+            route('env.swell', 'hall.surge', 0.4), route('env.kick', 'hall.surge', 1.0), route('env.hat', 'hall.flicker', 0.8),
             route('audio.bass.activity', 'hall.emission', 0.15),
-            route('audio.bass.activity', 'hall.travel', 0.5), route('descriptor.build', 'hall.fog', -0.4),
+            route('audio.bass.activity', 'hall.travel', 0.2, scale_by='macro.motion'), route('descriptor.build', 'hall.fog', -0.4),
             route('lfo.phrase', 'hall.sway_amt', 0.2, 0.5)],
            seed=505),
 
@@ -317,6 +325,33 @@ PRESETS = [
             route('audio.high.activity', 'rise.streak', 0.3), route('env.kick', 'rise.surge', 0.6),
             route('env.swell', 'rise.streak', 0.2), route('lfo.phrase', 'rise.visible', 0.25, 0.5)],
            seed=1313),
+
+    preset('13 - Negative.json', 'negative', 'Negative',
+           'A lattice pylon from the ground, split into two layers: the negative body in red, lit rims and wires in cyan. '
+           'Kicks break it into per-channel 1-bit noise and (with Impact up) jump-cut the camera; Motion 0 freezes the orbit. '
+           'Colours follow the palette as two layers (body = mid, detail = light); Scene Colors = red/cyan.',
+           [stage('cam', 'pylon.fs', [
+               param('orbit', 0.0, 0.3, 0.12, integrate=True), param('fov', 0.6, 1.8, 1.1), param('levels', 5, 12, 8),
+               param('beam', 0.03, 0.12, 0.06), param('cuts', 0, 1, 0.5), param('tilt', 0, 1, 0.5),
+               param('clouds', 0, 1, 0.4), param('surge', 0, 1, 0)]),
+            stage('neg', 'negative_split.fs', [
+               param('polarity', 0, 1, 1), param('threshold', 0.2, 0.8, 0.45), param('contrast', 0, 1, 0.6),
+               param('detail', 0, 3, 1.0), param('outline', 0, 1, 0.12), param('dither', 0, 1, 0.0),
+               param('storm', 0, 1, 0), param('cell', 1, 6, 2), param('flash', 0, 1, 0)], kind='effect')],
+           [route('macro.intensity', 'neg.threshold', -0.5, 0.5), route('macro.intensity', 'neg.detail', 0.15, 0.5),
+            # Motion 0 = frozen: the orbit's default sits exactly at amount x centre.
+            route('macro.motion', 'cam.orbit', 1.0, 0.4),
+            route('audio.bass.activity', 'cam.orbit', 0.12, scale_by='macro.motion'),
+            route('macro.color', 'neg.detail', 0.3, 0.5), route('macro.color', 'neg.outline', 0.8, 0.5),
+            route('macro.space', 'cam.fov', 0.8, 0.5), route('macro.impact', 'cam.cuts', 1.0, 0.5),
+            route('macro.gravity', 'cam.tilt', 0.9, 0.5), route('macro.viscosity', 'neg.cell', 0.9, 0.5),
+            route('macro.detail', 'cam.levels', 0.9, 0.5), route('macro.detail', 'cam.beam', -0.4, 0.5),
+            route('env.kick', 'neg.storm', 0.8), route('env.snare', 'neg.flash', 1.0), route('env.swell', 'cam.surge', 0.4),
+            route('descriptor.build', 'neg.dither', 0.5), route('audio.high.activity', 'neg.outline', 0.3),
+            route('lfo.phrase', 'cam.tilt', 0.1, 0.5)],
+           post={'palette': 'duo', 'bloom': {'enabled': True, 'amount': 0.12, 'threshold': 0.85, 'levels': 4},
+                 'toneMap': 'none', 'exposureEv': 0.0, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.2},
+           seed=1414),
 ]
 
 if __name__ == '__main__':

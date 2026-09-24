@@ -54,6 +54,7 @@ public:
     // (palette mapping off - each scene's own colours).
     static const juce::StringArray paletteNames;
     static constexpr int customPalette = 11, sceneColours = 12;
+    static bool isPresetPalette (int index) noexcept { return index != customPalette && index != sceneColours; }
     static std::array<juce::Colour, 3> presetPalette (int index);
 
     // Snapshots: four stored states (macros, LOOK, palette) recalled with a

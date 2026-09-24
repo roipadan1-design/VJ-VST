@@ -318,8 +318,10 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
 
     frame.width = outputWidth;
     frame.height = outputHeight;
+    auto sceneLook = look;
+    sceneLook.duo = current->usesDuoPalette() ? 1.0f : 0.0f;
     if (lookPass.render (frame.gl, compositeSource, w, h, finalTargetFbo, outputWidth, outputHeight,
-                         look, frame.time, outputGain))
+                         sceneLook, frame.time, outputGain))
         return;
 
     glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);

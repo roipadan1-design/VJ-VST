@@ -34,6 +34,9 @@ struct LookSettings
                                          0.1f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f, 0.0f };
     std::array<juce::Colour, 3> palette { juce::Colour (0xff050000), juce::Colour (0xffe01008), juce::Colour (0xffff9a86) };
     float paletteMix = 1.0f;
+    // Set per frame from the live scene (not a performer control): 1 = the
+    // scene is two layers (red body, green detail) - see V2Post::duoPalette.
+    float duo = 0.0f;
 
     float get (Slot s) const noexcept { return values[(size_t) s]; }
 };

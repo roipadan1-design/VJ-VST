@@ -39,6 +39,7 @@ public:
     virtual void releaseGLObjects() = 0;
     virtual void toggleStage (int) {}
     virtual void setParam (int stageIndex, const juce::String& name, const juce::var& value) = 0;
+    virtual bool usesDuoPalette() const { return false; }
 };
 
 // The original formats: one ISF shader with {source, scale, offset}
@@ -73,6 +74,7 @@ public:
     void releaseGLObjects() override;
     void toggleStage (int index) override;
     void setParam (int stageIndex, const juce::String& name, const juce::var& value) override;
+    bool usesDuoPalette() const override { return preset.post.duoPalette; }
 
 private:
     V2Instance (const PresetV2& p, SourceLibrary& lib) : preset (p), modulation (p), sources (lib) {}
