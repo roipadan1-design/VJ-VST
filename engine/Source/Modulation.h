@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "PresetV2.h"
 #include "Signals.h"
+#include "Motion.h"
 
 // Global performance state shared by every preset: the eight stable macro
 // slots. Host automation, MIDI and the plugin UI all set the *base* value
@@ -29,7 +30,11 @@ class ModulationRuntime
 public:
     explicit ModulationRuntime (const PresetV2& preset);
 
-    void process (const Signals& signals, const Clock& clock, const MacroBank& macros, double dtSeconds, double nowSeconds);
+    // `motion` is the scene clock: rate ("integrate") parameters advance by
+    // rate x motion.sceneDt, tempo LFOs run on motion.sceneBeat, hit
+    // envelopes run on real time with their decay scaled by motion.decayScale.
+    void process (const Signals& signals, const Clock& clock, const MacroBank& macros, const MotionFrame& motion,
+                  double dtSeconds, double nowSeconds);
 
     // Physical parameter values, [stage][parameter] in preset order.
     const juce::Array<juce::Array<float>>& getValues() const noexcept { return values; }
@@ -60,7 +65,7 @@ private:
         bool attacking = false;
         bool fresh = false;   // triggered since the last advance()
         void trigger (float amount) noexcept;
-        void advance (float dt) noexcept;
+        void advance (float dt, float decayScale) noexcept;
     };
 
     struct Lfo

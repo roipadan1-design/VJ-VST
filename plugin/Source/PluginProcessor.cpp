@@ -3,8 +3,11 @@
 #include "EngineLocation.h"
 
 const juce::StringArray VJAnalyzerProcessor::roleNames { "Mix", "Kick", "Snare", "Hat", "Bass", "Texture" };
-const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Motion", "Color", "Space",
-                                                          "Impact", "Gravity", "Viscosity", "Detail" };
+const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Speed", "Form", "Scale",
+                                                          "Impact", "Erode", "Glide", "Detail" };
+const juce::StringArray VJAnalyzerProcessor::moveIds { "drift", "push", "softness", "sync", "reverse", "freeze" };
+const juce::StringArray VJAnalyzerProcessor::moveNames { "Drift", "Push", "Softness", "Sync", "Reverse", "Freeze" };
+const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext" };
 const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
 const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
 // Index = engine /v2/look slot. Slot 13 (Calm) is the separate bool parameter "calm".
@@ -75,6 +78,7 @@ juce::StringArray VJAnalyzerProcessor::snapshotParamIds()
     for (int i = 0; i < 8; ++i)
         ids.add ("macro" + juce::String (i + 1));
     ids.addArray (lookIds);
+    ids.addArray ({ "drift", "push", "softness" }); // older snapshots simply keep the current values
     return ids;
 }
 
@@ -173,17 +177,29 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
 
     // Stable automation IDs macro1..macro8 (ENGINEERING_SPEC 6.3): labels may
     // change per preset, the IDs never do, so saved automation stays valid.
+    // Values read as what they do (Speed "x1.00" / "Frozen", Glide in bars).
+    const float macroDefaults[] = { 0.5f, 0.5f, 0.5f, 0.5f, 0.4f, 0.5f, 0.25f, 0.5f };
+    std::function<String (float, int)> percent = [] (float v, int) { return String (roundToInt (v * 100.0f)) + " %"; };
+    std::function<String (float, int)> speedText = [] (float v, int) {
+        auto s = v <= 0.5f ? (2.0f * v) * (2.0f * v) : std::pow (4.0f, 2.0f * v - 1.0f); // = engine SceneClock::speedCurve
+        return s < 0.005f ? String ("Frozen") : "x" + String (s, s < 1.0f ? 2 : 1);
+    };
+    std::function<String (float, int)> glideText = [] (float v, int) { return String (v * v * 4.0f, 2) + " bars"; };
     for (int i = 0; i < 8; ++i)
         layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "macro" + String (i + 1), 1 }, macroNames[i],
-                                                           NormalisableRange<float> (0.0f, 1.0f), i == 1 ? 0.4f : 0.5f));
+                                                           NormalisableRange<float> (0.0f, 1.0f), macroDefaults[i],
+                                                           AudioParameterFloatAttributes().withStringFromValueFunction (
+                                                               i == 1 ? speedText : (i == 6 ? glideText : percent))));
 
     layout.add (std::make_unique<AudioParameterInt> (ParameterID { "preset", 1 }, "Preset", 0, 64, 0,
                                                      AudioParameterIntAttributes().withStringFromValueFunction (
                                                          [] (int v, int) { return v == 0 ? String ("Engine") : String (v); })));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "blackout", 1 }, "Blackout", false));
 
-    const float lookDefaults[] = { 0.3f, 0.35f, 0.15f, 0.1f, 0.1f, 0.15f, 0.0f,
-                                   0.1f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f };
+    // Ambient defaults: film on, every digital disturbance (flash, glitch,
+    // symbols, smear, auto cuts) off until asked for.
+    const float lookDefaults[] = { 0.3f, 0.35f, 0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
+                                   0.0f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f };
     for (int i = 0; i < lookIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterFloat> (ParameterID { lookIds[i], 1 }, lookNames[i],
                                                            NormalisableRange<float> (0.0f, 1.0f), lookDefaults[i]));
@@ -193,6 +209,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
 
     for (int i = 0; i < reactIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterBool> (ParameterID { reactIds[i], 1 }, "React " + reactNames[i], true));
+
+    // --- added 2026-09 (appended, so existing IDs and their order are untouched)
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "drift", 1 }, "Drift", NormalisableRange<float> (0.0f, 1.0f), 0.2f,
+                                                       AudioParameterFloatAttributes().withStringFromValueFunction (percent)));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "push", 1 }, "Push", NormalisableRange<float> (0.0f, 1.0f), 0.3f,
+                                                       AudioParameterFloatAttributes().withStringFromValueFunction (
+                                                           [] (float v, int) { return "up to x" + String (1.0f + v, 2); })));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "softness", 1 }, "Softness", NormalisableRange<float> (0.0f, 1.0f), 0.5f,
+                                                       AudioParameterFloatAttributes().withStringFromValueFunction (
+                                                           [] (float v, int) { return "decay x" + String (0.5f * std::pow (8.0f, v), 1); })));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { "sync", 1 }, "Sync", false));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { "reverse", 1 }, "Reverse", false));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { "freeze", 1 }, "Freeze", false));
+    const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene" };
+    for (int i = 0; i < actionIds.size(); ++i)
+        layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[i], 1 }, actionNames[i], false));
     return layout;
 }
 
@@ -205,12 +237,16 @@ VJAnalyzerProcessor::VJAnalyzerProcessor()
     state.state.setProperty ("engineHost", "127.0.0.1", nullptr);
     state.state.setProperty ("enginePort", vj::protocol::defaultPort, nullptr);
     state.state.setProperty ("enginePath", VJ_DEFAULT_ENGINE_PATH, nullptr);
+    for (auto& id : actionIds)
+        state.addParameterListener (id, this);
     startTimerHz (30);
 }
 
 VJAnalyzerProcessor::~VJAnalyzerProcessor()
 {
     stopTimer();
+    for (auto& id : actionIds)
+        state.removeParameterListener (id, this);
     worker.release();
 }
 
@@ -271,8 +307,34 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     worker.setTransport (t);
 }
 
+void VJAnalyzerProcessor::parameterChanged (const juce::String& id, float newValue)
+{
+    // Rising edge of a momentary action (from the UI, automation or a MIDI
+    // button, on whichever thread set it). HIT goes out at once (the worker
+    // only reads an atomic flag); the rest run on the message thread.
+    const auto index = actionIds.indexOf (id);
+    if (index < 0 || newValue < 0.5f)
+        return;
+    if (index == 0)
+        worker.sendUserTrigger();
+    actionPending[(size_t) index] = true;
+}
+
 void VJAnalyzerProcessor::timerCallback()
 {
+    for (int i = 0; i < actionIds.size(); ++i)
+    {
+        if (! actionPending[(size_t) i].exchange (false))
+            continue;
+        if (i >= 1 && i <= 4)
+            recallSnapshot (i - 1);
+        else if (i == 5 || i == 6)
+            worker.stepScene (i == 5 ? -1 : 1);
+        // Reset, so the next press (whatever the controller sends) fires again.
+        if (auto* p = state.getParameter (actionIds[i]))
+            p->setValueNotifyingHost (0.0f);
+    }
+
     advanceMorph();
 
     AnalysisWorker::Controls c;
@@ -298,6 +360,8 @@ void VJAnalyzerProcessor::timerCallback()
     c.paletteMix = (int) state.getRawParameterValue ("palette")->load() == sceneColours ? 0.0f : 1.0f;
     for (int i = 0; i < reactIds.size(); ++i)
         c.react[(size_t) i] = state.getRawParameterValue (reactIds[i])->load() > 0.5f;
+    for (int i = 0; i < moveIds.size(); ++i)
+        c.move[(size_t) i] = state.getRawParameterValue (moveIds[i])->load();
     worker.setControls (c);
 
     worker.setTarget (state.state.getProperty ("engineHost", "127.0.0.1").toString(),

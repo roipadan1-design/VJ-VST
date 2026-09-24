@@ -31,7 +31,7 @@ void ModulationRuntime::Envelope::trigger (float amount) noexcept
     fresh = true;
 }
 
-void ModulationRuntime::Envelope::advance (float dt) noexcept
+void ModulationRuntime::Envelope::advance (float dt, float decayScale) noexcept
 {
     // A hit that arrived this frame is shown at its full peak now and decays
     // from the next frame. (Advancing it by a whole frame first used to show
@@ -66,7 +66,7 @@ void ModulationRuntime::Envelope::advance (float dt) noexcept
     }
 
     // Exponential decay reaching ~1% of the peak at decaySeconds, then zero.
-    value = target * std::exp (-4.6f * elapsed / decaySeconds);
+    value = target * std::exp (-4.6f * elapsed / juce::jmax (1.0e-3f, decaySeconds * decayScale));
     if (value < 0.001f)
         value = 0.0f;
 }
@@ -281,7 +281,8 @@ void ModulationRuntime::fireTrigger (ResolvedTrigger& t, float strength)
     }
 }
 
-void ModulationRuntime::process (const Signals& signals, const Clock& clock, const MacroBank& macros, double dt, double now)
+void ModulationRuntime::process (const Signals& signals, const Clock& clock, const MacroBank& macros, const MotionFrame& motion,
+                                 double dt, double now)
 {
     // 1. Triggers.
     for (auto& t : triggers)
@@ -320,12 +321,12 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
 
         if (def.type == V2Modulator::Type::ad)
         {
-            envelopes.getReference (i).advance ((float) dt);
+            envelopes.getReference (i).advance ((float) dt, motion.decayScale);
             continue;
         }
 
         auto& lfo = lfos.getReference (i);
-        auto position = clock.beat() / lfo.periodBeats + lfo.phaseOffset;
+        auto position = motion.sceneBeat / lfo.periodBeats + lfo.phaseOffset;
         auto phase = (float) (position - std::floor (position));
 
         switch (lfo.shape)
@@ -395,7 +396,7 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
             if (def.integrate)
             {
                 auto& phase = integrals.getReference (s).getReference (p);
-                phase += physical * dt;
+                phase += physical * motion.sceneDt; // Speed / Freeze / Reverse / Push act here
                 physical = (float) phase;
             }
             values.getReference (s).set (p, physical);

@@ -12,6 +12,8 @@ MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
         open = true;
     for (int i = 0; i < LookSettings::numSlots; ++i)
         lookValues[(size_t) i] = look.values[(size_t) i];
+    for (int i = 0; i < MoveSettings::numSlots; ++i)
+        moveValues[(size_t) i] = move.values[(size_t) i];
     for (int i = 0; i < 3; ++i)
     {
         paletteValues[(size_t) i * 3]     = look.palette[(size_t) i].getFloatRed();
@@ -124,6 +126,8 @@ void MainComponent::render()
                                                                paletteValues[(size_t) i * 3 + 1].load(),
                                                                paletteValues[(size_t) i * 3 + 2].load(), 1.0f);
     look.paletteMix = paletteMixValue.load();
+    for (int i = 0; i < MoveSettings::numSlots; ++i)
+        move.values[(size_t) i] = moveValues[(size_t) i].load();
 
     auto desktopScale = (float) openGLContext.getRenderingScale();
     juce::OpenGLHelpers::clear (juce::Colours::black);
@@ -176,9 +180,28 @@ void MainComponent::render()
     clockBpm = (float) clock.bpm();
     clockFollowing = clock.isFollowingTransport();
 
+    // Scene clock: Speed (macro 2), Glide (macro 7), Push, Sync, Reverse,
+    // Freeze. Push leans on the music's energy (already gated by REACT TO
+    // and scaled by Reactivity / CALM).
+    {
+        auto macro = [this] (int slot, float fallback) {
+            return macroBank.set[(size_t) slot] ? macroBank.values[(size_t) slot] : fallback;
+        };
+        const auto drive = (0.6f * signals.bassRel + 0.4f * signals.levelRel) * react.amount;
+        const auto barSeconds = clock.barBeats() * 60.0 / juce::jmax (20.0, clock.bpm());
+        const auto beatDelta = clock.beat() - lastClockBeat;
+        lastClockBeat = clock.beat();
+        sceneClock.update (move, macro (1, 0.5f), macro (6, 0.25f), drive, clock.bpm(), barSeconds, beatDelta, dt);
+        currentSpeed = (float) sceneClock.getFrame().speed;
+
+        look.drift = move.get (MoveSettings::drift);
+        look.driftTime = (float) sceneClock.getFrame().sceneTime;
+    }
+
     videoPlayer.updateGLTexture();
 
     FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank, &look };
+    frame.motion = sceneClock.getFrame();
     frame.videoTexture = videoPlayer.getTextureID();
     frame.width = physicalWidth;
     frame.height = physicalHeight;
@@ -321,6 +344,19 @@ void MainComponent::timerCallback()
     status.addInt32 (clockFollowing.load() ? 1 : 0);
     status.addInt32 (featureBus.isDemoEnabled() ? 1 : 0);
     status.addFloat32 (presetManager.getRenderScale());
+    status.addFloat32 (currentSpeed.load());
+
+    // The live scene's knob names + description: on every scene change and
+    // with the list every ~2 s.
+    const bool sendLabels = presetManager.getCurrentIndex() != lastLabelsIndex || (statusTick % 10) == 0;
+    juce::OSCMessage labels ("/v2/macros");
+    if (sendLabels)
+    {
+        lastLabelsIndex = presetManager.getCurrentIndex();
+        for (auto& l : presetManager.getCurrentMacroLabels())
+            labels.addString (l);
+        labels.addString (presetManager.getCurrentDescription());
+    }
 
     // Preset names every ~2 s (cheap, and late-joining clients catch up).
     const bool sendList = (statusTick++ % 10) == 0;
@@ -334,6 +370,8 @@ void MainComponent::timerCallback()
         statusSender.sendToIPAddress ("127.0.0.1", port, status);
         if (sendList)
             statusSender.sendToIPAddress ("127.0.0.1", port, list);
+        if (sendLabels)
+            statusSender.sendToIPAddress ("127.0.0.1", port, labels);
     }
 }
 
@@ -568,6 +606,14 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         auto slot = (int) numberArg (0, -1.0f);
         if (juce::isPositiveAndBelow (slot, LookSettings::numSlots) && message.size() > 1)
             lookValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+        return;
+    }
+
+    if (address == "/v2/move")
+    {
+        auto slot = (int) numberArg (0, -1.0f);
+        if (juce::isPositiveAndBelow (slot, MoveSettings::numSlots) && message.size() > 1)
+            moveValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
         return;
     }
 

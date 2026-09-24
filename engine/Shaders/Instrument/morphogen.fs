@@ -72,16 +72,19 @@ void main()
         float lapA = -lap.r, lapB = lap.g;
         vec2 fk = feedKill (pattern);
         float reaction = A * B * B;
-        float nA = A + rate * (1.0 * lapA - reaction + fk.x * (1.0 - A));
-        float nB = B + rate * (0.5 * lapB + reaction - (fk.y + fk.x) * B);
+        // One step per pass at 60 fps and designed speed; the scene clock
+        // scales it (0 = frozen), capped at 1 for numerical stability.
+        float step1 = min (rate * abs (vj_dt) * 60.0, 1.0);
+        float nA = A + step1 * (1.0 * lapA - reaction + fk.x * (1.0 - A));
+        float nB = B + step1 * (0.5 * lapB + reaction - (fk.y + fk.x) * B);
 
-        // Seeds: a kick plants one at a new place (vj_seed is reseeded on
-        // kicks); a slow trickle keeps the culture from ever dying out.
+        // Seeds: a kick plants one at a new place (one spot per 16th note);
+        // a slow trickle keeps the culture from ever dying out.
         vec2 aspect = vec2 (RENDERSIZE.x / RENDERSIZE.y, 1.0);
-        vec2 at = vec2 (0.2, 0.2) + vjHash22 (vec2 (vj_seed, 5.3)) * 0.6;
+        vec2 at = vec2 (0.2, 0.2) + vjHash22 (vec2 (floor (vj_beat * 4.0), 5.3)) * 0.6;
         float d = length ((uv - at) * aspect);
         nB += seed_amt * 0.5 * (1.0 - smoothstep (0.02, 0.05, d));
-        float trickle = step (0.9996, vjHash12 (gl_FragCoord.xy + floor (TIME * 3.0) * 11.0));
+        float trickle = step (0.9996, vjHash12 (gl_FragCoord.xy + floor (vj_time * 3.0) * 11.0)) * step (1.0e-5, step1);
         nB += trickle * 0.8;
 
         // Soft circular boundary: the culture lives in an island.

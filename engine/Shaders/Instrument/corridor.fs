@@ -11,7 +11,8 @@
     { "NAME": "flicker", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "detail", "TYPE": "float", "DEFAULT": 0.5, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "fog", "TYPE": "float", "DEFAULT": 0.35, "MIN": 0.05, "MAX": 1.0 },
-    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 }
+    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 },
+    { "NAME": "decay", "TYPE": "float", "DEFAULT": 0.2, "MIN": 0.0, "MAX": 1.0 }
   ]
 }*/
 #include "common.glsl"
@@ -78,8 +79,8 @@ void main()
     // Ceiling light strips every 4 m light the section around them.
     float lightIdx = floor (z / 4.0 + 0.5);
     float dz = z - lightIdx * 4.0;
-    float on = step (0.25, vjHash12 (vec2 (lightIdx, 1.0)));
-    float blink = 1.0 - flicker * step (0.5, vjHash12 (vec2 (lightIdx, floor (TIME * 20.0))));
+    float on = step (0.1 + 0.8 * decay, vjHash12 (vec2 (lightIdx, 1.0)));   // Erode: lights fail
+    float blink = 1.0 - flicker * step (0.5, vjHash12 (vec2 (lightIdx, floor (vj_time * 20.0))));
     float lit = on * blink * (1.0 - 0.85 * surge * step (0.5, vjHash12 (vec2 (lightIdx, 7.0))));
     float pool = exp (-dz * dz * 0.18) * lit;
     float strip = 0.0;

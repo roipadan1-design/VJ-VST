@@ -200,7 +200,7 @@ void main()
     float photo = sky;
     photo = mix (photo, mix (0.06, 0.55, grate), plate);
     photo = mix (photo, steel, cover);
-    photo = max (photo + (vjHash12 (gl_FragCoord.xy + floor (TIME * 24.0)) - 0.5) * 0.02, 0.0);
+    photo = max (photo + (vjHash12 (gl_FragCoord.xy + floor (vj_time * 24.0)) - 0.5) * 0.02, 0.0);
 
     gl_FragColor = vec4 (vec3 (photo), 1.0);
 }

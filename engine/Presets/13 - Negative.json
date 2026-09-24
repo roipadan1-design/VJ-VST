@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "negative",
   "name": "Negative",
-  "description": "A lattice pylon from the ground, split into two layers: the negative body in red, lit rims and wires in cyan. Kicks break it into per-channel 1-bit noise and (with Impact up) jump-cut the camera; Motion 0 freezes the orbit. Colours follow the palette as two layers (body = mid, detail = light); Scene Colors = red/cyan.",
+  "description": "A lattice pylon from the ground, split into two layers: the negative body in red, lit rims and wires in cyan. Kicks break it into per-channel 1-bit noise and (with Impact up) jump-cut the camera. Colours follow the palette as two layers (body = mid, detail = light); Scene Colors = red/cyan.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -197,49 +197,49 @@
     {
       "id": "intensity",
       "slot": 0,
-      "label": "Intensity",
+      "label": "red body",
       "default": 0.5
     },
     {
-      "id": "motion",
+      "id": "speed",
       "slot": 1,
-      "label": "Motion",
-      "default": 0.4
-    },
-    {
-      "id": "color",
-      "slot": 2,
-      "label": "Color",
+      "label": "Speed",
       "default": 0.5
     },
     {
-      "id": "space",
+      "id": "form",
+      "slot": 2,
+      "label": "cyan",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
       "slot": 3,
-      "label": "Space",
+      "label": "lens",
       "default": 0.5
     },
     {
       "id": "impact",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.5
+      "label": "hits + cuts",
+      "default": 0.4
     },
     {
-      "id": "gravity",
+      "id": "erode",
       "slot": 5,
-      "label": "Gravity",
+      "label": "noise",
       "default": 0.5
     },
     {
-      "id": "viscosity",
+      "id": "glide",
       "slot": 6,
-      "label": "Viscosity",
-      "default": 0.5
+      "label": "Glide",
+      "default": 0.25
     },
     {
       "id": "detail",
       "slot": 7,
-      "label": "Detail",
+      "label": "lattice",
       "default": 0.5
     }
   ],
@@ -248,7 +248,7 @@
       "id": "kick",
       "type": "ad",
       "attackMs": 3,
-      "decayMs": 180,
+      "decayMs": 250,
       "peak": 1,
       "retrigger": "max"
     },
@@ -256,7 +256,7 @@
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 140,
+      "decayMs": 200,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -264,7 +264,7 @@
       "id": "hat",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 70,
+      "decayMs": 110,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -280,17 +280,9 @@
       "id": "drop",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 60,
+      "decayMs": 80,
       "peak": 1,
       "retrigger": "restart"
-    },
-    {
-      "id": "drift",
-      "type": "lfo",
-      "shape": "sine",
-      "periodBeats": 16,
-      "phaseOffset": 0,
-      "polarity": "bipolar"
     },
     {
       "id": "phrase",
@@ -312,65 +304,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": -0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-intensity-neg-detail",
-      "source": "macro.intensity",
-      "destination": "stage.neg.detail",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.15,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-motion-cam-orbit",
-      "source": "macro.motion",
-      "destination": "stage.cam.orbit",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "audio-bass-activity-cam-orbit",
-      "source": "audio.bass.activity",
-      "destination": "stage.cam.orbit",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.12,
-      "attackMs": 30,
-      "releaseMs": 220,
-      "scaleBy": "macro.motion"
-    },
-    {
-      "id": "macro-color-neg-detail",
-      "source": "macro.color",
-      "destination": "stage.neg.detail",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.3,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-neg-outline",
-      "source": "macro.color",
+      "id": "macro-form-neg-outline",
+      "source": "macro.form",
       "destination": "stage.neg.outline",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -378,60 +317,60 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-space-cam-fov",
-      "source": "macro.space",
+      "id": "macro-form-neg-detail",
+      "source": "macro.form",
+      "destination": "stage.neg.detail",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.3,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-cam-fov",
+      "source": "macro.scale",
       "destination": "stage.cam.fov",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": -0.8,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-impact-cam-cuts",
-      "source": "macro.impact",
-      "destination": "stage.cam.cuts",
+      "id": "macro-erode-neg-dither",
+      "source": "macro.erode",
+      "destination": "stage.neg.dither",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-gravity-cam-tilt",
-      "source": "macro.gravity",
-      "destination": "stage.cam.tilt",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-viscosity-neg-cell",
-      "source": "macro.viscosity",
+      "id": "macro-erode-neg-cell",
+      "source": "macro.erode",
       "destination": "stage.neg.cell",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.5,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-detail-cam-levels",
@@ -443,8 +382,8 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-detail-cam-beam",
@@ -456,8 +395,21 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": -0.4,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-impact-cam-cuts",
+      "source": "macro.impact",
+      "destination": "stage.cam.cuts",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "env-kick-neg-storm",
@@ -524,8 +476,8 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.3,
-      "attackMs": 30,
-      "releaseMs": 220
+      "attackMs": 12,
+      "releaseMs": 250
     },
     {
       "id": "lfo-phrase-cam-tilt",

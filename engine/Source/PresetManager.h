@@ -40,6 +40,11 @@ public:
     juce::String getPresetName (int index) const;
     bool isSchema2 (int index) const;
 
+    // The live scene's own name for each macro slot (empty = the generic
+    // name) and its one-line description - shown by the plug-in under the knobs.
+    juce::StringArray getCurrentMacroLabels() const;
+    juce::String getCurrentDescription() const;
+
     void toggleEffectStage (int stageIndex);
     void setEffectParam (int stageIndex, const juce::String& name, const juce::var& value);
 

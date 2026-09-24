@@ -10,7 +10,8 @@
     { "NAME": "invert", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "background", "TYPE": "float", "DEFAULT": 0.5, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "morph", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 1000.0 },
-    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.3, "MIN": 0.2, "MAX": 4.0 }
+    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.3, "MIN": 0.2, "MAX": 4.0 },
+    { "NAME": "decay", "TYPE": "float", "DEFAULT": 0.1, "MIN": 0.0, "MAX": 1.0 }
   ]
 }*/
 #include "common.glsl"
@@ -51,8 +52,9 @@ void main()
     float lineLen = floor (mix (4.0, cols * 0.9, pow (vjHash12 (vec2 (row, 6.0)), 0.7)));
     float indent = floor (vjHash12 (vec2 (row, 7.0)) * 4.0) * 2.0;
     float present = step (rowSeed, fill) * step (indent, col) * step (col, indent + lineLen);
-    // Word gaps.
+    // Word gaps, and glyphs dropping out as the text erodes.
     present *= step (0.14, vjHash12 (vec2 (col, row) * 0.37 + 1.0));
+    present *= step (decay * 0.85, vjHash12 (vec2 (col, row) * 1.93 + 4.0));
 
     float numeric = step (0.8, vjHash12 (vec2 (row, 9.0)));
     float id = floor (vjHash12 (vec2 (col, row)) * (numeric > 0.5 ? 10.0 : 40.0)) + numeric * 100.0;
@@ -64,11 +66,11 @@ void main()
 
     // Block cursor at the end of the newest line, blinking on the beat.
     float cursorRow = floor ((1.0 - 0.5 * rowH + scroll * rowH + floor (jump * 4.0) * rowH) / rowH) - 3.0;
-    float cursor = step (abs (row - cursorRow), 0.5) * step (abs (col - (indent + lineLen + 1.0)), 0.5) * step (0.5, fract (vj_beat));
+    float cursor = step (abs (row - cursorRow), 0.5) * step (abs (col - (indent + lineLen + 1.0)), 0.5) * step (0.5, fract (vj_time));
 
     float v = max (bg, max (ink, cursor));
     // Snare: invert a band of the screen.
-    float band = step (abs (uv.y - vjHash12 (vec2 (floor (TIME * 4.0), 1.0))), 0.12 * invert);
+    float band = step (abs (uv.y - vjHash12 (vec2 (floor (vj_time * 4.0), 1.0))), 0.12 * invert);
     v = mix (v, 1.0 - v, band);
 
     vec3 c = vec3 (1.0, 0.4, 0.3) * v * emission;

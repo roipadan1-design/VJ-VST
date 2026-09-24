@@ -85,6 +85,8 @@ namespace
         uniform vec3 c2;
         uniform float paletteMix;
         uniform float duo;            // 1 = two-layer scene: red = body, green = detail
+        uniform float drift;          // MOVE Drift: slow camera over the whole picture
+        uniform float driftTime;      // scene clock (stops with Speed 0 / Freeze)
 
         float hash (vec2 p)
         {
@@ -171,8 +173,23 @@ namespace
             vec2 px = gl_FragCoord.xy;
             float scale = resolution.y / 1080.0;
 
+            // --- MOVE drift: a slow push-in, turn and pan of the whole picture,
+            // always zoomed in enough that no edge shows. Periods ~30-60 s.
+            vec2 pd = uv;
+            if (drift > 0.001)
+            {
+                float t = driftTime;
+                float aspect = resolution.x / resolution.y;
+                float z = 1.0 + drift * (0.07 + 0.05 * (0.5 + 0.5 * sin (t * 0.21)));
+                float a = drift * 0.02 * sin (t * 0.17 + 1.3);
+                vec2 off = drift * 0.02 * vec2 (sin (t * 0.13 + 0.4), sin (t * 0.11 + 2.1));
+                vec2 c = (uv - 0.5) * vec2 (aspect, 1.0);
+                c = vec2 (c.x * cos (a) - c.y * sin (a), c.x * sin (a) + c.y * cos (a)) / z;
+                pd = c / vec2 (aspect, 1.0) + 0.5 + off;
+            }
+
             // --- gate weave: the whole frame drifts a pixel or so, stepped at 24 fps
-            vec2 p = uv + weaveOffset / resolution;
+            vec2 p = pd + weaveOffset / resolution;
 
             // --- smear: VHS tracking drift on rows, in bursts, with dropout dashes
             float srow = floor (px.y / (2.0 * scale));
@@ -238,7 +255,7 @@ namespace
             col = base + col * (1.0 - base);
 
             // --- halation: red-biased glow out of the highlights, after the palette
-            vec3 h = texture2D (halo, uv).rgb;
+            vec3 h = texture2D (halo, pd).rgb;
             vec3 tint = mix (vec3 (1.0, 0.3, 0.14), c2, 0.35 * paletteMix);
             vec3 glow = tint * luma (h) * halation * 1.8;
             col = 1.0 - (1.0 - col) * (1.0 - clamp (glow, 0.0, 1.0));
@@ -669,6 +686,8 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     }
     finalProgram->setUniform ("paletteMix", look.paletteMix);
     finalProgram->setUniform ("duo", look.duo);
+    finalProgram->setUniform ("drift", look.drift);
+    finalProgram->setUniform ("driftTime", look.driftTime);
     quad.draw (*finalProgram);
 
     for (int unit = 3; unit >= 0; --unit)

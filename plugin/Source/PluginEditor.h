@@ -29,7 +29,9 @@ namespace vjui
     };
 }
 
-// A labelled rotary knob bound to a host parameter.
+// A labelled rotary knob bound to a host parameter. Under the name it can show
+// a second line: what the knob does in the current scene ("ripples"), or a
+// live readout ("x1.3", "FROZEN").
 class MacroKnob : public juce::Component
 {
 public:
@@ -38,10 +40,13 @@ public:
     void resized() override;
     void paint (juce::Graphics&) override;
 
+    void setSubLabel (const juce::String& text, juce::Colour colour);
+    void setTooltip (const juce::String& text) { slider.setTooltip (text); }
+
 private:
     juce::Slider slider;
-    juce::String label;
-    juce::Colour accent;
+    juce::String label, subLabel;
+    juce::Colour accent, subColour;
     bool large;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
 };
@@ -88,16 +93,19 @@ private:
     void editColour (int index);
     void paintSignalPanel (juce::Graphics&, juce::Rectangle<int>);
     void paintHeader (juce::Graphics&, juce::Rectangle<int>);
+    void updateKnobLabels();
 
     VJAnalyzerProcessor& processor;
     vjui::LookAndFeel lookAndFeel;
 
     juce::OwnedArray<juce::TextButton> roleButtons;
-    juce::OwnedArray<MacroKnob> macros;
-    MacroKnob sensitivity, trim;
+    juce::OwnedArray<MacroKnob> macros;              // by slot 0-7 (placed in SHAPE / MOVE / REACT)
+    MacroKnob sensitivity, trim, drift, push, softness, reactivity;
     juce::ComboBox response;
     juce::ToggleButton sendControls { "Send macros" };
     juce::TextButton previous { "<" }, next { ">" }, hit { "HIT" }, blackout { "BLACKOUT" };
+    juce::TextButton freeze { "FREEZE" }, reverse { "REVERSE" }, sync { "SYNC" };
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> moveAttachments;
     juce::ListBox presetList;
     juce::TextButton engineButton { "OPEN ENGINE" }, fullscreenButton { "FULLSCREEN" };
     std::unique_ptr<juce::FileChooser> engineChooser;
@@ -111,13 +119,13 @@ private:
 
     juce::OwnedArray<juce::TextButton> reactButtons;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> reactAttachments;
-    juce::TooltipWindow tooltips { this, 600 };
-    juce::Rectangle<int> reactArea;
+    juce::TooltipWindow tooltips { this, 500 };
+    juce::Rectangle<int> reactToCaption;
 
-    juce::OwnedArray<MacroKnob> lookKnobs, filmKnobs; // filmKnobs[4] = Reactivity
+    juce::OwnedArray<MacroKnob> filmKnobs, digitalKnobs;
     juce::TextButton calm { "CALM" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> calmAttachment;
-    juce::Rectangle<int> filmCaption, reactionCaption, paletteCaption, lookDivider;
+    juce::Rectangle<int> filmCaption, digitalCaption, paletteCaption, lookDivider;
     juce::ComboBox paletteBox;
     juce::OwnedArray<ColourSwatch> swatches;
 
@@ -126,7 +134,9 @@ private:
 
     AnalysisWorker::Meters meters;
     AnalysisWorker::EngineStatus status;
-    juce::Rectangle<int> headerArea, signalArea, performArea, scenesArea, lookArea;
+    juce::Rectangle<int> headerArea, signalArea, shapeArea, moveArea, reactArea, scenesArea, lookArea;
+    juce::Rectangle<int> sceneNameArea, sceneTextArea, speedTextArea;
+    juce::Rectangle<int> mediaArea; // reserved for the media panel (LOAD / USE MEDIA)
     double hitFlash = -10.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VJAnalyzerEditor)

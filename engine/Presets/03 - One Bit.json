@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "one-bit",
   "name": "One Bit",
-  "description": "Hard 1-bit threshold of abstract 3D forms with halftone edges and speckle; forms swap on every second snare, hats flip polarity.",
+  "description": "Hard 1-bit threshold of abstract 3D forms with halftone edges and speckle; forms swap on every second snare, snares flip polarity.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -65,7 +65,7 @@
         {
           "name": "spin",
           "label": "Spin",
-          "min": -0.6,
+          "min": 0.0,
           "max": 0.6,
           "default": 0.1,
           "unit": "normalized",
@@ -133,49 +133,49 @@
     {
       "id": "intensity",
       "slot": 0,
-      "label": "Intensity",
+      "label": "white",
       "default": 0.5
     },
     {
-      "id": "motion",
+      "id": "speed",
       "slot": 1,
-      "label": "Motion",
-      "default": 0.4
-    },
-    {
-      "id": "color",
-      "slot": 2,
-      "label": "Color",
+      "label": "Speed",
       "default": 0.5
     },
     {
-      "id": "space",
+      "id": "form",
+      "slot": 2,
+      "label": "dither",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
       "slot": 3,
-      "label": "Space",
+      "label": "zoom",
       "default": 0.5
     },
     {
       "id": "impact",
       "slot": 4,
       "label": "Impact",
-      "default": 0.5
+      "default": 0.4
     },
     {
-      "id": "gravity",
+      "id": "erode",
       "slot": 5,
-      "label": "Gravity",
+      "label": "speckle",
       "default": 0.5
     },
     {
-      "id": "viscosity",
+      "id": "glide",
       "slot": 6,
-      "label": "Viscosity",
-      "default": 0.5
+      "label": "Glide",
+      "default": 0.25
     },
     {
       "id": "detail",
       "slot": 7,
-      "label": "Detail",
+      "label": "cell",
       "default": 0.5
     }
   ],
@@ -184,7 +184,7 @@
       "id": "kick",
       "type": "ad",
       "attackMs": 3,
-      "decayMs": 180,
+      "decayMs": 250,
       "peak": 1,
       "retrigger": "max"
     },
@@ -192,7 +192,7 @@
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 140,
+      "decayMs": 200,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -200,7 +200,7 @@
       "id": "hat",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 70,
+      "decayMs": 110,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -216,17 +216,9 @@
       "id": "drop",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 60,
+      "decayMs": 80,
       "peak": 1,
       "retrigger": "restart"
-    },
-    {
-      "id": "drift",
-      "type": "lfo",
-      "shape": "sine",
-      "periodBeats": 16,
-      "phaseOffset": 0,
-      "polarity": "bipolar"
     },
     {
       "id": "phrase",
@@ -239,6 +231,19 @@
   ],
   "routes": [
     {
+      "id": "macro-intensity-bits-threshold",
+      "source": "macro.intensity",
+      "destination": "stage.bits.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.4,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
       "id": "macro-intensity-bits-texture_amt",
       "source": "macro.intensity",
       "destination": "stage.bits.texture_amt",
@@ -247,39 +252,13 @@
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.3,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-intensity-bits-speckle",
-      "source": "macro.intensity",
-      "destination": "stage.bits.speckle",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-motion-bits-spin",
-      "source": "macro.motion",
-      "destination": "stage.bits.spin",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-bits-dither",
-      "source": "macro.color",
+      "id": "macro-form-bits-dither",
+      "source": "macro.form",
       "destination": "stage.bits.dither",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -287,34 +266,34 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-space-bits-zoom",
-      "source": "macro.space",
+      "id": "macro-scale-bits-zoom",
+      "source": "macro.scale",
       "destination": "stage.bits.zoom",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": -0.8,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-space-bits-frame",
-      "source": "macro.space",
-      "destination": "stage.bits.frame",
+      "id": "macro-erode-bits-speckle",
+      "source": "macro.erode",
+      "destination": "stage.bits.speckle",
       "inputMin": 0.0,
       "inputMax": 1.0,
-      "curve": "smoothstep",
+      "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-detail-bits-cell",
@@ -326,21 +305,8 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": -0.8,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-gravity-bits-threshold",
-      "source": "macro.gravity",
-      "destination": "stage.bits.threshold",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.4,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "env-kick-bits-surge",
@@ -357,8 +323,8 @@
       "scaleBy": "macro.impact"
     },
     {
-      "id": "env-hat-bits-invert",
-      "source": "env.hat",
+      "id": "env-snare-bits-invert",
+      "source": "env.snare",
       "destination": "stage.bits.invert",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -380,8 +346,8 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.3,
-      "attackMs": 30,
-      "releaseMs": 220
+      "attackMs": 12,
+      "releaseMs": 250
     },
     {
       "id": "descriptor-centroid-bits-threshold",
@@ -395,19 +361,6 @@
       "amount": -0.2,
       "attackMs": 120,
       "releaseMs": 400
-    },
-    {
-      "id": "audio-bass-activity-bits-spin",
-      "source": "audio.bass.activity",
-      "destination": "stage.bits.spin",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.25,
-      "attackMs": 30,
-      "releaseMs": 220
     },
     {
       "id": "descriptor-build-bits-texture_amt",
@@ -445,9 +398,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     },
@@ -500,9 +450,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     }

@@ -6,6 +6,7 @@
 #include "VideoPlayer.h"
 #include "FeatureBus.h"
 #include "Modulation.h"
+#include "Motion.h"
 
 // The VJ Engine window: owns the GL context, the preset library/compositor
 // (PresetManager), the analysis intake (FeatureBus) and the outputs (window,
@@ -17,7 +18,8 @@
 //  - control:   /v2/macro <slot 0-7> <0-1>, /v2/preset <index>, /v2/preset/next|previous,
 //               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>,
 //               /v2/look <slot 0-6> <0-1>, /v2/palette <9 floats rgb x3> [mix],
-//               /v2/react <kick> <snare> <hat> <bass> <level> (0/1)
+//               /v2/react <kick> <snare> <hat> <bass> <level> (0/1),
+//               /v2/move <slot 0-5> <0-1> (drift, push, softness, sync, reverse, freeze)
 //  - legacy:    /preset/select|next|previous, /preset/transitionduration,
 //               /effect/toggle, /effect/param, /display/*, /fullscreen,
 //               /camera/open, /video/load, /debug/snapshot
@@ -102,6 +104,15 @@ private:
     std::array<std::atomic<float>, LookSettings::numSlots> lookValues {};
     std::array<std::atomic<float>, 9> paletteValues {};
     std::atomic<float> paletteMixValue { 1.0f };
+
+    // MOVE (/v2/move <slot> <0-1>) and the scene clock it drives; Speed and
+    // Glide are macro slots 1 and 6.
+    MoveSettings move;
+    std::array<std::atomic<float>, MoveSettings::numSlots> moveValues {};
+    SceneClock sceneClock;
+    double lastClockBeat = 0.0;
+    std::atomic<float> currentSpeed { 1.0f };   // for /v2/status
+    int lastLabelsIndex = -2;                   // scene whose knob names were last sent
 
     // REACT TO gate (/v2/react <kick> <snare> <hat> <bass> <level>, 0/1 each).
     std::array<std::atomic<bool>, 5> reactValues {};

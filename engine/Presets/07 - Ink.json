@@ -39,8 +39,8 @@
         {
           "name": "fall",
           "label": "Fall",
-          "min": -0.5,
-          "max": 1.0,
+          "min": 0.0,
+          "max": 0.8,
           "default": 0.1,
           "unit": "normalized",
           "cyclic": false,
@@ -108,6 +108,15 @@
           "default": 1.3,
           "unit": "normalized",
           "cyclic": false
+        },
+        {
+          "name": "ragged",
+          "label": "Ragged",
+          "min": 0,
+          "max": 3,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
         }
       ]
     }
@@ -116,49 +125,49 @@
     {
       "id": "intensity",
       "slot": 0,
-      "label": "Intensity",
+      "label": "ink",
       "default": 0.5
     },
     {
-      "id": "motion",
+      "id": "speed",
       "slot": 1,
-      "label": "Motion",
-      "default": 0.4
-    },
-    {
-      "id": "color",
-      "slot": 2,
-      "label": "Color",
+      "label": "Speed",
       "default": 0.5
     },
     {
-      "id": "space",
+      "id": "form",
+      "slot": 2,
+      "label": "smear",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
       "slot": 3,
-      "label": "Space",
+      "label": "blot size",
       "default": 0.5
     },
     {
       "id": "impact",
       "slot": 4,
       "label": "Impact",
-      "default": 0.5
+      "default": 0.4
     },
     {
-      "id": "gravity",
+      "id": "erode",
       "slot": 5,
-      "label": "Gravity",
+      "label": "holes",
       "default": 0.5
     },
     {
-      "id": "viscosity",
+      "id": "glide",
       "slot": 6,
-      "label": "Viscosity",
-      "default": 0.5
+      "label": "Glide",
+      "default": 0.25
     },
     {
       "id": "detail",
       "slot": 7,
-      "label": "Detail",
+      "label": "torn edges",
       "default": 0.5
     }
   ],
@@ -167,7 +176,7 @@
       "id": "kick",
       "type": "ad",
       "attackMs": 3,
-      "decayMs": 180,
+      "decayMs": 250,
       "peak": 1,
       "retrigger": "max"
     },
@@ -175,7 +184,7 @@
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 140,
+      "decayMs": 200,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -183,7 +192,7 @@
       "id": "hat",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 70,
+      "decayMs": 110,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -199,17 +208,9 @@
       "id": "drop",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 60,
+      "decayMs": 80,
       "peak": 1,
       "retrigger": "restart"
-    },
-    {
-      "id": "drift",
-      "type": "lfo",
-      "shape": "sine",
-      "periodBeats": 16,
-      "phaseOffset": 0,
-      "polarity": "bipolar"
     },
     {
       "id": "phrase",
@@ -231,8 +232,8 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-intensity-ink-emission",
@@ -244,25 +245,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.3,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-motion-ink-morph",
-      "source": "macro.motion",
-      "destination": "stage.ink.morph",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-ink-smear",
-      "source": "macro.color",
+      "id": "macro-form-ink-smear",
+      "source": "macro.form",
       "destination": "stage.ink.smear",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -270,12 +258,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-space-ink-scale",
-      "source": "macro.space",
+      "id": "macro-scale-ink-scale",
+      "source": "macro.scale",
       "destination": "stage.ink.scale",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -283,12 +271,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": -0.6,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-detail-ink-dots",
-      "source": "macro.detail",
+      "id": "macro-erode-ink-dots",
+      "source": "macro.erode",
       "destination": "stage.ink.dots",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -296,34 +284,21 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-gravity-ink-fall",
-      "source": "macro.gravity",
-      "destination": "stage.ink.fall",
+      "id": "macro-detail-ink-ragged",
+      "source": "macro.detail",
+      "destination": "stage.ink.ragged",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.9,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-viscosity-ink-morph",
-      "source": "macro.viscosity",
-      "destination": "stage.ink.morph",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": -0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "env-kick-ink-rip",
@@ -354,32 +329,6 @@
       "scaleBy": "macro.impact"
     },
     {
-      "id": "audio-bass-activity-ink-swell",
-      "source": "audio.bass.activity",
-      "destination": "stage.ink.swell",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.3,
-      "attackMs": 30,
-      "releaseMs": 220
-    },
-    {
-      "id": "audio-bass-activity-ink-morph",
-      "source": "audio.bass.activity",
-      "destination": "stage.ink.morph",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.3,
-      "attackMs": 30,
-      "releaseMs": 220
-    },
-    {
       "id": "descriptor-build-ink-coverage",
       "source": "descriptor.build",
       "destination": "stage.ink.coverage",
@@ -391,19 +340,6 @@
       "amount": 0.3,
       "attackMs": 120,
       "releaseMs": 400
-    },
-    {
-      "id": "lfo-phrase-ink-fall",
-      "source": "lfo.phrase",
-      "destination": "stage.ink.fall",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.2,
-      "attackMs": 0,
-      "releaseMs": 0
     }
   ],
   "triggers": [
@@ -428,9 +364,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     },
@@ -483,9 +416,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     }

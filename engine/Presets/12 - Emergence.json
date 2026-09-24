@@ -89,6 +89,15 @@
           "default": 0.95,
           "unit": "normalized",
           "cyclic": false
+        },
+        {
+          "name": "fine",
+          "label": "Fine",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false
         }
       ],
       "sources": {
@@ -106,49 +115,49 @@
     {
       "id": "intensity",
       "slot": 0,
-      "label": "Intensity",
+      "label": "glow",
       "default": 0.5
     },
     {
-      "id": "motion",
+      "id": "speed",
       "slot": 1,
-      "label": "Motion",
-      "default": 0.4
-    },
-    {
-      "id": "color",
-      "slot": 2,
-      "label": "Color",
+      "label": "Speed",
       "default": 0.5
     },
     {
-      "id": "space",
+      "id": "form",
+      "slot": 2,
+      "label": "streaks",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
       "slot": 3,
-      "label": "Space",
+      "label": "size",
       "default": 0.5
     },
     {
       "id": "impact",
       "slot": 4,
       "label": "Impact",
-      "default": 0.5
+      "default": 0.4
     },
     {
-      "id": "gravity",
+      "id": "erode",
       "slot": 5,
-      "label": "Gravity",
+      "label": "dissolve",
       "default": 0.5
     },
     {
-      "id": "viscosity",
+      "id": "glide",
       "slot": 6,
-      "label": "Viscosity",
-      "default": 0.5
+      "label": "Glide",
+      "default": 0.25
     },
     {
       "id": "detail",
       "slot": 7,
-      "label": "Detail",
+      "label": "grain",
       "default": 0.5
     }
   ],
@@ -157,7 +166,7 @@
       "id": "kick",
       "type": "ad",
       "attackMs": 3,
-      "decayMs": 180,
+      "decayMs": 250,
       "peak": 1,
       "retrigger": "max"
     },
@@ -165,7 +174,7 @@
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 140,
+      "decayMs": 200,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -173,7 +182,7 @@
       "id": "hat",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 70,
+      "decayMs": 110,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -189,17 +198,9 @@
       "id": "drop",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 60,
+      "decayMs": 80,
       "peak": 1,
       "retrigger": "restart"
-    },
-    {
-      "id": "drift",
-      "type": "lfo",
-      "shape": "sine",
-      "periodBeats": 16,
-      "phaseOffset": 0,
-      "polarity": "bipolar"
     },
     {
       "id": "phrase",
@@ -221,38 +222,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-motion-rise-drift",
-      "source": "macro.motion",
-      "destination": "stage.rise.drift",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-space-rise-zoom",
-      "source": "macro.space",
-      "destination": "stage.rise.zoom",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": 0.6,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-rise-streak",
-      "source": "macro.color",
+      "id": "macro-form-rise-streak",
+      "source": "macro.form",
       "destination": "stage.rise.streak",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -260,47 +235,61 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-detail-rise-dissolve",
-      "source": "macro.detail",
+      "id": "macro-scale-rise-zoom",
+      "source": "macro.scale",
+      "destination": "stage.rise.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-rise-dissolve",
+      "source": "macro.erode",
       "destination": "stage.rise.dissolve",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.4,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.7,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-gravity-rise-visible",
-      "source": "macro.gravity",
-      "destination": "stage.rise.visible",
+      "id": "macro-detail-rise-fine",
+      "source": "macro.detail",
+      "destination": "stage.rise.fine",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.5,
-      "amount": 0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-viscosity-rise-drift",
-      "source": "macro.viscosity",
-      "destination": "stage.rise.drift",
+      "id": "env-kick-rise-surge",
+      "source": "env.kick",
+      "destination": "stage.rise.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.5,
-      "amount": -0.4,
-      "attackMs": 20,
-      "releaseMs": 180
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
     },
     {
       "id": "descriptor-presence-rise-visible",
@@ -338,36 +327,8 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.3,
-      "attackMs": 30,
-      "releaseMs": 220
-    },
-    {
-      "id": "env-kick-rise-surge",
-      "source": "env.kick",
-      "destination": "stage.rise.surge",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.6,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "env-swell-rise-streak",
-      "source": "env.swell",
-      "destination": "stage.rise.streak",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.2,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "attackMs": 12,
+      "releaseMs": 250
     },
     {
       "id": "lfo-phrase-rise-visible",
@@ -405,9 +366,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     },
@@ -460,9 +418,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     }

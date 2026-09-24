@@ -23,6 +23,7 @@ struct FrameContext
     const Clock& clock;
     const MacroBank& macros;
     const LookSettings* look = nullptr; // global look (grade, grain, cut rate...), owned by the caller
+    MotionFrame motion;                 // scene clock (Speed / Freeze / Reverse / Push / Softness)
     unsigned int videoTexture = 0;
     int width = 0, height = 0;
 

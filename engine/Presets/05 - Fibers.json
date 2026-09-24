@@ -29,8 +29,8 @@
         {
           "name": "drift",
           "label": "Drift",
-          "min": -0.5,
-          "max": 1.5,
+          "min": 0.0,
+          "max": 1.2,
           "default": 0.35,
           "unit": "normalized",
           "cyclic": false,
@@ -39,8 +39,8 @@
         {
           "name": "turn",
           "label": "Turn",
-          "min": -0.4,
-          "max": 0.4,
+          "min": 0.0,
+          "max": 0.3,
           "default": 0.04,
           "unit": "normalized",
           "cyclic": false,
@@ -116,49 +116,49 @@
     {
       "id": "intensity",
       "slot": 0,
-      "label": "Intensity",
+      "label": "glow",
       "default": 0.5
     },
     {
-      "id": "motion",
+      "id": "speed",
       "slot": 1,
-      "label": "Motion",
-      "default": 0.4
-    },
-    {
-      "id": "color",
-      "slot": 2,
-      "label": "Color",
+      "label": "Speed",
       "default": 0.5
     },
     {
-      "id": "space",
+      "id": "form",
+      "slot": 2,
+      "label": "knot",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
       "slot": 3,
-      "label": "Space",
+      "label": "zoom",
       "default": 0.5
     },
     {
       "id": "impact",
       "slot": 4,
       "label": "Impact",
-      "default": 0.5
+      "default": 0.4
     },
     {
-      "id": "gravity",
+      "id": "erode",
       "slot": 5,
-      "label": "Gravity",
+      "label": "tear",
       "default": 0.5
     },
     {
-      "id": "viscosity",
+      "id": "glide",
       "slot": 6,
-      "label": "Viscosity",
-      "default": 0.5
+      "label": "Glide",
+      "default": 0.25
     },
     {
       "id": "detail",
       "slot": 7,
-      "label": "Detail",
+      "label": "layers",
       "default": 0.5
     }
   ],
@@ -167,7 +167,7 @@
       "id": "kick",
       "type": "ad",
       "attackMs": 3,
-      "decayMs": 180,
+      "decayMs": 250,
       "peak": 1,
       "retrigger": "max"
     },
@@ -175,7 +175,7 @@
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 140,
+      "decayMs": 200,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -183,7 +183,7 @@
       "id": "hat",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 70,
+      "decayMs": 110,
       "peak": 1,
       "retrigger": "restart"
     },
@@ -199,17 +199,9 @@
       "id": "drop",
       "type": "ad",
       "attackMs": 1,
-      "decayMs": 60,
+      "decayMs": 80,
       "peak": 1,
       "retrigger": "restart"
-    },
-    {
-      "id": "drift",
-      "type": "lfo",
-      "shape": "sine",
-      "periodBeats": 16,
-      "phaseOffset": 0,
-      "polarity": "bipolar"
     },
     {
       "id": "phrase",
@@ -231,8 +223,8 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.6,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-intensity-web-thickness",
@@ -244,38 +236,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.4,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-motion-web-drift",
-      "source": "macro.motion",
-      "destination": "stage.web.drift",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-motion-web-turn",
-      "source": "macro.motion",
-      "destination": "stage.web.turn",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.4,
-      "amount": 0.4,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-color-web-knot",
-      "source": "macro.color",
+      "id": "macro-form-web-knot",
+      "source": "macro.form",
       "destination": "stage.web.knot",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -283,12 +249,12 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.8,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
-      "id": "macro-space-web-zoom",
-      "source": "macro.space",
+      "id": "macro-scale-web-zoom",
+      "source": "macro.scale",
       "destination": "stage.web.zoom",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -296,8 +262,21 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 0.7,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-web-tear",
+      "source": "macro.erode",
+      "destination": "stage.web.tear",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "macro-detail-web-density",
@@ -309,34 +288,8 @@
       "exponent": 1.0,
       "center": 0.5,
       "amount": 1.0,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-gravity-web-turn",
-      "source": "macro.gravity",
-      "destination": "stage.web.turn",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": -0.5,
-      "attackMs": 20,
-      "releaseMs": 180
-    },
-    {
-      "id": "macro-viscosity-web-drift",
-      "source": "macro.viscosity",
-      "destination": "stage.web.drift",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": -0.5,
-      "attackMs": 20,
-      "releaseMs": 180
+      "attackMs": 60,
+      "releaseMs": 60
     },
     {
       "id": "env-kick-web-tear",
@@ -353,9 +306,9 @@
       "scaleBy": "macro.impact"
     },
     {
-      "id": "env-swell-web-tear",
-      "source": "env.swell",
-      "destination": "stage.web.tear",
+      "id": "env-snare-web-thickness",
+      "source": "env.snare",
+      "destination": "stage.web.thickness",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -376,35 +329,8 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.8,
-      "attackMs": 30,
-      "releaseMs": 220
-    },
-    {
-      "id": "env-snare-web-thickness",
-      "source": "env.snare",
-      "destination": "stage.web.thickness",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.3,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "audio-bass-activity-web-drift",
-      "source": "audio.bass.activity",
-      "destination": "stage.web.drift",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.4,
-      "attackMs": 30,
-      "releaseMs": 220
+      "attackMs": 12,
+      "releaseMs": 250
     },
     {
       "id": "descriptor-build-web-density",
@@ -455,9 +381,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     },
@@ -510,9 +433,6 @@
           "type": "envelope",
           "target": "drop",
           "amount": 1
-        },
-        {
-          "type": "reseed"
         }
       ]
     }

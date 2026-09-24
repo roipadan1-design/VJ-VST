@@ -82,6 +82,10 @@ public:
     //   vj_palette  smoothed palette-advance step count (schema-2 triggers)
     //   vj_seed     per-preset seed, bumped by "reseed" actions
     //   vj_beat     musical position in quarter notes (host transport or free-run clock)
+    //   vj_time     scene clock in seconds: stops at Speed 0 / Freeze, runs
+    //               backwards on Reverse - animate with this, not TIME
+    //   vj_speed    current signed speed multiplier (1 = designed speed)
+    //   vj_dt       this frame's step of vj_time (signed) - use for simulations
     // Binds a texture to a named "image" INPUT (schema-2 sources: still images,
     // rendered text). width/height feed the shader's `uniform vec2 <name>_size`,
     // declared automatically for every image input and IMPORTED image.
@@ -90,11 +94,14 @@ public:
         boundImages[inputName] = { texture, (float) width, (float) height };
     }
 
-    void setEngineUniforms (float palette, float seed, float beat) noexcept
+    void setEngineUniforms (float palette, float seed, float beat, float sceneTime, float speed, float sceneDt) noexcept
     {
         enginePalette = palette;
         engineSeed = seed;
         engineBeat = beat;
+        engineTime = sceneTime;
+        engineSpeed = speed;
+        engineDt = sceneDt;
     }
 
 private:
@@ -139,7 +146,9 @@ private:
     std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformTime, uniformRenderSize, uniformPassIndex;
     std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformLevel, uniformBass, uniformMid, uniformHigh, uniformBeatPhase, uniformOnset;
     std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformPalette, uniformSeed, uniformBeat;
+    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformSceneTime, uniformSpeed, uniformSceneDt;
     float enginePalette = 0.0f, engineSeed = 0.0f, engineBeat = 0.0f;
+    float engineTime = 0.0f, engineSpeed = 1.0f, engineDt = 0.0f;
     std::unique_ptr<juce::OpenGLShaderProgram::Uniform> uniformTimeDelta;
     float lastRenderTime = -1.0f, timeDelta = 1.0f / 60.0f;
     juce::OwnedArray<juce::OpenGLShaderProgram::Uniform> inputUniforms;  // parallel to `inputs`

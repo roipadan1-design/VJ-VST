@@ -12,7 +12,8 @@
     { "NAME": "viscosity", "TYPE": "float", "DEFAULT": 0.5, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "ripple", "TYPE": "float", "DEFAULT": 0.6, "MIN": 0.0, "MAX": 1.5 },
     { "NAME": "rim", "TYPE": "float", "DEFAULT": 0.7, "MIN": 0.0, "MAX": 2.0 },
-    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 }
+    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 },
+    { "NAME": "curl", "TYPE": "float", "DEFAULT": 1.6, "MIN": 0.4, "MAX": 3.0 }
   ],
   "PASSES": [
     { "TARGET": "state", "PERSISTENT": true, "FLOAT": true, "WIDTH": "0.02", "HEIGHT": "0.02" },
@@ -39,7 +40,7 @@ float rings (vec2 p, vec2 size)
     for (int i = 0; i < NUM_RINGS; ++i)
     {
         vec4 r = readTexel (2.0 + float (i), size);
-        float age = TIME - r.z;
+        float age = vj_time - r.z;
         if (r.w <= 0.0 || age < 0.0 || age > 5.0)
             continue;
         float d = length (p - r.xy) - age * speed;
@@ -63,7 +64,7 @@ void main()
             return;
         }
 
-        float dt = clamp (TIMEDELTA, 0.0, 0.05);
+        float dt = clamp (abs (vj_dt), 0.0, 0.05);   // scene clock: stops at Speed 0
         vec4 book = readTexel (1.0, size);
         bool newDrop = drop > 0.15 && book.x <= 0.15;
 
@@ -72,10 +73,11 @@ void main()
             // The mass: a hit throws it up (and a little sideways), gravity
             // brings it back down, viscosity bleeds the motion away.
             vec2 pos = out4.xy, vel = out4.zw;
-            float side = vjHash12 (vec2 (vj_seed, 9.1)) - 0.5;
+            float side = vjHash12 (vec2 (book.y, 9.1)) - 0.5;
             vel += vec2 (side * 0.8, 1.0) * drop * impact * 12.0 * dt;
             vel.y -= gravity * 1.6 * dt;
             vel *= exp (-dt * mix (0.4, 4.5, viscosity));
+            vel *= min (1.0, 3.0 / max (length (vel), 1e-4));   // no runaway throws
             pos += vel * dt;
             pos = mod (pos + 500.0, 1000.0) - 500.0;
             out4 = vec4 (pos, vel);
@@ -86,10 +88,10 @@ void main()
         }
         else if (newDrop && abs (i - 2.0 - mod (book.y, float (NUM_RINGS))) < 0.5)
         {
-            // A new stone lands somewhere on screen (vj_seed is reseeded on kicks).
+            // A new stone lands somewhere new on screen (placed by the drop counter).
             float aspect = 16.0 / 9.0;
-            vec2 at = (vjHash22 (vec2 (vj_seed, 3.7)) * 2.0 - 1.0) * vec2 (aspect * 0.75, 0.7);
-            out4 = vec4 (at, TIME, impact);
+            vec2 at = (vjHash22 (vec2 (book.y, 3.7)) * 2.0 - 1.0) * vec2 (aspect * 0.75, 0.7);
+            out4 = vec4 (at, vj_time, impact);
         }
         gl_FragColor = out4;
     }
@@ -114,7 +116,7 @@ void main()
         q = along * stretch + (q - along);
         vec2 sp = q * scale - pos * scale * 0.6;
         vec2 warp = vec2 (vjFbm (sp + vec2 (0.0, flow)), vjFbm (sp + vec2 (3.7, -flow * 0.7)));
-        float f = vjFbm (sp + 1.6 * warp) + wh * 0.04;
+        float f = vjFbm (sp + curl * warp) + wh * 0.04;
 
         float th = threshold - drop * impact * 0.05;
         float aa = fwidth (f) * 1.5 + 1e-4;

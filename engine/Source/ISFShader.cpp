@@ -227,6 +227,7 @@ juce::String ISFShader::buildFragmentShaderSource() const
     src << "uniform int PASSINDEX;\n";
     src << "uniform float level;\nuniform float bass;\nuniform float mid;\nuniform float high;\nuniform float beatphase;\nuniform float onset;\n";
     src << "uniform float vj_palette;\nuniform float vj_seed;\nuniform float vj_beat;\n";
+    src << "uniform float vj_time;\nuniform float vj_speed;\nuniform float vj_dt;\n";
 
     for (auto& input : inputs)
     {
@@ -309,6 +310,9 @@ bool ISFShader::compile (juce::OpenGLContext& context)
     uniformPalette.reset    (new juce::OpenGLShaderProgram::Uniform (*program, "vj_palette"));
     uniformSeed.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "vj_seed"));
     uniformBeat.reset       (new juce::OpenGLShaderProgram::Uniform (*program, "vj_beat"));
+    uniformSceneTime.reset  (new juce::OpenGLShaderProgram::Uniform (*program, "vj_time"));
+    uniformSpeed.reset      (new juce::OpenGLShaderProgram::Uniform (*program, "vj_speed"));
+    uniformSceneDt.reset    (new juce::OpenGLShaderProgram::Uniform (*program, "vj_dt"));
 
     inputUniforms.clear();
     sizeUniforms.clear();
@@ -474,6 +478,9 @@ void ISFShader::runPass (int passIndex, int mainWidth, int mainHeight,
     if (uniformPalette != nullptr)    uniformPalette->set (enginePalette);
     if (uniformSeed != nullptr)       uniformSeed->set (engineSeed);
     if (uniformBeat != nullptr)       uniformBeat->set (engineBeat);
+    if (uniformSceneTime != nullptr)  uniformSceneTime->set (engineTime);
+    if (uniformSpeed != nullptr)      uniformSpeed->set (engineSpeed);
+    if (uniformSceneDt != nullptr)    uniformSceneDt->set (engineDt);
 
     int textureUnit = 0;
 
@@ -658,5 +665,8 @@ void ISFShader::releaseGLObjects()
     uniformPalette.reset();
     uniformSeed.reset();
     uniformBeat.reset();
+    uniformSceneTime.reset();
+    uniformSpeed.reset();
+    uniformSceneDt.reset();
     program.reset();
 }

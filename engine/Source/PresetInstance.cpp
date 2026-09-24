@@ -48,7 +48,8 @@ void LegacyInstance::render (const FrameContext& f, const GLRenderTarget& output
         shader->setValue (param, raw * mapping.scale + mapping.offset);
     }
 
-    shader->setEngineUniforms (0.0f, 0.0f, (float) f.clock.beat());
+    shader->setEngineUniforms (0.0f, 0.0f, (float) f.clock.beat(),
+                               (float) f.motion.sceneTime, (float) f.motion.speed, (float) f.motion.sceneDt);
     shader->render (f.gl, f.time, output.width, output.height,
                     f.level, f.bass, f.mid, f.high, f.beatphase, f.onset, f.videoTexture, output.fbo);
 }
@@ -132,6 +133,10 @@ std::unique_ptr<PresetInstance> V2Instance::create (const PresetV2& p, const juc
 
 void V2Instance::advanceSources (const FrameContext& f)
 {
+    // Freeze / Speed 0 holds the picture: no new images or words either.
+    if (std::abs (f.motion.speed) < 0.02)
+        return;
+
     for (auto& s : sourceStates)
     {
         int steps = 0;
@@ -182,7 +187,7 @@ void V2Instance::bindSources()
 
 void V2Instance::render (const FrameContext& f, const GLRenderTarget& output)
 {
-    modulation.process (f.signals, f.clock, f.macros, f.dt, f.now);
+    modulation.process (f.signals, f.clock, f.macros, f.motion, f.dt, f.now);
     advanceSources (f);
     bindSources();
     auto& values = modulation.getValues();
@@ -202,7 +207,8 @@ void V2Instance::render (const FrameContext& f, const GLRenderTarget& output)
         for (int p = 0; p < def.parameters.size(); ++p)
             shader->setValue (def.parameters.getReference (p).name, values.getReference (s)[p]);
 
-        shader->setEngineUniforms (modulation.getPalette(), modulation.getSeed(), (float) f.clock.beat());
+        shader->setEngineUniforms (modulation.getPalette(), modulation.getSeed(), (float) f.clock.beat(),
+                                   (float) f.motion.sceneTime, (float) f.motion.speed, (float) f.motion.sceneDt);
 
         auto w = juce::jmax (1, juce::roundToInt (output.width * def.scale));
         auto h = juce::jmax (1, juce::roundToInt (output.height * def.scale));

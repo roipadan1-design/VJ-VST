@@ -11,7 +11,8 @@
     { "NAME": "smear", "TYPE": "float", "DEFAULT": 0.3, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "rip", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "dots", "TYPE": "float", "DEFAULT": 0.5, "MIN": 0.0, "MAX": 1.0 },
-    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 }
+    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 },
+    { "NAME": "ragged", "TYPE": "float", "DEFAULT": 1.0, "MIN": 0.0, "MAX": 3.0 }
   ]
 }*/
 #include "common.glsl"
@@ -31,7 +32,7 @@ void main()
     vec2 warp = vec2 (vjFbm (sp * 0.7 + morph * 0.03), vjFbm (sp * 0.7 + vec2 (5.2, 1.3) - morph * 0.02));
     float f = vjFbm (sp + 2.2 * warp);
     // Paper fibre: tiny noise on the threshold gives torn, bleeding edges.
-    float fibre = vjNoise (gl_FragCoord.xy * 0.35) * 0.06 + vjNoise (gl_FragCoord.xy * 0.08) * 0.05;
+    float fibre = (vjNoise (gl_FragCoord.xy * 0.35) * 0.06 + vjNoise (gl_FragCoord.xy * 0.08) * 0.05) * ragged;
     float th = 1.0 - coverage - swell * 0.08;
     float inkMask = step (th, f + fibre);
     // Soaked halo: a lighter wet ring around every blot.

@@ -55,7 +55,7 @@ void main()
     if (s > 0.001)
     {
         vec2 cellId = floor (gl_FragCoord.xy / cell);
-        float frame = floor (TIME * 24.0);
+        float frame = floor (vj_time * 24.0);
         float nr = vjHash12 (cellId + frame * 17.31);
         float ng = vjHash12 (cellId * 1.37 + 91.7 + frame * 11.13);
         float liftR = mix (body, 0.18 + 0.72 * body, s);

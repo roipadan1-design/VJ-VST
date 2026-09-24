@@ -208,6 +208,12 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    for (auto step = sceneStep.exchange (0); step != 0; step += step > 0 ? -1 : 1)
+    {
+        writer.begin (step > 0 ? "/v2/preset/next" : "/v2/preset/previous");
+        sendPacket (writer.finish());
+    }
+
     if (auto index = presetOverride.exchange (-1); index >= 0)
     {
         writer.begin ("/v2/preset");
@@ -247,6 +253,15 @@ void AnalysisWorker::sendControlsIfChanged()
             writer.addInt (open ? 1 : 0);
         sendPacket (writer.finish());
     }
+
+    for (int i = 0; i < (int) c.move.size(); ++i)
+        if (controlsNeverSent || std::abs (c.move[(size_t) i] - sentControls.move[(size_t) i]) > 1.0e-4f)
+        {
+            writer.begin ("/v2/move");
+            writer.addInt (i);
+            writer.addFloat (c.move[(size_t) i]);
+            sendPacket (writer.finish());
+        }
 
     // Preset only on change (never re-asserted): the engine keyboard, other
     // devices or scene links may have moved on and must not be overridden.
@@ -344,7 +359,15 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
         status.followingHost = asInt (6) != 0;
         status.demo = asInt (7) != 0;
         status.renderScale = m.size() > 8 ? asFloat (8) : 1.0f;
+        status.speed = m.size() > 9 ? asFloat (9) : 1.0f;
         lastStatusTime = nowSeconds();
+    }
+    else if (address == "/v2/macros")
+    {
+        status.macroLabels.clearQuick();
+        for (int i = 0; i < m.size() && i < 8; ++i)
+            status.macroLabels.add (m[i].isString() ? m[i].getString() : juce::String());
+        status.sceneDescription = m.size() > 8 && m[8].isString() ? m[8].getString() : juce::String();
     }
     else if (address == "/v2/presets")
     {

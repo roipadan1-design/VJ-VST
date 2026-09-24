@@ -8,7 +8,8 @@
 // real host parameter, so Live automation and MIDI Map work natively and the
 // state is saved with the set.
 class VJAnalyzerProcessor : public juce::AudioProcessor,
-                            private juce::Timer
+                            private juce::Timer,
+                            private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     VJAnalyzerProcessor();
@@ -41,7 +42,19 @@ public:
     AnalysisWorker& getWorker() noexcept { return worker; }
 
     static const juce::StringArray roleNames;
+    // Macro slots (IDs macro1..macro8 never change): SHAPE = Intensity, Form,
+    // Scale, Erode, Detail (each scene names what they do); Speed and Glide
+    // drive the engine's scene clock; Impact scales every hit reaction.
     static const juce::StringArray macroNames;
+
+    // MOVE / REACT globals (engine /v2/move slots, same order): Drift, Push,
+    // Softness, Sync, Reverse, Freeze.
+    static const juce::StringArray moveIds, moveNames;
+
+    // Momentary actions as host parameters, so a MIDI controller can press
+    // them (Live's MIDI Map): HIT, recall snapshot A-D, previous / next scene.
+    // They fire on the rising edge and reset themselves.
+    static const juce::StringArray actionIds;
 
     // REACT TO: which channels may drive the visuals (engine /v2/react, same order).
     static const juce::StringArray reactIds, reactNames;
@@ -78,6 +91,8 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void timerCallback() override; // pushes parameter values to the worker (message thread)
+    void parameterChanged (const juce::String& id, float newValue) override; // momentary actions, any thread
+    std::array<std::atomic<bool>, 7> actionPending {};
     void advanceMorph();
     static juce::StringArray snapshotParamIds();
 

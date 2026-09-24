@@ -33,6 +33,7 @@ public:
         std::array<float, 9> palette {};  // 3 x rgb, 0-1
         float paletteMix = 1.0f;
         std::array<bool, 5> react { true, true, true, true, true }; // kick snare hat bass level
+        std::array<float, 6> move { 0.2f, 0.3f, 0.5f, 0.0f, 0.0f, 0.0f }; // /v2/move: drift push softness sync reverse freeze
     };
 
     struct Meters // UI snapshot, copied under a spin lock at ~30 Hz
@@ -52,6 +53,9 @@ public:
         juce::StringArray presetNames;
         bool blackout = false, followingHost = false, demo = false;
         float fps = 0.0f, bpm = 0.0f, renderScale = 1.0f;
+        float speed = 1.0f;                 // live scene-clock speed (Speed x Push, signed)
+        juce::StringArray macroLabels;      // the live scene's names for the 8 macros ("" = generic)
+        juce::String sceneDescription;
     };
 
     AnalysisWorker();
@@ -69,6 +73,7 @@ public:
     void setControls (const Controls& c);
     void sendUserTrigger() { userTriggerPending = true; }
     void selectPresetNow (int index) { presetOverride = index; }
+    void stepScene (int direction) { sceneStep += direction; }
     void toggleEngineFullscreen() { fullscreenPending = true; }
     Meters getMeters() const;
     EngineStatus getEngineStatus() const;
@@ -104,6 +109,7 @@ private:
     bool controlsNeverSent = true, presetNeverSent = true;
     std::atomic<bool> userTriggerPending { false };
     std::atomic<int> presetOverride { -1 };
+    std::atomic<int> sceneStep { 0 };
     std::atomic<bool> fullscreenPending { false };
 
     mutable juce::SpinLock metersLock;

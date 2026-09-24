@@ -10,7 +10,8 @@
     { "NAME": "dissolve", "TYPE": "float", "DEFAULT": 0.15, "MIN": 0.0, "MAX": 1.0 },
     { "NAME": "drift", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 100000.0 },
     { "NAME": "surge", "TYPE": "float", "DEFAULT": 0.0, "MIN": 0.0, "MAX": 1.0 },
-    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 }
+    { "NAME": "emission", "TYPE": "float", "DEFAULT": 1.2, "MIN": 0.2, "MAX": 4.0 },
+    { "NAME": "fine", "TYPE": "float", "DEFAULT": 0.5, "MIN": 0.0, "MAX": 1.0 }
   ]
 }*/
 #include "common.glsl"
@@ -44,12 +45,12 @@ void main()
     streaks *= streak * column * 0.45;
 
     // Dissolve: the form erodes from its darker, outer parts first.
-    float grainN = vjNoise (p * 90.0 + drift * 0.05) * 0.6 + vjHash12 (floor (gl_FragCoord.xy / 1.5)) * 0.4;
+    float grainN = vjNoise (p * mix (40.0, 170.0, fine) + drift * 0.05) * 0.6 + vjHash12 (floor (gl_FragCoord.xy / 1.5)) * 0.4;
     float keep = step (dissolve * 1.15, grainN * (0.35 + 0.65 * base) + base * 0.4);
     float body = base * keep * 0.85;
 
     // Dust: eroded material lifting off as fine motes (24 fps flutter).
-    float frame = floor (TIME * 24.0);
+    float frame = floor (vj_time * 24.0);
     vec2 lift = vec2 (0.02 * sin (drift * 0.7 + p.y * 9.0), 0.08 * dissolve * fract (drift * 0.05 + vjHash12 (floor (p * 30.0))));
     float srcBelow = formAt (q - lift);
     float mote = step (0.985 - 0.02 * dissolve, vjHash12 (floor (gl_FragCoord.xy / 1.5) + frame * 7.3));

@@ -41,7 +41,7 @@ void main()
     // the form is; a kick flares the whole field.
     float cell = grain_size * RENDERSIZE.y / 1080.0;
     vec2 id = floor (gl_FragCoord.xy / cell);
-    float frame = floor (TIME * 24.0);
+    float frame = floor (vj_time * 24.0);
     float n = vjHash12 (id + vec2 (frame * 13.17, frame * 7.31));
     float amount = density * (0.08 + 0.92 * form) * (1.0 + 1.5 * surge);
     float speck = step (1.0 - amount * 0.55, n);

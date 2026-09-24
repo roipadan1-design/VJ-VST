@@ -109,6 +109,29 @@ juce::String PresetManager::getCurrentName() const
     return index >= 0 ? getPresetName (index) : juce::String ("(no preset)");
 }
 
+juce::StringArray PresetManager::getCurrentMacroLabels() const
+{
+    juce::StringArray labels;
+    for (int i = 0; i < MacroBank::numSlots; ++i)
+        labels.add ({});
+    auto index = currentIndex.load();
+    if (juce::isPositiveAndBelow (index, entries.size()))
+        if (auto& v2 = entries.getReference (index).v2; v2 != nullptr)
+            for (auto& m : v2->macros)
+                if (juce::isPositiveAndBelow (m.slot, MacroBank::numSlots))
+                    labels.set (m.slot, m.label);
+    return labels;
+}
+
+juce::String PresetManager::getCurrentDescription() const
+{
+    auto index = currentIndex.load();
+    if (juce::isPositiveAndBelow (index, entries.size()))
+        if (auto& v2 = entries.getReference (index).v2; v2 != nullptr)
+            return v2->description;
+    return {};
+}
+
 bool PresetManager::isSchema2 (int index) const
 {
     return juce::isPositiveAndBelow (index, entries.size()) && entries.getReference (index).v2 != nullptr;
