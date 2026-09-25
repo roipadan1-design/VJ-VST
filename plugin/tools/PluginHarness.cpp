@@ -144,6 +144,11 @@ int main (int argc, char** argv)
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     editor->setVisible (true);
 
+    // Optional 3rd argument: an image / clip for media slot 1, then the USE
+    // MEDIA button is clicked (as a user would) once the engine is talking.
+    const juce::String mediaFile = argc > 3 ? juce::String (argv[3]) : juce::String();
+    bool mediaDone = mediaFile.isEmpty();
+
     Groove groove (rate);
     juce::AudioBuffer<float> buffer (2, block);
     juce::MidiBuffer midi;
@@ -156,6 +161,15 @@ int main (int argc, char** argv)
         groove.render (buffer, head.ppq, head.bpm);
         processor.processBlock (buffer, midi);
         samples += block;
+
+        if (! mediaDone && samples > (int64_t) (3.5 * rate) && processor.getWorker().getEngineStatus().connected)
+        {
+            mediaDone = true;
+            processor.setMediaPath (0, juce::File::getCurrentWorkingDirectory().getChildFile (mediaFile).getFullPathName());
+            for (auto* child : editor->getChildren())
+                if (auto* b = dynamic_cast<juce::TextButton*> (child); b != nullptr && b->getButtonText() == "USE MEDIA")
+                    b->triggerClick();
+        }
 
         // Real-time pacing, pumping the message loop for the editor/timers.
         auto due = start + samples / rate * 1000.0;
@@ -170,9 +184,10 @@ int main (int argc, char** argv)
     juce::PNGImageFormat().writeImageToStream (snapshot, stream);
 
     auto status = processor.getWorker().getEngineStatus();
-    std::printf ("snapshot: %s\nengine: %s  preset: %s  fps: %.0f  presets listed: %d\n",
+    std::printf ("snapshot: %s\nengine: %s  preset: %s  fps: %.0f  presets listed: %d  media slot 1: '%s' %dx%d\n",
                  out.getFullPathName().toRawUTF8(), status.connected ? "connected" : "not connected",
-                 status.presetName.toRawUTF8(), status.fps, status.presetNames.size());
+                 status.presetName.toRawUTF8(), status.fps, status.presetNames.size(),
+                 status.media[0].name.toRawUTF8(), status.media[0].width, status.media[0].height);
 
     editor = nullptr;
     processor.releaseResources();

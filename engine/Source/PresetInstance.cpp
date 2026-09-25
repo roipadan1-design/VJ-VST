@@ -197,6 +197,11 @@ void V2Instance::render (const FrameContext& f, const GLRenderTarget& output)
     bindSources (f);
     auto& values = modulation.getValues();
 
+    // Stages write straight into their targets: alpha must survive (media
+    // stages mark "no image here" with alpha 0), so no leftover blend state
+    // from JUCE's own drawing may mix it with the cleared target.
+    glDisable (GL_BLEND);
+
     int readIndex = -1; // which stageTargets entry holds the latest image
     int writeIndex = 0;
     int lastWidth = output.width, lastHeight = output.height;

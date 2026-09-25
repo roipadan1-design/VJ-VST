@@ -39,6 +39,9 @@ public:
     juce::String getCurrentName() const;
     juce::String getPresetName (int index) const;
     bool isSchema2 (int index) const;
+    // True when the scene shows the performer's media (a "media" source, or
+    // an "images" source that USE MEDIA replaces).
+    bool usesMedia (int index) const;
 
     // The live scene's own name for each macro slot (empty = the generic
     // name) and its one-line description - shown by the plug-in under the knobs.

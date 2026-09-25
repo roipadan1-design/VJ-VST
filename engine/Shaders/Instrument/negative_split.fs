@@ -18,6 +18,7 @@
 #include "common.glsl"
 
 float lumAt (vec2 uv) { return vjLuma (IMG_NORM_PIXEL (inputImage, uv).rgb); }
+float alphaAt (vec2 uv) { return IMG_NORM_PIXEL (inputImage, uv).a; }
 
 void main()
 {
@@ -48,6 +49,13 @@ void main()
     // with cyan fringes instead of turning cyan altogether.
     edge *= 1.0 - 0.85 * smoothstep (0.35, 0.85, body);
 
+    // Only where the source has an image (media outside its frame is empty):
+    // and no outline along the frame's own border.
+    float a = alphaAt (uv);
+    float border = min (min (alphaAt (uv + vec2 (o.x * 2.0, 0.0)), alphaAt (uv - vec2 (o.x * 2.0, 0.0))),
+                        min (alphaAt (uv + vec2 (0.0, o.y * 2.0)), alphaAt (uv - vec2 (0.0, o.y * 2.0))));
+    edge *= border;
+
     // Per-channel 1-bit noise ("storm"): each layer gets its own random
     // threshold per cell, re-dealt 24 times a second. Lifting the floor as
     // the storm grows turns flat areas into a red/cyan mosaic.
@@ -64,5 +72,5 @@ void main()
         edge = mix (edge, step (ng, liftG), s);
     }
 
-    gl_FragColor = vec4 (vjToLinear (vec3 (body, edge, edge)), 1.0);
+    gl_FragColor = vec4 (vjToLinear (vec3 (body, edge, edge) * a), 1.0);
 }

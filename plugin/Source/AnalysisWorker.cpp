@@ -436,6 +436,12 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
         for (int i = 0; i < m.size() && i < 8; ++i)
             status.macroActivity[(size_t) i] = m[i].isFloat32() ? m[i].getFloat32() : 0.0f;
     }
+    else if (address == "/v2/presetMedia")
+    {
+        status.presetUsesMedia.clearQuick();
+        for (auto& arg : m)
+            status.presetUsesMedia.add ((arg.isInt32() ? arg.getInt32() : (int) arg.getFloat32()) != 0);
+    }
     else if (address == "/v2/presets")
     {
         status.presetNames.clearQuick();

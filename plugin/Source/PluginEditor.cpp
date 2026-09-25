@@ -485,6 +485,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     useMedia.setTooltip ("Feed your image to Dot Relief, One Bit, Emergence and every other scene that works on images");
     addAndMakeVisible (useMedia);
     useMediaAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "useMedia", useMedia);
+    useMedia.onClick = [this] { if (useMedia.getToggleState()) ensureMediaScene(); };
 
     presetList.setModel (this);
     presetList.setRowHeight (24);
@@ -566,8 +567,23 @@ void VJAnalyzerEditor::loadMedia()
                                [this, slot] (const juce::FileChooser& chooser) {
                                    auto picked = chooser.getResult();
                                    if (picked.existsAsFile())
+                                   {
                                        processor.setMediaPath (slot, picked.getFullPathName());
+                                       ensureMediaScene();
+                                   }
                                });
+}
+
+void VJAnalyzerEditor::ensureMediaScene()
+{
+    if (! status.connected || sceneUsesMedia (status.presetIndex))
+        return;
+    int target = status.presetNames.indexOf ("Media Negative");
+    for (int i = 0; target < 0 && i < status.presetNames.size(); ++i)
+        if (sceneUsesMedia (i))
+            target = i;
+    if (target >= 0)
+        selectPreset (target);
 }
 
 void VJAnalyzerEditor::selectPreset (int engineIndex)
@@ -631,7 +647,8 @@ void VJAnalyzerEditor::timerCallback()
 {
     meters = processor.getWorker().getMeters();
     auto newStatus = processor.getWorker().getEngineStatus();
-    const bool listChanged = newStatus.presetNames != status.presetNames || newStatus.presetIndex != status.presetIndex;
+    const bool listChanged = newStatus.presetNames != status.presetNames || newStatus.presetIndex != status.presetIndex
+                          || newStatus.presetUsesMedia != status.presetUsesMedia;
     status = newStatus;
 
     if (listChanged)
@@ -715,7 +732,16 @@ void VJAnalyzerEditor::paintListBoxItem (int row, juce::Graphics& g, int width, 
     }
     g.setColour (current ? vjui::text : vjui::dim.brighter (0.2f));
     g.setFont (uiFont (12.5f, current));
-    g.drawText (status.presetNames[row], juce::Rectangle<int> (12, 0, width - 16, height), juce::Justification::centredLeft);
+    g.drawText (status.presetNames[row], juce::Rectangle<int> (12, 0, width - 52, height), juce::Justification::centredLeft);
+    if (sceneUsesMedia (row))
+    {
+        // This scene shows your image / clip (Media scenes always, the others with USE MEDIA).
+        auto badge = juce::Rectangle<float> ((float) width - 40.0f, (float) height * 0.5f - 7.0f, 32.0f, 14.0f);
+        g.setColour (vjui::mint.withAlpha (current ? 0.9f : 0.5f));
+        g.drawRoundedRectangle (badge, 4.0f, 1.0f);
+        g.setFont (uiFont (9.5f, true));
+        g.drawText ("IMG", badge.toNearestInt(), juce::Justification::centred);
+    }
 }
 
 void VJAnalyzerEditor::listBoxItemClicked (int row, const juce::MouseEvent&)
@@ -866,6 +892,11 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
               : engineSlot.loading ? name + "  (loading...)"
               : engineSlot.width > 0 ? name + "  " + juce::String (engineSlot.width) + "x" + juce::String (engineSlot.height)
               : name + "  (not loaded)";
+        if (name.isNotEmpty() && status.connected && ! sceneUsesMedia (status.presetIndex))
+            info = status.presetName + " doesn't show images - pick a scene marked IMG";
+        else if (name.isNotEmpty() && status.connected && ! status.presetName.startsWith ("Media")
+                 && processor.getState().getRawParameterValue ("useMedia")->load() < 0.5f)
+            info = "turn on USE MEDIA to put " + name + " into " + status.presetName;
         g.setColour (name.isEmpty() ? vjui::dim : vjui::text);
         g.setFont (uiFont (10.5f));
         g.drawText (info, mediaInfoArea, juce::Justification::centredLeft, true);

@@ -186,7 +186,8 @@ void MediaBin::advance (double speed, double dt, double sceneBeat)
         glGenTextures (1, &t.id);
         glBindTexture (GL_TEXTURE_2D, t.id);
         glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB8, clip.width, clip.height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glGenerateMipmap (GL_TEXTURE_2D); // mips: shaders read the frame's average (auto-level)
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -250,6 +251,7 @@ void MediaBin::advance (double speed, double dt, double sceneBeat)
         glBindTexture (GL_TEXTURE_2D, t.id);
         glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
         glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, clip.width, clip.height, GL_BGR, GL_UNSIGNED_BYTE, clip.frames[(size_t) frame].get());
+        glGenerateMipmap (GL_TEXTURE_2D);
         glPixelStorei (GL_UNPACK_ALIGNMENT, 4);
         glBindTexture (GL_TEXTURE_2D, 0);
     }

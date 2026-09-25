@@ -56,6 +56,7 @@ public:
         int presetIndex = -1, numPresets = 0;
         juce::String presetName;
         juce::StringArray presetNames;
+        juce::Array<bool> presetUsesMedia;  // parallel to presetNames: the scene shows the performer's media
         bool blackout = false, followingHost = false, demo = false;
         float fps = 0.0f, bpm = 0.0f, renderScale = 1.0f;
         float speed = 1.0f;                 // live scene-clock speed (Speed x Push, signed)

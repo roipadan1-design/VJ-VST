@@ -198,11 +198,14 @@ def check(file_name, body):
         assert labels[mid] and labels[mid][0].islower(), '%s: give %s a scene-specific name' % (file_name, mid)
 
 
-MEDIA_FRAME_PARAMS = [param('zoom', 0.6, 2.5, 1.0), param('fit', 0, 1, 1.0), param('wander', 0.0, 0.5, 0.1, integrate=True),
+MEDIA_FRAME_PARAMS = [param('zoom', 0.6, 2.5, 1.0), param('fit', 0, 1, 0.0), param('wander', 0.0, 0.5, 0.1, integrate=True),
                       param('roam', 0, 1, 0.5), param('surge', 0, 1, 0)]
 NEGATIVE_PARAMS = [param('polarity', 0, 1, 1), param('threshold', 0.2, 0.8, 0.45), param('contrast', 0, 1, 0.6),
                    param('detail', 0, 3, 1.0), param('outline', 0, 1, 0.12), param('dither', 0, 1, 0.0),
                    param('storm', 0, 1, 0), param('cell', 1, 6, 2), param('flash', 0, 1, 0)]
+
+MEDIA_NEGATIVE_PARAMS = [dict(p, default=d) if p['name'] in d_ else p for p in NEGATIVE_PARAMS
+                         for d_ in [{'threshold': 0.6, 'contrast': 0.75, 'detail': 1.4}] for d in [d_.get(p['name'])]]
 
 PRESETS = [
     preset('01 - Hot Blobs.json', 'hot-blobs', 'Hot Blobs',
@@ -429,7 +432,9 @@ PRESETS = [
            'Your loaded image through the Negative treatment: the negative body in red, fine bright detail in cyan, '
            'kicks break it into per-channel 1-bit noise. Shows the built-in forms until an image is loaded.',
            [stage('frame', 'media_frame.fs', MEDIA_FRAME_PARAMS, {'source': MEDIA}),
-            stage('neg', 'negative_split.fs', NEGATIVE_PARAMS, kind='effect')],
+            # Photos are levelled around their average (media_frame), so the threshold
+            # sits above it: only what is darker than the image's average turns red.
+            stage('neg', 'negative_split.fs', MEDIA_NEGATIVE_PARAMS, kind='effect')],
            [route('macro.intensity', 'neg.threshold', -0.5, 0.5),
             route('macro.form', 'neg.outline', 0.8, 0.5), route('macro.form', 'neg.detail', 0.3, 0.5),
             route('macro.scale', 'frame.zoom', 0.6, 0.5),
@@ -445,8 +450,8 @@ PRESETS = [
            'kicks push in, snares brighten the lines. Shows the built-in forms until an image is loaded.',
            [stage('frame', 'media_frame.fs', MEDIA_FRAME_PARAMS, {'source': MEDIA}),
             stage('lines', 'media_lines.fs', [
-               param('radius', 0.8, 4.0, 1.6), param('threshold', 0.005, 0.2, 0.04), param('dots', 0, 1, 0.3),
-               param('fill', 0, 0.5, 0.06), param('flash', 0, 1, 0), param('emission', 0.2, 4.0, 1.2)], kind='effect')],
+               param('radius', 0.8, 4.0, 1.6), param('threshold', 0.005, 0.2, 0.022), param('dots', 0, 1, 0.3),
+               param('fill', 0, 0.5, 0.1), param('flash', 0, 1, 0), param('emission', 0.2, 4.0, 1.8)], kind='effect')],
            [route('macro.intensity', 'lines.emission', 0.6, 0.5), route('macro.intensity', 'lines.fill', 0.3, 0.5),
             route('macro.form', 'lines.dots', 0.8, 0.5), route('macro.scale', 'frame.zoom', 0.6, 0.5),
             route('macro.erode', 'lines.threshold', 0.5, 0.5), route('macro.detail', 'lines.radius', -0.6, 0.5),

@@ -404,15 +404,22 @@ void MainComponent::timerCallback()
     // Preset names every ~2 s (cheap, and late-joining clients catch up).
     const bool sendList = (statusTick++ % 10) == 0;
     juce::OSCMessage list ("/v2/presets");
+    juce::OSCMessage listMedia ("/v2/presetMedia"); // 1 = that scene shows the performer's media
     if (sendList)
         for (int i = 0; i < juce::jmin (64, presetManager.getNumPresets()); ++i)
+        {
             list.addString (presetManager.getPresetName (i));
+            listMedia.addInt32 (presetManager.usesMedia (i) ? 1 : 0);
+        }
 
     for (auto port : ports)
     {
         statusSender.sendToIPAddress ("127.0.0.1", port, status);
         if (sendList)
+        {
             statusSender.sendToIPAddress ("127.0.0.1", port, list);
+            statusSender.sendToIPAddress ("127.0.0.1", port, listMedia);
+        }
         if (sendLabels)
             statusSender.sendToIPAddress ("127.0.0.1", port, labels);
         statusSender.sendToIPAddress ("127.0.0.1", port, activity);
@@ -672,11 +679,20 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         if (address == "/v2/media/load" && message.size() > 1 && message[1].isString())
             mediaBin.requestLoad (slot, juce::File (message[1].getString()));
         else if (address == "/v2/media/select")
+        {
+            if (slot != mediaBin.getActive())
+                logDiagnostic ("MediaBin: showing slot " + juce::String (slot + 1));
             mediaBin.select (slot);
+        }
         else if (address == "/v2/media/clear")
             mediaBin.requestClear (slot);
         else if (address == "/v2/media/use")
-            mediaBin.setUseMedia (numberArg (0, 1.0f) > 0.5f);
+        {
+            const bool on = numberArg (0, 1.0f) > 0.5f;
+            if (on != mediaBin.getUseMedia())
+                logDiagnostic (juce::String ("MediaBin: USE MEDIA ") + (on ? "on" : "off"));
+            mediaBin.setUseMedia (on);
+        }
         else if (address == "/v2/media/mode")
             mediaBin.setPlayMode ((int) numberArg (0, 0.0f));
         else if (address == "/v2/media/sync")

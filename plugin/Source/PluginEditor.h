@@ -148,6 +148,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> useMediaAttachment;
     std::unique_ptr<juce::FileChooser> mediaChooser;
     void loadMedia();
+    // After LOAD / USE MEDIA from the UI: if the live scene can't show media,
+    // switch to one that can (Media Negative), so the image appears at once.
+    void ensureMediaScene();
+    bool sceneUsesMedia (int index) const { return juce::isPositiveAndBelow (index, status.presetUsesMedia.size()) && status.presetUsesMedia[index]; }
     double hitFlash = -10.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VJAnalyzerEditor)

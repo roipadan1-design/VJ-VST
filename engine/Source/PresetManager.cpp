@@ -132,6 +132,17 @@ juce::String PresetManager::getCurrentDescription() const
     return {};
 }
 
+bool PresetManager::usesMedia (int index) const
+{
+    if (! juce::isPositiveAndBelow (index, entries.size()) || entries.getReference (index).v2 == nullptr)
+        return false;
+    for (auto& stage : entries.getReference (index).v2->stages)
+        for (auto& src : stage.sources)
+            if (src.type != V2Source::Type::text)
+                return true;
+    return false;
+}
+
 bool PresetManager::isSchema2 (int index) const
 {
     return juce::isPositiveAndBelow (index, entries.size()) && entries.getReference (index).v2 != nullptr;

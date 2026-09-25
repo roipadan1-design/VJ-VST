@@ -48,6 +48,11 @@ void main()
     float h = vjHash12 (floor (gl_FragCoord.xy));
     float dotMask = step (h, dots * 0.35 * l0 * l0);
 
-    float v = line * (1.0 + 1.5 * flash) + dotMask * 0.8 + l0 * fill;
+    // Only inside the image, and no line along its frame.
+    float a = IMG_NORM_PIXEL (inputImage, uv).a;
+    float rr = radius * scale * 2.4;
+    float border = min (min (IMG_NORM_PIXEL (inputImage, uv + vec2 (texel.x * rr, 0.0)).a, IMG_NORM_PIXEL (inputImage, uv - vec2 (texel.x * rr, 0.0)).a),
+                        min (IMG_NORM_PIXEL (inputImage, uv + vec2 (0.0, texel.y * rr)).a, IMG_NORM_PIXEL (inputImage, uv - vec2 (0.0, texel.y * rr)).a));
+    float v = (line * border * (1.0 + 1.5 * flash) + dotMask * 0.8 + l0 * fill) * a;
     gl_FragColor = vec4 (vjToLinear (vec3 (clamp (v, 0.0, 1.0))) * emission, 1.0);
 }
