@@ -385,7 +385,7 @@ PRESETS = [
            'After The Noise Diary: an abstract form rises out of darkness with vertical light streaks, dissolves into dust as the music builds, re-forms in the quiet.',
            [stage('rise', 'emergence.fs', [
                param('zoom', 0.6, 3.0, 1.7), param('visible', 0, 1, 0.45), param('streak', 0, 1, 0.5),
-               param('dissolve', 0, 1, 0.12), param('drift', 0.0, 1.0, 0.3, integrate=True),
+               param('dissolve', 0, 1, 0.12), param('drift', 0.0, 1.5, 0.6, integrate=True),
                param('surge', 0, 1, 0), param('emission', 0.2, 4.0, 0.95), param('fine', 0, 1, 0.5)],
                {'source': dict(FORMS, every=8)})],
            [route('macro.intensity', 'rise.emission', 0.5, 0.5), route('macro.form', 'rise.streak', 0.8, 0.5),

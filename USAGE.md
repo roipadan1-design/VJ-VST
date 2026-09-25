@@ -44,7 +44,8 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
 - **Controls** - four groups, one rule each (every knob is a host parameter: automate it or MIDI-map it with
   Live's MIDI Map mode; if one doesn't show up for mapping, click *Configure* on the device and touch it). Only
   enable **Send macros** on one analyzer (normally the MIX one). The line under each knob says what it does in the
-  current scene (sent by the engine), or shows a live readout.
+  current scene (sent by the engine), or shows a live readout; a thin ring outside a knob shows how far the
+  music is moving what that knob controls right now.
   - **SHAPE** ("visible in every scene, always the same direction"): macros Intensity (1), Form (3), Scale (4,
     always bigger as it rises), Erode (6, pristine -> worn / torn / dissolved), Detail (8). Each scene names them.
   - **MOVE** ("0 = still"): Speed (macro 2: 0 frozen, 0.5 designed speed, 1 = x4), Glide (macro 7: inertia of
@@ -88,7 +89,9 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
   themselves). Toggles: Freeze, Reverse, Sync, Use Media, Blackout, Calm.
 - **MEDIA**: 8 slot buttons (host parameter *Media Slot*, 1-8: which one the scenes show), LOAD a still (PNG /
   JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into the selected slot, CLEAR it, USE MEDIA
-  (host parameter), LOOP / PING-PONG for clips (host parameter *Clip Mode*). Every slot's path is saved with the
+  (host parameter), LOOP / PING-PONG for clips (host parameter *Clip Mode*), and *Clip Sync* (Free = the clip's
+  own frame rate x Speed; or 1 beat .. 8 bars - the clip is stretched over that length and phase-locked to the
+  scene's beat clock, still frozen by Speed 0). Every slot's path is saved with the
   Live set and re-sent to the engine on connect; files dropped on the engine window show in their slots too. Clips are decoded once into memory (Media Foundation; <= 30 fps, long edge <= 1280, 600 MB per clip,
   1.5 GB for all slots - longer clips are scaled down, then cut) and play on the scene clock: Speed 0 freezes
   them, Reverse plays them backwards, Push speeds them up, every SHOTS reframe cuts them to another eighth. A clip
@@ -140,6 +143,7 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/media/select`, `/v2/media/clear` | i slot | active slot / empty a slot |
 | `/v2/media/use` | i 0/1 | USE MEDIA: the active image replaces every `images` source |
 | `/v2/media/mode` | i 0/1 | clips: 0 loop, 1 ping-pong |
+| `/v2/media/sync` | i beats | clips: 0 free, else span this many beats (tempo-locked) |
 | `/v2/lowlatency` | [i 0/1] | wait for the previous frame's GPU fence before sampling features (default on) |
 | `/v2/react` | 5 i (kick, snare, hat, bass, level; 0/1) | REACT TO gate |
 | `/v2/palette` | 9 f (rgb x3, 0-1) [, f mix] | shadow / mid / light colours of the global gradient map (mix 0 = scene colours) |
@@ -153,7 +157,8 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | legacy `/audio/level|bass|mid|high|beatphase|onset`, `/preset/select|next|previous`, `/preset/transitionduration`, `/effect/toggle`, `/effect/param`, `/display/*`, `/fullscreen`, `/camera/open`, `/video/load`, `/debug/snapshot` | | unchanged |
 
 Engine -> subscribed clients (5 Hz): `/v2/status` (index, name, count, blackout, fps, bpm, following-host, demo,
-render scale, scene speed), `/v2/presets` (names, every ~2 s), `/v2/macros` (the live scene's 8 knob names by
+render scale, scene speed), `/v2/macroActivity` (8 floats: how far the sound moves each macro slot's targets,
+peak-held ~0.3 s - the plug-in's knob rings), `/v2/presets` (names, every ~2 s), `/v2/macros` (the live scene's 8 knob names by
 slot + its description; on scene change and every ~2 s) and `/v2/media/status` (active slot, use-media, then per
 slot name, width, height, loading).
 

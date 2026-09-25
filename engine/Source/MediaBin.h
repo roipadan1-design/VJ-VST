@@ -50,6 +50,10 @@ public:
     // Clip playback: 0 = loop, 1 = ping-pong (forward to the end, back to the start).
     void setPlayMode (int mode) noexcept { playMode = juce::jlimit (0, 1, mode); }
     int getPlayMode() const noexcept   { return playMode.load(); }
+    // Tempo sync: 0 = free (the clip's own frame rate x speed), else the clip
+    // is stretched over this many beats and phase-locked to the scene's beat
+    // clock (so it restarts on the bar, still frozen by Speed 0).
+    void setSyncBeats (int beats) noexcept { syncBeats = juce::jlimit (0, 64, beats); }
     std::array<Info, numSlots> getInfo() const;
     int getVersion() const noexcept    { return version.load(); } // bumps on every change
 
@@ -59,7 +63,8 @@ public:
     // --- GL thread
     void uploadPending();
     // Advances the active clip by the scene clock and uploads its frame.
-    void advance (double speed, double dt);
+    // sceneBeat: host beats scaled by speed (MotionFrame::sceneBeat).
+    void advance (double speed, double dt, double sceneBeat);
     SourceLibrary::Texture getActiveTexture() const; // id 0 = nothing loaded
     void release();
 
@@ -77,6 +82,7 @@ private:
         std::shared_ptr<Clip> clip;
         double position = 0.0;         // in frames
         double direction = 1.0;        // ping-pong: +1 forward, -1 back
+        double syncOffset = 0.0;       // tempo sync: phase added by SHOTS jumps (0-1)
         int uploaded = -1;
         bool allocated = false, announced = false;
     };
@@ -88,7 +94,7 @@ private:
     std::array<size_t, numSlots> clipBytes {}; // guarded by lock
     std::array<SourceLibrary::Texture, numSlots> textures {}; // GL thread only
     std::array<ClipPlayback, numSlots> playback;              // GL thread only
-    std::atomic<int> active { 0 }, version { 0 }, jumpRequests { 0 }, playMode { 0 };
+    std::atomic<int> active { 0 }, version { 0 }, jumpRequests { 0 }, playMode { 0 }, syncBeats { 0 };
     std::atomic<bool> useMedia { false };
     int jumpsSeen = 0;
     juce::Random random;

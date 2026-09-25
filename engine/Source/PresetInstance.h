@@ -43,6 +43,7 @@ public:
     virtual void toggleStage (int) {}
     virtual void setParam (int stageIndex, const juce::String& name, const juce::var& value) = 0;
     virtual bool usesDuoPalette() const { return false; }
+    virtual std::array<float, 8> getMacroActivity() const { return {}; }
 };
 
 // The original formats: one ISF shader with {source, scale, offset}
@@ -78,6 +79,7 @@ public:
     void toggleStage (int index) override;
     void setParam (int stageIndex, const juce::String& name, const juce::var& value) override;
     bool usesDuoPalette() const override { return preset.post.duoPalette; }
+    std::array<float, 8> getMacroActivity() const override { return modulation.getMacroActivity(); }
 
 private:
     V2Instance (const PresetV2& p, SourceLibrary& lib) : preset (p), modulation (p), sources (lib) {}

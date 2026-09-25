@@ -90,6 +90,7 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
         values.add (v);
         base01.add (b);
         accumulators.add (acc);
+        audioAccumulators.add (acc);
     }
 
     for (auto& m : p.modulators)
@@ -164,6 +165,10 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
             warnings.add ("route '" + def.id + "': unknown source '" + s + "' reads as 0");
 
         routes.push_back (r);
+
+        if (r.kind == SourceKind::macro && r.index >= 0)
+            if (auto slot = p.macros.getReference (r.index).slot; juce::isPositiveAndBelow (slot, 8))
+                macroTargets[(size_t) slot].push_back ({ r.stage, r.parameter });
     }
 
     for (auto& def : p.triggers)
@@ -345,6 +350,9 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
     for (auto& acc : accumulators)
         for (auto& a : acc)
             a = 0.0f;
+    for (auto& acc : audioAccumulators)
+        for (auto& a : acc)
+            a = 0.0f;
 
     for (auto& r : routes)
     {
@@ -379,7 +387,18 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
         }
         if (isAudioDriven (r.kind))
             gain *= signals.react.amount; // Reactivity / Calm
-        accumulators.getReference (r.stage).getReference (r.parameter) += gain * r.def.amount * (r.smoothed - r.def.center);
+        const auto contribution = gain * r.def.amount * (r.smoothed - r.def.center);
+        accumulators.getReference (r.stage).getReference (r.parameter) += contribution;
+        if (isAudioDriven (r.kind))
+            audioAccumulators.getReference (r.stage).getReference (r.parameter) += contribution;
+    }
+
+    for (size_t slot = 0; slot < macroTargets.size(); ++slot)
+    {
+        float most = 0.0f;
+        for (auto [stage, param] : macroTargets[slot])
+            most = juce::jmax (most, std::abs (audioAccumulators.getReference (stage)[param]));
+        macroActivity[slot] = juce::jlimit (0.0f, 1.0f, most);
     }
 
     // 5-6. Clamp (or wrap) once, then to physical units.

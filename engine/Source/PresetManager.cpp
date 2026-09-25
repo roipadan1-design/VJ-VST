@@ -337,6 +337,12 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     };
 
     current->render (frame, currentTarget);
+    {
+        const auto activity = current->getMacroActivity();
+        const auto hold = (float) std::exp (-frame.dt / 0.3);
+        for (size_t i = 0; i < activity.size(); ++i)
+            macroActivity[i] = juce::jmax (activity[i], macroActivity[i].load() * hold);
+    }
 
     unsigned int compositeSource = currentTarget.texture;
 

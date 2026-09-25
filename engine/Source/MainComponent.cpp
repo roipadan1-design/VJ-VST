@@ -212,7 +212,7 @@ void MainComponent::render()
 
     videoPlayer.updateGLTexture();
     mediaBin.uploadPending();
-    mediaBin.advance (sceneClock.getFrame().speed, dt);
+    mediaBin.advance (sceneClock.getFrame().speed, dt, sceneClock.getFrame().sceneBeat);
 
     FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank, &look };
     frame.motion = sceneClock.getFrame();
@@ -368,6 +368,10 @@ void MainComponent::timerCallback()
     status.addFloat32 (presetManager.getRenderScale());
     status.addFloat32 (currentSpeed.load());
 
+    juce::OSCMessage activity ("/v2/macroActivity");
+    for (int i = 0; i < 8; ++i)
+        activity.addFloat32 (presetManager.getMacroActivity (i));
+
     // The live scene's knob names + description: on every scene change and
     // with the list every ~2 s.
     const bool sendLabels = presetManager.getCurrentIndex() != lastLabelsIndex || (statusTick % 10) == 0;
@@ -411,6 +415,7 @@ void MainComponent::timerCallback()
             statusSender.sendToIPAddress ("127.0.0.1", port, list);
         if (sendLabels)
             statusSender.sendToIPAddress ("127.0.0.1", port, labels);
+        statusSender.sendToIPAddress ("127.0.0.1", port, activity);
         if (sendMedia)
             statusSender.sendToIPAddress ("127.0.0.1", port, media);
     }
@@ -674,6 +679,8 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             mediaBin.setUseMedia (numberArg (0, 1.0f) > 0.5f);
         else if (address == "/v2/media/mode")
             mediaBin.setPlayMode ((int) numberArg (0, 0.0f));
+        else if (address == "/v2/media/sync")
+            mediaBin.setSyncBeats ((int) numberArg (0, 0.0f));
         return;
     }
 

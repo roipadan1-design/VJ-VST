@@ -43,6 +43,11 @@ public:
     bool setBaseValue (int stageIndex, const juce::String& parameterName, float physicalValue);
 
     float getPalette() const noexcept { return paletteValue; } // smoothed palette-advance steps
+
+    // How far the sound is moving what each macro slot controls right now:
+    // the largest audio / hit contribution (in 0-1 parameter range) on any
+    // parameter that macro routes to. Drives the plug-in's knob rings.
+    const std::array<float, 8>& getMacroActivity() const noexcept { return macroActivity; }
     float getSeed() const noexcept { return (float) seed; }     // bumped by "reseed" actions
 
     // Problems found while resolving names (logged once by the caller).
@@ -104,6 +109,9 @@ private:
     juce::Array<juce::Array<float>> values, base01;
     juce::Array<juce::Array<double>> integrals; // running phase for "integrate" parameters
     juce::Array<juce::Array<float>> accumulators;
+    juce::Array<juce::Array<float>> audioAccumulators;   // the audio-driven share of `accumulators`
+    std::array<std::vector<std::pair<int, int>>, 8> macroTargets; // slot -> (stage, parameter) it routes to
+    std::array<float, 8> macroActivity {};
     juce::Array<Envelope> envelopes;   // parallel to preset.modulators (non-AD entries unused)
     juce::Array<Lfo> lfos;             // parallel to preset.modulators (non-LFO entries unused)
     std::vector<ResolvedRoute> routes;

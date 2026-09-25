@@ -7,6 +7,7 @@ const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Speed", 
                                                           "Impact", "Erode", "Glide", "Detail" };
 const juce::StringArray VJAnalyzerProcessor::moveIds { "drift", "push", "softness", "sync", "reverse", "freeze" };
 const juce::StringArray VJAnalyzerProcessor::moveNames { "Drift", "Push", "Softness", "Sync", "Reverse", "Freeze" };
+const juce::StringArray VJAnalyzerProcessor::clipSyncNames { "Free", "1 Beat", "1 Bar", "2 Bars", "4 Bars", "8 Bars" };
 const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext" };
 const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
 const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
@@ -225,6 +226,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "useMedia", 1 }, "Use Media", false));
     layout.add (std::make_unique<AudioParameterInt> (ParameterID { "mediaSlot", 1 }, "Media Slot", 1, 8, 1));
     layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "clipMode", 1 }, "Clip Mode", StringArray { "Loop", "Ping-Pong" }, 0));
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "clipSync", 1 }, "Clip Sync", clipSyncNames, 0));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "shots", 1 }, "Shots", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "hud", 1 }, "HUD", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "lookahead", 1 }, "Visual Lookahead",
@@ -415,6 +417,7 @@ void VJAnalyzerProcessor::timerCallback()
         c.mediaPaths[(size_t) s] = getMediaPath (s);
     c.mediaSlot = getMediaSlot();
     c.clipMode = (int) state.getRawParameterValue ("clipMode")->load();
+    c.clipSyncBeats = clipSyncBeats ((int) state.getRawParameterValue ("clipSync")->load());
     c.useMedia = state.getRawParameterValue ("useMedia")->load() > 0.5f;
     worker.setControls (c);
 

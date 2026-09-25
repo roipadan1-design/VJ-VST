@@ -86,6 +86,8 @@ public:
     static juce::Identifier mediaKey (int slot) { return slot == 0 ? juce::Identifier ("mediaPath") : juce::Identifier ("mediaPath" + juce::String (slot)); }
     juce::String getMediaPath (int slot) const { return state.state.getProperty (mediaKey (slot)).toString(); }
     void setMediaPath (int slot, const juce::String& path) { state.state.setProperty (mediaKey (slot), path, nullptr); }
+    static const juce::StringArray clipSyncNames;
+    static int clipSyncBeats (int choice) noexcept { const int beats[] = { 0, 1, 4, 8, 16, 32 }; return beats[juce::jlimit (0, 5, choice)]; }
     int getMediaSlot() const { return juce::jlimit (0, 7, (int) state.getRawParameterValue ("mediaSlot")->load() - 1); }
 
     // The three colours actually sent to the engine (preset or custom).

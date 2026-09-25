@@ -156,6 +156,37 @@ void MacroKnob::setSubLabel (const juce::String& text, juce::Colour colour)
     }
 }
 
+void MacroKnob::setActivity (float a)
+{
+    a = juce::jlimit (0.0f, 1.0f, a);
+    // Quick to rise, slow to fall (the engine reports ~5 times a second).
+    auto next = a > activity ? activity + (a - activity) * 0.6f : activity + (a - activity) * 0.12f;
+    if (std::abs (next - activity) > 0.002f || (next == 0.0f) != (activity == 0.0f))
+    {
+        activity = next < 0.004f ? 0.0f : next;
+        repaint();
+    }
+}
+
+void MacroKnob::paintOverChildren (juce::Graphics& g)
+{
+    if (activity <= 0.0f)
+        return;
+    auto bounds = slider.getBounds().toFloat().reduced (4.0f);
+    auto radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f + 1.5f;
+    auto centre = bounds.getCentre();
+    auto params = slider.getRotaryParameters();
+    auto range = params.endAngleRadians - params.startAngleRadians;
+    auto from = params.startAngleRadians + (float) slider.valueToProportionOfLength (slider.getValue()) * range;
+    auto to = juce::jmin (params.endAngleRadians, from + activity * range);
+    if (to <= from)
+        return;
+    juce::Path ring;
+    ring.addCentredArc (centre.x, centre.y, radius, radius, 0.0f, from, to, true);
+    g.setColour (accent.brighter (0.5f).withAlpha (0.9f));
+    g.strokePath (ring, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+}
+
 void MacroKnob::resized()
 {
     auto r = getLocalBounds();
@@ -444,6 +475,11 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         setParameter ("clipMode", processor.getState().getRawParameterValue ("clipMode")->load() > 0.5f ? 0.0f : 1.0f);
     };
     addAndMakeVisible (clipMode);
+    clipSync.addItemList (VJAnalyzerProcessor::clipSyncNames, 1);
+    clipSync.setTooltip ("Clips: Free = the clip's own frame rate x Speed; or stretch it over 1 beat .. 8 bars, locked to the tempo "
+                         "(parameter 'Clip Sync'). Speed 0 still freezes it.");
+    addAndMakeVisible (clipSync);
+    clipSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "clipSync", clipSync);
     useMedia.setClickingTogglesState (true);
     useMedia.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
     useMedia.setTooltip ("Feed your image to Dot Relief, One Bit, Emergence and every other scene that works on images");
@@ -644,6 +680,8 @@ void VJAnalyzerEditor::timerCallback()
         swatches[i]->setColour (colours[(size_t) i]);
 
     updateKnobLabels();
+    for (int i = 0; i < macros.size(); ++i)
+        macros[i]->setActivity (status.connected && sending ? status.macroActivity[(size_t) i] : 0.0f);
 
     const auto activeSlot = processor.getMediaSlot();
     for (int i = 0; i < mediaSlots.size(); ++i)
@@ -1004,7 +1042,8 @@ void VJAnalyzerEditor::resized()
             b->setBounds (slotsRow.removeFromLeft (slotW).reduced (1, 0));
         m.removeFromTop (4);
         auto buttons = m.removeFromTop (26);
-        mediaLoad.setBounds (buttons.removeFromLeft (buttons.getWidth() * 2 / 5).reduced (2, 0));
+        clipSync.setBounds (buttons.removeFromRight (96).reduced (2, 0));
+        mediaLoad.setBounds (buttons.removeFromLeft (buttons.getWidth() * 2 / 7).reduced (2, 0));
         useMedia.setBounds (buttons.removeFromLeft (buttons.getWidth() * 3 / 5).reduced (2, 0));
         mediaClear.setBounds (buttons.reduced (2, 0));
     }

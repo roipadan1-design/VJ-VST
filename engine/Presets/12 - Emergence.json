@@ -66,8 +66,8 @@
           "name": "drift",
           "label": "Drift",
           "min": 0.0,
-          "max": 1.0,
-          "default": 0.3,
+          "max": 1.5,
+          "default": 0.6,
           "unit": "normalized",
           "cyclic": false,
           "integrate": true

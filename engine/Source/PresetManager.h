@@ -59,6 +59,8 @@ public:
     void setRenderScale (float s) noexcept { renderScale = juce::jlimit (0.4f, 1.0f, s); }
     float getRenderScale() const noexcept { return renderScale.load(); }
     int getSwitchCount() const noexcept { return switchCount.load(); }
+    // Knob rings: how much the sound moves each macro slot's targets (peak-held ~0.3 s).
+    float getMacroActivity (int slot) const noexcept { return juce::isPositiveAndBelow (slot, 8) ? macroActivity[(size_t) slot].load() : 0.0f; }
 
     // Output gate: fades the final image to/from black over ~120 ms.
     void setBlackout (bool shouldBeBlack) noexcept { blackout = shouldBeBlack; }
@@ -107,6 +109,7 @@ private:
     std::atomic<bool> blackout { false };
     std::atomic<float> renderScale { 1.0f };
     std::atomic<int> switchCount { 0 };
+    std::array<std::atomic<float>, 8> macroActivity {};
     float outputGain = 1.0f;
 
     GLRenderTarget currentTarget, outgoingTarget, frozenTarget, compositeTarget;

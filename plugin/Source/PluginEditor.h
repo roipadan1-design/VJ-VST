@@ -41,11 +41,15 @@ public:
     void paint (juce::Graphics&) override;
 
     void setSubLabel (const juce::String& text, juce::Colour colour);
+    // Ring outside the knob: how far the sound is moving what this knob controls (0-1).
+    void setActivity (float a);
+    void paintOverChildren (juce::Graphics&) override;
     void setTooltip (const juce::String& text) { slider.setTooltip (text); }
 
 private:
     juce::Slider slider;
     juce::String label, subLabel;
+    float activity = 0.0f;
     juce::Colour accent, subColour;
     bool large;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
@@ -139,6 +143,8 @@ private:
     juce::Rectangle<int> mediaArea, mediaCaption, mediaInfoArea;
     juce::TextButton mediaLoad { "LOAD" }, mediaClear { "CLEAR" }, useMedia { "USE MEDIA" }, clipMode { "LOOP" };
     juce::OwnedArray<juce::TextButton> mediaSlots;
+    juce::ComboBox clipSync;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> clipSyncAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> useMediaAttachment;
     std::unique_ptr<juce::FileChooser> mediaChooser;
     void loadMedia();

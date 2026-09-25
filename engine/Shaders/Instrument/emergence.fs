@@ -28,6 +28,8 @@ void main()
     vec2 p = vjCentered();
     // A slow rise: the form floats up a little as it appears.
     vec2 q = p + vec2 (0.0, -0.06 * (1.0 - visible));
+    // The form floats: a slow breath and sway on the scene clock.
+    q = q * (1.0 + 0.05 * sin (drift * 0.35)) + 0.035 * vec2 (sin (drift * 0.23), cos (drift * 0.19));
     float base = formAt (q);
 
     // Vertical light streaks from the highlights (both directions, fading).

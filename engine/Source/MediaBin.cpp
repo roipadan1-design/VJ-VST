@@ -169,7 +169,7 @@ void MediaBin::uploadPending()
     }
 }
 
-void MediaBin::advance (double speed, double dt)
+void MediaBin::advance (double speed, double dt, double sceneBeat)
 {
     const auto slot = juce::jlimit (0, numSlots - 1, active.load());
     auto& pb = playback[(size_t) slot];
@@ -208,11 +208,23 @@ void MediaBin::advance (double speed, double dt)
     if (const auto jumps = jumpRequests.load(); jumps != jumpsSeen)
     {
         jumpsSeen = jumps;
-        pb.position = std::floor (random.nextFloat() * 8.0) / 8.0 * count;
+        const auto eighth = std::floor (random.nextFloat() * 8.0) / 8.0;
+        pb.position = eighth * count;
+        pb.syncOffset = eighth;
     }
 
+    if (const auto beats = syncBeats.load(); beats > 0 && count > 1)
+    {
+        // Tempo sync: the clip spans `beats` beats of the scene's beat clock.
+        // While a clip is still decoding it spans what is ready so far.
+        auto phase = sceneBeat / beats + pb.syncOffset;
+        phase -= std::floor (phase);
+        if (playMode.load() == 1)
+            phase = phase < 0.5 ? phase * 2.0 : 2.0 - phase * 2.0;   // ping-pong: forward then back
+        pb.position = phase * (count - 1);
+    }
     // The scene clock plays the clip: Speed 0 = still, Reverse = backwards.
-    if (playMode.load() == 1 && count > 1)
+    else if (playMode.load() == 1 && count > 1)
     {
         // Ping-pong: bounce off both ends (Reverse still flips the direction).
         const double last = count - 1;

@@ -297,6 +297,12 @@ void AnalysisWorker::sendControlsIfChanged()
         writer.addInt (c.clipMode);
         sendPacket (writer.finish());
     }
+    if (controlsNeverSent || c.clipSyncBeats != sentControls.clipSyncBeats)
+    {
+        writer.begin ("/v2/media/sync");
+        writer.addInt (c.clipSyncBeats);
+        sendPacket (writer.finish());
+    }
     if (controlsNeverSent || c.useMedia != sentControls.useMedia)
     {
         writer.begin ("/v2/media/use");
@@ -424,6 +430,11 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
             slot.height = asInt (k + 2);
             slot.loading = asInt (k + 3) != 0;
         }
+    }
+    else if (address == "/v2/macroActivity")
+    {
+        for (int i = 0; i < m.size() && i < 8; ++i)
+            status.macroActivity[(size_t) i] = m[i].isFloat32() ? m[i].getFloat32() : 0.0f;
     }
     else if (address == "/v2/presets")
     {

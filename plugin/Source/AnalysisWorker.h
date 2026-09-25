@@ -37,6 +37,7 @@ public:
         std::array<juce::String, 8> mediaPaths;  // still / clip per media slot ("" = none)
         int mediaSlot = 0;           // the active slot (0-7)
         int clipMode = 0;            // 0 loop, 1 ping-pong
+        int clipSyncBeats = 0;       // 0 free, else the clip spans this many beats
         bool useMedia = false;       // USE MEDIA: the image replaces the forms in every scene
     };
 
@@ -63,6 +64,7 @@ public:
         struct MediaSlot { juce::String name; int width = 0, height = 0; bool loading = false; };
         std::array<MediaSlot, 8> media;     // the media slots as the engine has them
         int mediaActive = 0;
+        std::array<float, 8> macroActivity {}; // how much the sound moves each macro's targets
     };
 
     AnalysisWorker();
