@@ -119,7 +119,7 @@ private:
     // can't queue several frames between the music and the screen.
     std::atomic<bool> lowLatency { true };
     void* frameFence = nullptr; // GLsync
-    int lastMediaVersion = -1;
+    int lastMediaVersion = -1, lastReframeCount = 0;
     double lastClockBeat = 0.0;
     std::atomic<float> currentSpeed { 1.0f };   // for /v2/status
     int lastLabelsIndex = -2;                   // scene whose knob names were last sent

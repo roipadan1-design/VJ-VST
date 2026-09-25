@@ -38,6 +38,7 @@ target_sources(VJEngine PRIVATE
     Source/PresetInstance.cpp
     Source/SourceLibrary.cpp
     Source/MediaBin.cpp
+    Source/ClipDecoder.cpp
 )
 
 set(VJ_SPOUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Spout")

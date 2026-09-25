@@ -632,7 +632,8 @@ void LookPass::fireShot (float shots, double timeSeconds)
     if (r < 0.45f)
     {
         // Reframe: a new "camera" on the same scene, held until the next shot
-        // (one in five goes back to the full frame).
+        // (one in five goes back to the full frame). A playing clip jumps too.
+        ++reframeCount;
         if (random.nextFloat() < 0.2f)
         {
             shotZoom = 1.0f;

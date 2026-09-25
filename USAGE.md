@@ -86,8 +86,12 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
 - **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black. Momentary host
   parameters for MIDI buttons: Hit, Snapshot A-D, Previous Scene, Next Scene (fire on the rising edge, reset
   themselves). Toggles: Freeze, Reverse, Sync, Use Media, Blackout, Calm.
-- **MEDIA**: LOAD IMAGE (PNG / JPEG) into media slot 1, USE MEDIA (host parameter), CLEAR. The path is saved with
-  the Live set and re-sent to the engine on connect.
+- **MEDIA**: LOAD a still (PNG / JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into media
+  slot 1, USE MEDIA (host parameter), CLEAR. The path is saved with the Live set and re-sent to the engine on
+  connect. Clips are decoded once into memory (Media Foundation; <= 30 fps, long edge <= 1280, 600 MB per clip,
+  1.5 GB for all slots - longer clips are scaled down, then cut) and play on the scene clock: Speed 0 freezes
+  them, Reverse plays them backwards, Push speeds them up, every SHOTS reframe cuts them to another eighth. A clip
+  plays while it is still decoding.
 - **Lookahead** (0-150 ms, default Off): delays the audio the plug-in passes and reports it as latency, so Live's
   delay compensation delays everything else too while the analysis reads the undelayed input - the visuals see
   the music early. For playback / DJ sets only (live instruments through Live would be late as well).
@@ -131,7 +135,7 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/macro` | i slot 0-7, f 0-1 | macro base value |
 | `/v2/look` | i slot 0-15, f 0-1 | global look: 0 grain, 1 crush, 2 flash, 3 glitch, 4 trails, 5 symbols, 6 cut rate, 7 smear, 8 halation, 9 weave, 10 dust, 11 blacks, 12 reactivity, 13 calm (0/1), 14 shots, 15 hud |
 | `/v2/move` | i slot 0-5, f 0-1 | MOVE / REACT globals: 0 drift, 1 push, 2 softness, 3 sync, 4 reverse, 5 freeze (Speed / Glide are macro slots 1 / 6) |
-| `/v2/media/load` | i slot, s path | PNG / JPEG into a media slot (same path again = no-op) |
+| `/v2/media/load` | i slot, s path | still (PNG / JPEG) or clip (MP4 / MOV / ...) into a media slot (same path again = no-op) |
 | `/v2/media/select`, `/v2/media/clear` | i slot | active slot / empty a slot |
 | `/v2/media/use` | i 0/1 | USE MEDIA: the active image replaces every `images` source |
 | `/v2/lowlatency` | [i 0/1] | wait for the previous frame's GPU fence before sampling features (default on) |
@@ -151,8 +155,8 @@ render scale, scene speed), `/v2/presets` (names, every ~2 s), `/v2/macros` (the
 slot + its description; on scene change and every ~2 s) and `/v2/media/status` (active slot, use-media, then per
 slot name, width, height, loading).
 
-Dropping PNG / JPEG files on the engine window fills the media slots (active slot first); video files still go
-to the legacy video input.
+Dropping stills or clips on the engine window fills the media slots (active slot first); other video formats
+Media Foundation reads still go to the legacy video input.
 
 ## Presets
 

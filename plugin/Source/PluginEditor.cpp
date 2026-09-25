@@ -422,7 +422,9 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     }
 
     mediaLoad.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
-    mediaLoad.setTooltip ("Load your own image (PNG / JPEG). The Media scenes use it; USE MEDIA puts it into every scene that works on images.");
+    mediaLoad.setTooltip ("Load your own image (PNG / JPEG) or a short video clip (MP4 / MOV ...). The Media scenes use it; USE MEDIA puts it "
+                          "into every scene that works on images. Clips play on the scene clock: Speed 0 freezes them, Reverse plays them backwards, "
+                          "SHOTS cuts them to another section.");
     mediaLoad.onClick = [this] { loadMedia(); };
     addAndMakeVisible (mediaLoad);
     mediaClear.setTooltip ("Remove the image (scenes go back to their built-in forms)");
@@ -504,8 +506,8 @@ void VJAnalyzerEditor::editColour (int index)
 void VJAnalyzerEditor::loadMedia()
 {
     juce::File start (processor.getMediaPath());
-    mediaChooser = std::make_unique<juce::FileChooser> ("Load an image", start.existsAsFile() ? start.getParentDirectory() : juce::File(),
-                                                        "*.png;*.jpg;*.jpeg");
+    mediaChooser = std::make_unique<juce::FileChooser> ("Load an image or a short clip", start.existsAsFile() ? start.getParentDirectory() : juce::File(),
+                                                        "*.png;*.jpg;*.jpeg;*.mp4;*.mov;*.m4v;*.avi;*.wmv;*.mkv;*.webm");
     mediaChooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                [this] (const juce::FileChooser& chooser) {
                                    auto picked = chooser.getResult();
@@ -786,7 +788,7 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     // What the engine has in the media slot.
     {
         juce::File file (processor.getMediaPath());
-        juce::String info = file.getFileName().isEmpty() ? juce::String ("no image - scenes use their built-in forms")
+        juce::String info = file.getFileName().isEmpty() ? juce::String ("no image or clip - scenes use their built-in forms")
                           : ! status.connected ? file.getFileName()
                           : status.mediaLoading ? file.getFileName() + "  (loading...)"
                           : status.mediaWidth > 0 ? file.getFileName() + "  " + juce::String (status.mediaWidth) + "x" + juce::String (status.mediaHeight)

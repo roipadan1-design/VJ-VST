@@ -212,11 +212,17 @@ void MainComponent::render()
 
     videoPlayer.updateGLTexture();
     mediaBin.uploadPending();
+    mediaBin.advance (sceneClock.getFrame().speed, dt);
 
     FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank, &look };
     frame.motion = sceneClock.getFrame();
     frame.media = mediaBin.getActiveTexture();
     frame.useMedia = mediaBin.getUseMedia();
+    if (auto reframes = presetManager.getReframeCount(); reframes != lastReframeCount)
+    {
+        lastReframeCount = reframes;
+        mediaBin.jumpActive();
+    }
     frame.videoTexture = videoPlayer.getTextureID();
     frame.width = physicalWidth;
     frame.height = physicalHeight;
@@ -423,7 +429,7 @@ bool MainComponent::isSupportedVideoFile (const juce::File& file)
 bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 {
     for (auto& path : files)
-        if (isSupportedVideoFile (juce::File (path)) || MediaBin::isSupportedImage (juce::File (path)))
+        if (isSupportedVideoFile (juce::File (path)) || MediaBin::isSupportedMedia (juce::File (path)))
             return true;
 
     return false;
@@ -431,20 +437,18 @@ bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 
 void MainComponent::filesDropped (const juce::StringArray& files, int, int)
 {
-    // Images go into the media bin: the active slot first, then the next
-    // slots (several dropped at once fill several slots).
+    // Stills and clips go into the media bin: the active slot first, then the
+    // next slots (several dropped at once fill several slots).
     int slot = mediaBin.getActive();
     for (auto& path : files)
     {
         juce::File file (path);
 
-        if (MediaBin::isSupportedImage (file) && slot < MediaBin::numSlots)
-        {
+        if (MediaBin::isSupportedMedia (file) && slot < MediaBin::numSlots)
             mediaBin.requestLoad (slot++, file);
-        }
         else if (isSupportedVideoFile (file))
         {
-            loadVideoFile (file);
+            loadVideoFile (file); // anything else Media Foundation reads: the legacy video input
             break;
         }
     }

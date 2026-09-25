@@ -43,6 +43,7 @@ public:
     // The live scene's own name for each macro slot (empty = the generic
     // name) and its one-line description - shown by the plug-in under the knobs.
     juce::StringArray getCurrentMacroLabels() const;
+    int getReframeCount() const noexcept { return lookPass.getReframeCount(); }
     juce::String getCurrentDescription() const;
 
     void toggleEffectStage (int stageIndex);

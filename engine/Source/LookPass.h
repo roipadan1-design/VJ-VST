@@ -106,6 +106,12 @@ private:
     float hudSeed = 1.0f;
     double lastShotTime = -10.0;
     void fireShot (float shots, double timeSeconds);
+    std::atomic<int> reframeCount { 0 };
+public:
+    // Bumps on every SHOTS reframe - the media bin cuts a playing clip to a
+    // new section with it, so clips and framing jump together.
+    int getReframeCount() const noexcept { return reframeCount.load(); }
+private:
 
     // Film state, advanced at 24 fps (the grain / weave / flicker clock).
     double filmTime = 0.0;
