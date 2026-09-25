@@ -427,9 +427,23 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
                           "SHOTS cuts them to another section.");
     mediaLoad.onClick = [this] { loadMedia(); };
     addAndMakeVisible (mediaLoad);
-    mediaClear.setTooltip ("Remove the image (scenes go back to their built-in forms)");
-    mediaClear.onClick = [this] { processor.setMediaPath ({}); };
+    mediaClear.setTooltip ("Empty the selected slot (scenes go back to their built-in forms)");
+    mediaClear.onClick = [this] { processor.setMediaPath (processor.getMediaSlot(), {}); };
     addAndMakeVisible (mediaClear);
+    for (int i = 0; i < 8; ++i)
+    {
+        auto* b = mediaSlots.add (new juce::TextButton (juce::String (i + 1)));
+        b->setColour (juce::TextButton::buttonOnColourId, vjui::mint);
+        b->setTooltip ("Media slot " + juce::String (i + 1) + " - click to show it (MIDI: parameter 'Media Slot'); LOAD / CLEAR act on the selected slot");
+        b->onClick = [this, i] { setParameter ("mediaSlot", (float) (i + 1)); };
+        addAndMakeVisible (b);
+    }
+    clipMode.setColour (juce::TextButton::buttonOnColourId, vjui::violet);
+    clipMode.setTooltip ("Clips: LOOP from the end back to the start, or PING-PONG forward and back (parameter 'Clip Mode')");
+    clipMode.onClick = [this] {
+        setParameter ("clipMode", processor.getState().getRawParameterValue ("clipMode")->load() > 0.5f ? 0.0f : 1.0f);
+    };
+    addAndMakeVisible (clipMode);
     useMedia.setClickingTogglesState (true);
     useMedia.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
     useMedia.setTooltip ("Feed your image to Dot Relief, One Bit, Emergence and every other scene that works on images");
@@ -441,7 +455,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1180, 800);
+    setSize (1180, 838);
     startTimerHz (30);
 }
 
@@ -505,14 +519,18 @@ void VJAnalyzerEditor::editColour (int index)
 
 void VJAnalyzerEditor::loadMedia()
 {
-    juce::File start (processor.getMediaPath());
+    const auto slot = processor.getMediaSlot();
+    juce::File start (processor.getMediaPath (slot));
+    if (! start.existsAsFile())
+        for (int s = 0; s < 8 && ! start.existsAsFile(); ++s)
+            start = juce::File (processor.getMediaPath (s)); // start where the last file came from
     mediaChooser = std::make_unique<juce::FileChooser> ("Load an image or a short clip", start.existsAsFile() ? start.getParentDirectory() : juce::File(),
                                                         "*.png;*.jpg;*.jpeg;*.mp4;*.mov;*.m4v;*.avi;*.wmv;*.mkv;*.webm");
     mediaChooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                               [this] (const juce::FileChooser& chooser) {
+                               [this, slot] (const juce::FileChooser& chooser) {
                                    auto picked = chooser.getResult();
                                    if (picked.existsAsFile())
-                                       processor.setMediaPath (picked.getFullPathName());
+                                       processor.setMediaPath (slot, picked.getFullPathName());
                                });
 }
 
@@ -626,6 +644,17 @@ void VJAnalyzerEditor::timerCallback()
         swatches[i]->setColour (colours[(size_t) i]);
 
     updateKnobLabels();
+
+    const auto activeSlot = processor.getMediaSlot();
+    for (int i = 0; i < mediaSlots.size(); ++i)
+    {
+        const bool filled = processor.getMediaPath (i).isNotEmpty() || status.media[(size_t) i].name.isNotEmpty();
+        mediaSlots[i]->setToggleState (i == activeSlot, juce::dontSendNotification);
+        mediaSlots[i]->setAlpha (filled || i == activeSlot ? 1.0f : 0.4f);
+    }
+    const bool pingPong = processor.getState().getRawParameterValue ("clipMode")->load() > 0.5f;
+    clipMode.setButtonText (pingPong ? "PING-PONG" : "LOOP");
+    clipMode.setToggleState (pingPong, juce::dontSendNotification);
 
     repaint (headerArea);
     repaint (signalArea);
@@ -785,15 +814,21 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     g.drawText ("VISUALS REACT TO", reactToCaption, juce::Justification::centredLeft);
     g.drawText ("MEDIA", mediaCaption, juce::Justification::centredLeft);
 
-    // What the engine has in the media slot.
+    // What the engine has in the selected media slot (a file dropped on the
+    // engine window shows here too).
     {
-        juce::File file (processor.getMediaPath());
-        juce::String info = file.getFileName().isEmpty() ? juce::String ("no image or clip - scenes use their built-in forms")
-                          : ! status.connected ? file.getFileName()
-                          : status.mediaLoading ? file.getFileName() + "  (loading...)"
-                          : status.mediaWidth > 0 ? file.getFileName() + "  " + juce::String (status.mediaWidth) + "x" + juce::String (status.mediaHeight)
-                          : file.getFileName() + "  (not loaded)";
-        g.setColour (file.getFileName().isEmpty() ? vjui::dim : vjui::text);
+        const auto slot = processor.getMediaSlot();
+        const auto& engineSlot = status.media[(size_t) slot];
+        auto name = juce::File (processor.getMediaPath (slot)).getFileName();
+        if (name.isEmpty() && status.connected)
+            name = engineSlot.name;
+        juce::String info = "slot " + juce::String (slot + 1) + ": ";
+        info += name.isEmpty() ? juce::String ("empty - scenes use their built-in forms")
+              : ! status.connected ? name
+              : engineSlot.loading ? name + "  (loading...)"
+              : engineSlot.width > 0 ? name + "  " + juce::String (engineSlot.width) + "x" + juce::String (engineSlot.height)
+              : name + "  (not loaded)";
+        g.setColour (name.isEmpty() ? vjui::dim : vjui::text);
         g.setFont (uiFont (10.5f));
         g.drawText (info, mediaInfoArea, juce::Justification::centredLeft, true);
     }
@@ -833,7 +868,7 @@ void VJAnalyzerEditor::resized()
         b->setBounds (roles.removeFromLeft (roleW).reduced (2, 0));
 
     r.removeFromTop (8);
-    lookArea = r.removeFromBottom (214);
+    lookArea = r.removeFromBottom (252);
     r.removeFromBottom (10);
     signalArea = r.removeFromLeft (250);
     r.removeFromLeft (10);
@@ -962,7 +997,13 @@ void VJAnalyzerEditor::resized()
         auto m = mediaArea;
         mediaCaption = m.removeFromTop (14);
         mediaInfoArea = m.removeFromBottom (14);
-        auto buttons = m.withSizeKeepingCentre (m.getWidth(), 28);
+        auto slotsRow = m.removeFromTop (26);
+        clipMode.setBounds (slotsRow.removeFromRight (96).reduced (2, 0));
+        auto slotW = slotsRow.getWidth() / mediaSlots.size();
+        for (auto* b : mediaSlots)
+            b->setBounds (slotsRow.removeFromLeft (slotW).reduced (1, 0));
+        m.removeFromTop (4);
+        auto buttons = m.removeFromTop (26);
         mediaLoad.setBounds (buttons.removeFromLeft (buttons.getWidth() * 2 / 5).reduced (2, 0));
         useMedia.setBounds (buttons.removeFromLeft (buttons.getWidth() * 3 / 5).reduced (2, 0));
         mediaClear.setBounds (buttons.reduced (2, 0));

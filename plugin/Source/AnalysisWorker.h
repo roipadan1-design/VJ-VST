@@ -34,7 +34,9 @@ public:
         float paletteMix = 1.0f;
         std::array<bool, 5> react { true, true, true, true, true }; // kick snare hat bass level
         std::array<float, 6> move { 0.2f, 0.3f, 0.5f, 0.0f, 0.0f, 0.0f }; // /v2/move: drift push softness sync reverse freeze
-        juce::String mediaPath;      // image in media slot 1 ("" = none)
+        std::array<juce::String, 8> mediaPaths;  // still / clip per media slot ("" = none)
+        int mediaSlot = 0;           // the active slot (0-7)
+        int clipMode = 0;            // 0 loop, 1 ping-pong
         bool useMedia = false;       // USE MEDIA: the image replaces the forms in every scene
     };
 
@@ -58,9 +60,9 @@ public:
         float speed = 1.0f;                 // live scene-clock speed (Speed x Push, signed)
         juce::StringArray macroLabels;      // the live scene's names for the 8 macros ("" = generic)
         juce::String sceneDescription;
-        juce::String mediaName;             // media slot 1 as the engine has it
-        int mediaWidth = 0, mediaHeight = 0;
-        bool mediaLoading = false;
+        struct MediaSlot { juce::String name; int width = 0, height = 0; bool loading = false; };
+        std::array<MediaSlot, 8> media;     // the media slots as the engine has them
+        int mediaActive = 0;
     };
 
     AnalysisWorker();

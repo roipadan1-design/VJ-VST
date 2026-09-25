@@ -212,8 +212,24 @@ void MediaBin::advance (double speed, double dt)
     }
 
     // The scene clock plays the clip: Speed 0 = still, Reverse = backwards.
-    pb.position += speed * clip.fps * dt;
-    pb.position -= std::floor (pb.position / count) * count; // loop (both directions)
+    if (playMode.load() == 1 && count > 1)
+    {
+        // Ping-pong: bounce off both ends (Reverse still flips the direction).
+        const double last = count - 1;
+        pb.position += speed * clip.fps * dt * pb.direction;
+        for (int guard = 0; guard < 4 && (pb.position > last || pb.position < 0.0); ++guard)
+        {
+            if (pb.position > last) pb.position = 2.0 * last - pb.position;
+            else                    pb.position = -pb.position;
+            pb.direction = -pb.direction;
+        }
+        pb.position = juce::jlimit (0.0, last, pb.position);
+    }
+    else
+    {
+        pb.position += speed * clip.fps * dt;
+        pb.position -= std::floor (pb.position / count) * count; // loop (both directions)
+    }
     const auto frame = juce::jlimit (0, count - 1, (int) pb.position);
 
     if (frame != pb.uploaded)

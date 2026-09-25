@@ -223,6 +223,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "reverse", 1 }, "Reverse", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "freeze", 1 }, "Freeze", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "useMedia", 1 }, "Use Media", false));
+    layout.add (std::make_unique<AudioParameterInt> (ParameterID { "mediaSlot", 1 }, "Media Slot", 1, 8, 1));
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "clipMode", 1 }, "Clip Mode", StringArray { "Loop", "Ping-Pong" }, 0));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "shots", 1 }, "Shots", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "hud", 1 }, "HUD", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "lookahead", 1 }, "Visual Lookahead",
@@ -409,7 +411,10 @@ void VJAnalyzerProcessor::timerCallback()
         c.react[(size_t) i] = state.getRawParameterValue (reactIds[i])->load() > 0.5f;
     for (int i = 0; i < moveIds.size(); ++i)
         c.move[(size_t) i] = state.getRawParameterValue (moveIds[i])->load();
-    c.mediaPath = getMediaPath();
+    for (int s = 0; s < (int) c.mediaPaths.size(); ++s)
+        c.mediaPaths[(size_t) s] = getMediaPath (s);
+    c.mediaSlot = getMediaSlot();
+    c.clipMode = (int) state.getRawParameterValue ("clipMode")->load();
     c.useMedia = state.getRawParameterValue ("useMedia")->load() > 0.5f;
     worker.setControls (c);
 

@@ -81,9 +81,12 @@ public:
     int getActiveSnapshot() const noexcept { return activeSnapshot; }
     bool isMorphing() const noexcept { return morph.active; }
 
-    // The performer's image (media slot 1), saved with the Live set.
-    juce::String getMediaPath() const { return state.state.getProperty ("mediaPath").toString(); }
-    void setMediaPath (const juce::String& path) { state.state.setProperty ("mediaPath", path, nullptr); }
+    // The performer's stills / clips (media slots 0-7), saved with the Live set.
+    // Slot 0 keeps the original "mediaPath" key, so older sets still load.
+    static juce::Identifier mediaKey (int slot) { return slot == 0 ? juce::Identifier ("mediaPath") : juce::Identifier ("mediaPath" + juce::String (slot)); }
+    juce::String getMediaPath (int slot) const { return state.state.getProperty (mediaKey (slot)).toString(); }
+    void setMediaPath (int slot, const juce::String& path) { state.state.setProperty (mediaKey (slot), path, nullptr); }
+    int getMediaSlot() const { return juce::jlimit (0, 7, (int) state.getRawParameterValue ("mediaSlot")->load() - 1); }
 
     // The three colours actually sent to the engine (preset or custom).
     std::array<juce::Colour, 3> getPaletteColours() const;

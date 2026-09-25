@@ -47,6 +47,9 @@ public:
     void setUseMedia (bool on) noexcept { useMedia = on; }
     bool getUseMedia() const noexcept  { return useMedia.load(); }
     void jumpActive() noexcept         { ++jumpRequests; }
+    // Clip playback: 0 = loop, 1 = ping-pong (forward to the end, back to the start).
+    void setPlayMode (int mode) noexcept { playMode = juce::jlimit (0, 1, mode); }
+    int getPlayMode() const noexcept   { return playMode.load(); }
     std::array<Info, numSlots> getInfo() const;
     int getVersion() const noexcept    { return version.load(); } // bumps on every change
 
@@ -73,6 +76,7 @@ private:
     {
         std::shared_ptr<Clip> clip;
         double position = 0.0;         // in frames
+        double direction = 1.0;        // ping-pong: +1 forward, -1 back
         int uploaded = -1;
         bool allocated = false, announced = false;
     };
@@ -84,7 +88,7 @@ private:
     std::array<size_t, numSlots> clipBytes {}; // guarded by lock
     std::array<SourceLibrary::Texture, numSlots> textures {}; // GL thread only
     std::array<ClipPlayback, numSlots> playback;              // GL thread only
-    std::atomic<int> active { 0 }, version { 0 }, jumpRequests { 0 };
+    std::atomic<int> active { 0 }, version { 0 }, jumpRequests { 0 }, playMode { 0 };
     std::atomic<bool> useMedia { false };
     int jumpsSeen = 0;
     juce::Random random;

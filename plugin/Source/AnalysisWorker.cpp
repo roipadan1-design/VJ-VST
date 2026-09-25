@@ -265,21 +265,37 @@ void AnalysisWorker::sendControlsIfChanged()
 
     // Media: the engine ignores a repeated path, so re-sending with the rest
     // of the state (every second) is cheap and survives an engine restart.
-    if (controlsNeverSent || c.mediaPath != sentControls.mediaPath)
+    for (int slot = 0; slot < (int) c.mediaPaths.size(); ++slot)
     {
-        if (c.mediaPath.isNotEmpty())
+        const auto& path = c.mediaPaths[(size_t) slot];
+        const auto& sent = sentControls.mediaPaths[(size_t) slot];
+        if (! controlsNeverSent && path == sent)
+            continue;
+        if (path.isNotEmpty())
         {
             writer.begin ("/v2/media/load");
-            writer.addInt (0);
-            writer.addString (c.mediaPath.toStdString());
+            writer.addInt (slot);
+            writer.addString (path.toStdString());
             sendPacket (writer.finish());
         }
-        else if (sentControls.mediaPath.isNotEmpty())
+        else if (sent.isNotEmpty())
         {
             writer.begin ("/v2/media/clear");
-            writer.addInt (0);
+            writer.addInt (slot);
             sendPacket (writer.finish());
         }
+    }
+    if (controlsNeverSent || c.mediaSlot != sentControls.mediaSlot)
+    {
+        writer.begin ("/v2/media/select");
+        writer.addInt (c.mediaSlot);
+        sendPacket (writer.finish());
+    }
+    if (controlsNeverSent || c.clipMode != sentControls.clipMode)
+    {
+        writer.begin ("/v2/media/mode");
+        writer.addInt (c.clipMode);
+        sendPacket (writer.finish());
     }
     if (controlsNeverSent || c.useMedia != sentControls.useMedia)
     {
@@ -396,12 +412,18 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
     }
     else if (address == "/v2/media/status" && m.size() >= 6)
     {
-        // <active> <use> then per slot <name> <w> <h> <loading>; the plug-in uses slot 1.
+        // <active> <use> then per slot <name> <w> <h> <loading>.
         auto asInt = [&m] (int i) { return m[i].isInt32() ? m[i].getInt32() : (int) m[i].getFloat32(); };
-        status.mediaName = m[2].isString() ? m[2].getString() : juce::String();
-        status.mediaWidth = asInt (3);
-        status.mediaHeight = asInt (4);
-        status.mediaLoading = asInt (5) != 0;
+        status.mediaActive = asInt (0);
+        for (int s = 0; s < (int) status.media.size() && 2 + s * 4 + 3 < m.size(); ++s)
+        {
+            const int k = 2 + s * 4;
+            auto& slot = status.media[(size_t) s];
+            slot.name = m[k].isString() ? m[k].getString() : juce::String();
+            slot.width = asInt (k + 1);
+            slot.height = asInt (k + 2);
+            slot.loading = asInt (k + 3) != 0;
+        }
     }
     else if (address == "/v2/presets")
     {

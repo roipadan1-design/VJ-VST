@@ -86,9 +86,10 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
 - **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black. Momentary host
   parameters for MIDI buttons: Hit, Snapshot A-D, Previous Scene, Next Scene (fire on the rising edge, reset
   themselves). Toggles: Freeze, Reverse, Sync, Use Media, Blackout, Calm.
-- **MEDIA**: LOAD a still (PNG / JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into media
-  slot 1, USE MEDIA (host parameter), CLEAR. The path is saved with the Live set and re-sent to the engine on
-  connect. Clips are decoded once into memory (Media Foundation; <= 30 fps, long edge <= 1280, 600 MB per clip,
+- **MEDIA**: 8 slot buttons (host parameter *Media Slot*, 1-8: which one the scenes show), LOAD a still (PNG /
+  JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into the selected slot, CLEAR it, USE MEDIA
+  (host parameter), LOOP / PING-PONG for clips (host parameter *Clip Mode*). Every slot's path is saved with the
+  Live set and re-sent to the engine on connect; files dropped on the engine window show in their slots too. Clips are decoded once into memory (Media Foundation; <= 30 fps, long edge <= 1280, 600 MB per clip,
   1.5 GB for all slots - longer clips are scaled down, then cut) and play on the scene clock: Speed 0 freezes
   them, Reverse plays them backwards, Push speeds them up, every SHOTS reframe cuts them to another eighth. A clip
   plays while it is still decoding.
@@ -138,6 +139,7 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/media/load` | i slot, s path | still (PNG / JPEG) or clip (MP4 / MOV / ...) into a media slot (same path again = no-op) |
 | `/v2/media/select`, `/v2/media/clear` | i slot | active slot / empty a slot |
 | `/v2/media/use` | i 0/1 | USE MEDIA: the active image replaces every `images` source |
+| `/v2/media/mode` | i 0/1 | clips: 0 loop, 1 ping-pong |
 | `/v2/lowlatency` | [i 0/1] | wait for the previous frame's GPU fence before sampling features (default on) |
 | `/v2/react` | 5 i (kick, snare, hat, bass, level; 0/1) | REACT TO gate |
 | `/v2/palette` | 9 f (rgb x3, 0-1) [, f mix] | shadow / mid / light colours of the global gradient map (mix 0 = scene colours) |

@@ -672,6 +672,8 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             mediaBin.requestClear (slot);
         else if (address == "/v2/media/use")
             mediaBin.setUseMedia (numberArg (0, 1.0f) > 0.5f);
+        else if (address == "/v2/media/mode")
+            mediaBin.setPlayMode ((int) numberArg (0, 0.0f));
         return;
     }
 

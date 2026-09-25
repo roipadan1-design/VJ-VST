@@ -137,7 +137,8 @@ private:
     juce::Rectangle<int> headerArea, signalArea, shapeArea, moveArea, reactArea, scenesArea, lookArea;
     juce::Rectangle<int> sceneNameArea, sceneTextArea, speedTextArea;
     juce::Rectangle<int> mediaArea, mediaCaption, mediaInfoArea;
-    juce::TextButton mediaLoad { "LOAD" }, mediaClear { "CLEAR" }, useMedia { "USE MEDIA" };
+    juce::TextButton mediaLoad { "LOAD" }, mediaClear { "CLEAR" }, useMedia { "USE MEDIA" }, clipMode { "LOOP" };
+    juce::OwnedArray<juce::TextButton> mediaSlots;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> useMediaAttachment;
     std::unique_ptr<juce::FileChooser> mediaChooser;
     void loadMedia();
