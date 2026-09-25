@@ -1,0 +1,221 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2360" height="920" viewBox="0 0 1180 460" font-family="IBM Plex Sans Condensed, Arial Narrow, sans-serif">
+  <!-- WIREFRAME: EDIT view (Expanded) = the PLAY view, unchanged and in the same place (x 0-760),
+       plus a 420 px EDIT drawer on the right with a vertical tab rail. 1180 x 460 logical px at 100 %.
+       Tab shown: LOOK. The info bar at the bottom of the drawer explains whatever the mouse is over. -->
+  <title>EDIT view (Expanded), 1180 x 460</title>
+  <defs>
+    <style>
+      .lbl{fill:#A89E90;font-size:9px;letter-spacing:1.2px;font-weight:600}
+      .val{fill:#ECE4D6;font-size:10px;font-family:IBM Plex Mono, Consolas, monospace}
+      .sub{fill:#8A7F73;font-size:9px}
+      .name{fill:#ECE4D6;font-size:11px}
+      .note{fill:#6FC3D6;font-size:8px;font-family:IBM Plex Mono, Consolas, monospace}
+    </style>
+    <linearGradient id="thumbA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E1A17"/><stop offset="0.55" stop-color="#5A1A12"/><stop offset="1" stop-color="#0C0A09"/></linearGradient>
+    <linearGradient id="thumbB" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0C0A09"/><stop offset="0.5" stop-color="#3A322C"/><stop offset="1" stop-color="#151210"/></linearGradient>
+  </defs>
+  <rect width="1180" height="460" fill="#0C0A09"/>
+  <g id="play-view-unchanged">
+
+  <rect width="760" height="460" fill="#0C0A09"/>
+
+  <!-- HEADER 0-44 -->
+  <rect x="0" y="0" width="760" height="44" fill="#151210"/>
+  <line x1="0" y1="44" x2="760" y2="44" stroke="#3A322C"/>
+  <text x="16" y="27" fill="#ECE4D6" font-size="14" font-weight="700" letter-spacing="4">SAFELIGHT</text>
+  <rect x="122" y="27" width="4" height="4" fill="#F0503F"/>
+  <!-- role chip: this instance is the LEAD (MIX); track name from the host -->
+  <rect x="140" y="11" width="118" height="22" rx="2" fill="none" stroke="#3A322C"/>
+  <text x="150" y="26" class="lbl" style="fill:#ECE4D6">LEAD · MIX</text>
+  <text x="218" y="26" class="sub">Master ▾</text>
+  <!-- engine pill -->
+  <rect x="270" y="11" width="262" height="22" rx="2" fill="#0C0A09" stroke="#3A322C"/>
+  <circle cx="283" cy="22" r="4" fill="#F0503F"/>
+  <text x="294" y="26" class="val">ENGINE  60 fps · 124.0 BPM · 17.3</text>
+  <!-- expand / edit toggle -->
+  <rect x="546" y="11" width="92" height="22" rx="2" fill="#ECE4D6" stroke="#ECE4D6"/>
+  <text x="560" y="26" class="lbl" style="fill:#0C0A09">EDIT  ◂</text>
+  <!-- blackout: isolated top-right, outlined signal red -->
+  <rect x="652" y="9" width="92" height="26" rx="2" fill="none" stroke="#F0503F" stroke-width="1.5"/>
+  <text x="669" y="26" class="lbl" style="fill:#F0503F">BLACKOUT</text>
+
+  <!-- LEFT COLUMN x16-456 -->
+  <!-- NOW card -->
+  <text x="16" y="62" class="lbl">NOW</text>
+  <rect x="16" y="68" width="200" height="112" fill="url(#thumbA)" stroke="#3A322C"/>
+  <!-- HUD-style crop marks on the live thumbnail -->
+  <path d="M16 76 V68 H24 M208 68 H216 V76 M16 172 V180 H24 M208 180 H216 V172" stroke="#ECE4D6" fill="none"/>
+  <text x="22" y="176" class="note" style="fill:#ECE4D6">09</text>
+  <text x="228" y="88" fill="#ECE4D6" font-size="20" font-weight="600">Mesh Body</text>
+  <text x="228" y="106" class="sub">A breathing body of fine plexus lines;</text>
+  <text x="228" y="118" class="sub">it erodes to dust as the track builds.</text>
+  <rect x="228" y="128" width="30" height="12" rx="1" fill="#F0503F"/>
+  <text x="232" y="137" font-size="8" font-weight="700" fill="#0C0A09">LIVE</text>
+  <!-- cue line (tungsten = pending) -->
+  <rect x="228" y="148" width="228" height="32" rx="2" fill="none" stroke="#E9A450"/>
+  <text x="238" y="161" class="lbl" style="fill:#E9A450">NEXT ▸ HALO RING</text>
+  <text x="238" y="174" class="sub" style="fill:#E9A450">switches on the next beat</text>
+  <!-- beat countdown: 4 segments, 2 elapsed -->
+  <rect x="386" y="164" width="14" height="6" fill="#E9A450"/><rect x="403" y="164" width="14" height="6" fill="#E9A450"/>
+  <rect x="420" y="164" width="14" height="6" fill="none" stroke="#E9A450"/><rect x="437" y="164" width="14" height="6" fill="none" stroke="#E9A450"/>
+
+  <!-- SCENES grid: 4 x 4 tiles, thumb + name -->
+  <text x="16" y="202" class="lbl">SCENES</text>
+  <text x="70" y="202" class="sub">16 · click = cue on next beat</text>
+  <rect x="404" y="192" width="24" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="411" y="203" class="sub">◂</text>
+  <rect x="432" y="192" width="24" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="440" y="203" class="sub">▸</text>
+  <g id="tiles">
+    <!-- row 1 -->
+    <rect x="16" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="229" class="name">Hot Blobs</text>
+    <rect x="127" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="229" class="name">Dot Relief</text><rect x="130" y="228.0" width="22" height="10" fill="#0C0A09"/><text x="132" y="236.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="238" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="229" class="name">One Bit</text><rect x="241" y="228.0" width="22" height="10" fill="#0C0A09"/><text x="243" y="236.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="349" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="229" class="name">Corridor</text>
+    <!-- row 2 -->
+    <rect x="16" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="263" class="name">Fibers</text>
+    <rect x="127" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="263" class="name">Terminal</text>
+    <rect x="238" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="263" class="name">Ink</text>
+    <rect x="349" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="263" class="name">Signal Fog</text>
+    <!-- row 3: Mesh Body LIVE (signal bar), Halo Ring CUED (tungsten outline) -->
+    <rect x="16" y="278" width="107" height="30" fill="#1E1A17" stroke="#F0503F"/><rect x="16" y="278" width="3" height="30" fill="#F0503F"/><rect x="20" y="280" width="40" height="26" fill="url(#thumbA)"/><text x="64" y="297" class="name" font-weight="600">Mesh Body</text>
+    <rect x="127" y="278" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="297" class="name">Morphogen</text>
+    <rect x="238" y="278" width="107" height="30" fill="#151210" stroke="#E9A450" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="240" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="297" class="name" style="fill:#E9A450">Halo Ring</text><rect x="241" y="297.0" width="26" height="10" fill="#0C0A09"/><text x="243" y="305.0" class="note" style="fill:#E9A450">CUED</text>
+    <rect x="349" y="278" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="297" class="name">Emergence</text><rect x="352" y="297.0" width="22" height="10" fill="#0C0A09"/><text x="354" y="305.0" class="note" style="fill:#A89E90">IMG</text>
+    <!-- row 4 -->
+    <rect x="16" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="331" class="name">Negative</text>
+    <rect x="127" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="331" class="name">Media Neg.</text><rect x="130" y="330.0" width="22" height="10" fill="#0C0A09"/><text x="132" y="338.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="238" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="331" class="name">Media Lines</text><rect x="241" y="330.0" width="22" height="10" fill="#0C0A09"/><text x="243" y="338.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="349" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="331" class="name">Membrane</text>
+  </g>
+
+  <!-- MOMENTS (snapshots) -->
+  <text x="16" y="364" class="lbl">MOMENTS</text>
+  <text x="84" y="364" class="sub">recall = morph over</text>
+  <rect x="170" y="354" width="44" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="176" y="364" class="val" font-size="9">1 BAR ▾</text>
+  <rect x="16" y="370" width="84" height="36" fill="#1E1A17" stroke="#ECE4D6"/><text x="26" y="393" fill="#ECE4D6" font-size="14" font-weight="700">A</text><text x="42" y="392" class="sub">Intro fog</text>
+  <!-- morph progress in B (recalling) -->
+  <rect x="104" y="370" width="84" height="36" fill="#151210" stroke="#3A322C"/><text x="114" y="393" fill="#ECE4D6" font-size="14" font-weight="700">B</text><text x="130" y="392" class="sub">Build</text><rect x="104" y="402" width="50" height="4" fill="#F2937F"/>
+  <rect x="192" y="370" width="84" height="36" fill="#151210" stroke="#3A322C"/><text x="202" y="393" fill="#ECE4D6" font-size="14" font-weight="700">C</text><text x="218" y="392" class="sub">Drop</text>
+  <rect x="280" y="370" width="84" height="36" fill="none" stroke="#3A322C" stroke-dasharray="2 2"/><text x="290" y="393" fill="#8A7F73" font-size="14" font-weight="700">D</text><text x="306" y="392" class="sub">empty</text>
+  <rect x="372" y="370" width="84" height="36" rx="2" fill="none" stroke="#3A322C"/><text x="394" y="392" class="lbl">SAVE…</text>
+
+  <!-- SIGNAL mini strip -->
+  <text x="16" y="428" class="lbl">SOUND</text>
+  <rect x="62" y="420" width="300" height="8" fill="#1E1A17"/><rect x="62" y="420" width="196" height="8" fill="#ECE4D6"/>
+  <text x="372" y="428" class="val" font-size="9">LIVE</text>
+  <text x="16" y="448" class="sub">Engine window: </text><text x="90" y="448" class="val" font-size="9">SHOW · FULLSCREEN</text>
+
+  <!-- RIGHT COLUMN x472-744 -->
+  <line x1="464" y1="56" x2="464" y2="448" stroke="#3A322C"/>
+  <!-- the Four: hero knobs 2x2, each with scene-specific sub-label -->
+  <g id="knob" font-size="9">
+    <!-- 270-degree knobs: track (line), value arc (bone), outer modulation ring (halation) = how much the sound moves it now -->
+    <path d="M516.0 128.0 A34 34 0 1 1 564.0 128.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M516.0 128.0 A34 34 0 0 1 558.2 75.3" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M560.9 71.1 A39 39 0 0 1 571.6 81.1" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <circle cx="540" cy="104" r="24" fill="#151210"/>
+    <text x="540" y="108" text-anchor="middle" class="val">62%</text>
+    <text x="540" y="154" text-anchor="middle" class="lbl" style="fill:#ECE4D6">INTENSITY</text>
+    <text x="540" y="166" text-anchor="middle" class="sub">light · energy</text>
+    <path d="M652.0 128.0 A34 34 0 1 1 700.0 128.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M652.0 128.0 A34 34 0 0 1 676.0 70.0" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="676" cy="104" r="24" fill="#151210"/>
+    <text x="676" y="108" text-anchor="middle" class="val">x1.00</text>
+    <text x="676" y="154" text-anchor="middle" class="lbl" style="fill:#ECE4D6">SPEED</text>
+    <text x="676" y="166" text-anchor="middle" class="sub">0 = frozen</text>
+    <path d="M516.0 248.0 A34 34 0 1 1 564.0 248.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M516.0 248.0 A34 34 0 0 1 524.6 193.7" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M522.3 189.3 A39 39 0 0 1 554.4 187.7" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <circle cx="540" cy="224" r="24" fill="#151210"/>
+    <text x="540" y="228" text-anchor="middle" class="val">40%</text>
+    <text x="540" y="274" text-anchor="middle" class="lbl" style="fill:#ECE4D6">IMPACT</text>
+    <text x="540" y="286" class="sub" text-anchor="middle">how hard hits land</text>
+    <path d="M652.0 248.0 A34 34 0 1 1 700.0 248.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M652.0 248.0 A34 34 0 0 1 653.9 198.1" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M650.7 194.3 A39 39 0 0 1 658.3 189.3" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <!-- remote-change tick: this knob was just moved by MIDI / automation -->
+    <path d="M700 196 l6 -6" stroke="#6FC3D6" stroke-width="2"/>
+    <circle cx="676" cy="224" r="24" fill="#151210"/>
+    <text x="676" y="228" text-anchor="middle" class="val">35%</text>
+    <text x="676" y="274" text-anchor="middle" class="lbl" style="fill:#ECE4D6">ERODE</text>
+    <text x="676" y="286" class="sub" text-anchor="middle">here: body → dust</text>
+  </g>
+  <text x="746" y="64" class="note" text-anchor="end">⌁ = MIDI/automation moved it</text>
+
+  <!-- LISTEN: lamp-toggles (lamp flashes on each hit; off = ignored) -->
+  <text x="476" y="310" class="lbl">LISTEN TO</text>
+  <text x="542" y="310" class="sub">what the picture follows</text>
+  <rect x="476" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="486" cy="329" r="3" fill="#F0503F"/><text x="493" y="333" class="lbl" style="fill:#ECE4D6">KICK</text>
+  <rect x="530" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="540" cy="329" r="3" fill="#3A322C"/><text x="546" y="333" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.4px">SNARE</text>
+  <rect x="584" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="594" cy="329" r="3" fill="#3A322C"/><text x="602" y="333" class="lbl" style="fill:#ECE4D6">HAT</text>
+  <rect x="638" y="316" width="50" height="26" rx="2" fill="none" stroke="#3A322C" stroke-dasharray="2 2"/><circle cx="648" cy="329" r="3" fill="none" stroke="#8A7F73"/><text x="656" y="333" class="lbl" style="fill:#8A7F73">BASS</text>
+  <rect x="692" y="316" width="52" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="702" cy="329" r="3" fill="#F2937F"/><text x="709" y="333" class="lbl" style="fill:#ECE4D6;letter-spacing:0.6px">LEVEL</text>
+
+  <!-- ACTIONS -->
+  <rect x="476" y="356" width="130" height="92" rx="2" fill="#1E1A17" stroke="#ECE4D6" stroke-width="1.5"/>
+  <text x="541" y="408" text-anchor="middle" fill="#ECE4D6" font-size="18" font-weight="700" letter-spacing="3">HIT</text>
+  <text x="541" y="424" text-anchor="middle" class="sub">space · MIDI</text>
+  <rect x="614" y="356" width="130" height="42" rx="2" fill="#151210" stroke="#3A322C"/>
+  <text x="679" y="381" text-anchor="middle" class="lbl" style="fill:#ECE4D6">CALM</text><text x="679" y="392" text-anchor="middle" class="sub">reactions fade out · 1 bar</text>
+  <rect x="614" y="406" width="130" height="42" rx="2" fill="#151210" stroke="#3A322C"/>
+  <text x="679" y="431" text-anchor="middle" class="lbl" style="fill:#ECE4D6">FREEZE</text><text x="679" y="442" text-anchor="middle" class="sub">motion stops, grain lives</text>
+</g>
+  <g id="edit-drawer">
+    <rect x="760" y="44" width="420" height="416" fill="#151210"/>
+<line x1="760" y1="44" x2="760" y2="460" stroke="#3A322C"/>
+<rect x="760" y="0" width="420" height="44" fill="#151210"/><line x1="760" y1="44" x2="1180" y2="44" stroke="#3A322C"/>
+<text x="776" y="27" class="lbl">EDIT</text><text x="812" y="27" class="sub">changes apply to every scene unless marked “this scene”</text>
+<rect x="768" y="56" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 70 h16 M798 62 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="66" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="94" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">SHAPE</text>
+<rect x="768" y="108" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 122 h16 M798 114 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="118" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="146" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">MOTION</text>
+<rect x="768" y="160" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 174 h16 M798 166 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="170" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="198" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">LISTEN</text>
+<rect x="768" y="212" width="60" height="46" rx="2" fill="#1E1A17" stroke="#ECE4D6"/>
+<rect x="768" y="212" width="3" height="46" fill="#F0503F"/>
+<path d="M790 226 h16 M798 218 v16" stroke="#ECE4D6" stroke-width="1"/><rect x="794" y="222" width="8" height="8" fill="none" stroke="#ECE4D6"/>
+<text x="798" y="250" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">LOOK</text>
+<rect x="768" y="264" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 278 h16 M798 270 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="274" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="302" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">COLOUR</text>
+<rect x="768" y="316" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 330 h16 M798 322 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="326" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="354" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">MEDIA</text>
+<rect x="768" y="368" width="60" height="46" rx="2" fill="none" stroke="#3A322C"/>
+<path d="M790 382 h16 M798 374 v16" stroke="#8A7F73" stroke-width="1"/><rect x="794" y="378" width="8" height="8" fill="none" stroke="#8A7F73"/>
+<text x="798" y="406" text-anchor="middle" class="lbl" style="fill:#A89E90;font-size:8px;letter-spacing:0.8px">SETUP</text>
+<line x1="836" y1="56" x2="836" y2="448" stroke="#3A322C"/>
+<text x="848" y="66" fill="#ECE4D6" font-size="13" font-weight="600">Look</text><text x="886" y="66" class="sub">texture on top of every scene · ambient default: film on, digital off</text>
+<text x="848" y="86" class="lbl">FILM</text><text x="880" y="86" class="sub">35 mm physics</text>
+<path d="M867.3 126.7 A18 18 0 1 1 892.7 126.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M867.3 126.7 A18 18 0 0 1 865.4 103.4" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="880" cy="114" r="12" fill="#151210"/><text x="880" y="117" text-anchor="middle" class="val" style="font-size:8px">30</text><text x="880" y="148" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">GRAIN</text>
+<path d="M931.3 126.7 A18 18 0 1 1 956.7 126.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M931.3 126.7 A18 18 0 0 1 932.3 100.3" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="944" cy="114" r="12" fill="#151210"/><rect x="914" y="88" width="60" height="70" rx="2" fill="none" stroke="#ECE4D6" stroke-dasharray="2 2"/><text x="944" y="117" text-anchor="middle" class="val" style="font-size:8px">35</text><text x="944" y="148" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">HALATION</text>
+<path d="M995.3 126.7 A18 18 0 1 1 1020.7 126.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M995.3 126.7 A18 18 0 0 1 993.4 103.4" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="1008" cy="114" r="12" fill="#151210"/><text x="1008" y="117" text-anchor="middle" class="val" style="font-size:8px">30</text><text x="1008" y="148" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">WEAVE</text>
+<path d="M1059.3 126.7 A18 18 0 1 1 1084.7 126.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M1059.3 126.7 A18 18 0 0 1 1057.4 103.4" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="1072" cy="114" r="12" fill="#151210"/><text x="1072" y="117" text-anchor="middle" class="val" style="font-size:8px">30</text><text x="1072" y="148" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">DUST</text>
+<path d="M1123.3 126.7 A18 18 0 1 1 1148.7 126.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M1123.3 126.7 A18 18 0 0 1 1124.3 100.3" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="1136" cy="114" r="12" fill="#151210"/><text x="1136" y="117" text-anchor="middle" class="val" style="font-size:8px">35</text><text x="1136" y="148" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">FILM BASE</text>
+<text x="848" y="176" class="lbl">DIGITAL</text><text x="898" y="176" class="sub">disturbances</text>
+<path d="M867.3 216.7 A18 18 0 1 1 892.7 216.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M867.3 216.7 A18 18 0 0 1 868.3 190.3" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="880" cy="204" r="12" fill="#151210"/><text x="880" y="207" text-anchor="middle" class="val" style="font-size:8px">35</text><text x="880" y="238" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">CRUSH</text>
+<path d="M931.3 216.7 A18 18 0 1 1 956.7 216.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M931.3 216.7 A18 18 0 0 1 926.9 209.6" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="944" cy="204" r="12" fill="#151210"/><text x="944" y="207" text-anchor="middle" class="val" style="font-size:8px">10</text><text x="944" y="238" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">TRAILS</text>
+<path d="M995.3 216.7 A18 18 0 1 1 1020.7 216.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><circle cx="1008" cy="204" r="12" fill="#151210"/><text x="1008" y="207" text-anchor="middle" class="val" style="font-size:8px">off</text><text x="1008" y="238" text-anchor="middle" class="lbl" style="fill:#8A7F73;font-size:8px;letter-spacing:0.8px">GLITCH</text>
+<path d="M1059.3 216.7 A18 18 0 1 1 1084.7 216.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><circle cx="1072" cy="204" r="12" fill="#151210"/><text x="1072" y="207" text-anchor="middle" class="val" style="font-size:8px">off</text><text x="1072" y="238" text-anchor="middle" class="lbl" style="fill:#8A7F73;font-size:8px;letter-spacing:0.8px">SMEAR</text>
+<path d="M1123.3 216.7 A18 18 0 1 1 1148.7 216.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><circle cx="1136" cy="204" r="12" fill="#151210"/><text x="1136" y="207" text-anchor="middle" class="val" style="font-size:8px">off</text><text x="1136" y="238" text-anchor="middle" class="lbl" style="fill:#8A7F73;font-size:8px;letter-spacing:0.8px">GLYPHS</text>
+<text x="848" y="266" class="lbl">CUTS</text><text x="884" y="266" class="sub">edits on the beat · max 3 a second</text>
+<text x="848" y="286" class="sub">Auto-cut between scenes</text>
+<rect x="848" y="292" width="42" height="20" rx="1" fill="#ECE4D6" stroke="#ECE4D6"/><text x="869" y="306" text-anchor="middle" class="val" style="fill:#0C0A09;font-size:9px">OFF</text>
+<rect x="892" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="913" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">16</text>
+<rect x="936" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="957" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">8</text>
+<rect x="980" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="1001" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">4</text>
+<rect x="1024" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="1045" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">2</text>
+<rect x="1068" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="1089" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">1</text>
+<rect x="1112" y="292" width="42" height="20" rx="1" fill="none" stroke="#3A322C"/><text x="1133" y="306" text-anchor="middle" class="val" style="fill:#A89E90;font-size:9px">KICK</text>
+<text x="1160" y="324" text-anchor="end" class="sub">beats per cut</text>
+<path d="M867.3 364.7 A18 18 0 1 1 892.7 364.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><circle cx="880" cy="352" r="12" fill="#151210"/><text x="880" y="355" text-anchor="middle" class="val" style="font-size:8px">off</text><text x="880" y="386" text-anchor="middle" class="lbl" style="fill:#8A7F73;font-size:8px;letter-spacing:0.8px">FLASH</text>
+<path d="M931.3 364.7 A18 18 0 1 1 956.7 364.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M931.3 364.7 A18 18 0 0 1 944.0 334.0" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="944" cy="352" r="12" fill="#151210"/><text x="944" y="355" text-anchor="middle" class="val" style="font-size:8px">50</text><text x="944" y="386" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">SHOTS</text>
+<path d="M995.3 364.7 A18 18 0 1 1 1020.7 364.7" fill="none" stroke="#3A322C" stroke-width="2.5" stroke-linecap="round"/><path d="M995.3 364.7 A18 18 0 0 1 1003.8 334.5" fill="none" stroke="#ECE4D6" stroke-width="2.5" stroke-linecap="round"/><circle cx="1008" cy="352" r="12" fill="#151210"/><text x="1008" y="355" text-anchor="middle" class="val" style="font-size:8px">45</text><text x="1008" y="386" text-anchor="middle" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.8px">HUD</text>
+<text x="1044" y="346" class="sub">SHOTS: strong hits become</text><text x="1044" y="358" class="sub">short cuts (reframe, negative,</text><text x="1044" y="370" class="sub">lens punch, black frame)</text>
+<rect x="848" y="408" width="316" height="40" rx="2" fill="#0C0A09" stroke="#3A322C"/>
+<text x="858" y="424" class="lbl" style="fill:#ECE4D6">HALATION</text><text x="918" y="424" class="val" style="font-size:9px">35 %</text><text x="1154" y="424" text-anchor="end" class="note" style="fill:#8A7F73">Live: “Halation”</text>
+<text x="858" y="439" class="sub">Red glow bleeding out of the highlights. Double-click = default.</text>
+  </g>
+</svg>

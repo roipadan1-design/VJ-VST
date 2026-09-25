@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1240" viewBox="0 0 1000 620" font-family="IBM Plex Sans Condensed, Arial Narrow, sans-serif">
+<!-- WIREFRAME sheet: A source (non-lead) view, B NOW-card states, C scene tile states, D knob anatomy. -->
+<title>Source view and states</title>
+<style>
+ .lbl{fill:#A89E90;font-size:9px;letter-spacing:1.2px;font-weight:600}
+ .val{fill:#ECE4D6;font-size:10px;font-family:IBM Plex Mono, Consolas, monospace}
+ .sub{fill:#8A7F73;font-size:9px}
+ .h{fill:#ECE4D6;font-size:16px;font-weight:600}
+ .cap{fill:#6FC3D6;font-size:9px;font-family:IBM Plex Mono, Consolas, monospace}
+</style>
+<rect width="1000" height="620" fill="#0C0A09"/>
+<text x="16" y="24" class="cap">A · SOURCE VIEW (non-lead instance, here KICK) · 360 x 220</text>
+<rect x="16" y="36" width="360" height="220" rx="2" fill="#151210" stroke="#3A322C"/>
+<line x1="16" y1="72" x2="376" y2="72" stroke="#3A322C"/>
+<text x="28" y="59" class="lbl" style="fill:#ECE4D6">SAFELIGHT</text>
+<circle cx="366" cy="54" r="4" fill="#F0503F"/>
+<rect x="106" y="46" width="38" height="18" rx="2" fill="none" stroke="#3A322C"/>
+<text x="125" y="59" class="lbl" style="fill:#A89E90" text-anchor="middle">MIX</text>
+<rect x="146" y="46" width="38" height="18" rx="2" fill="#ECE4D6" stroke="#ECE4D6"/>
+<text x="165" y="59" class="lbl" style="fill:#0C0A09" text-anchor="middle">KICK</text>
+<rect x="186" y="46" width="38" height="18" rx="2" fill="none" stroke="#3A322C"/>
+<text x="205" y="59" class="lbl" style="fill:#A89E90" text-anchor="middle">SNARE</text>
+<rect x="226" y="46" width="38" height="18" rx="2" fill="none" stroke="#3A322C"/>
+<text x="245" y="59" class="lbl" style="fill:#A89E90" text-anchor="middle">HAT</text>
+<rect x="266" y="46" width="38" height="18" rx="2" fill="none" stroke="#3A322C"/>
+<text x="285" y="59" class="lbl" style="fill:#A89E90" text-anchor="middle">BASS</text>
+<rect x="306" y="46" width="38" height="18" rx="2" fill="none" stroke="#3A322C"/>
+<text x="325" y="59" class="lbl" style="fill:#A89E90" text-anchor="middle">TEXT.</text>
+<circle cx="60" cy="124" r="22" fill="#F0503F"/>
+<circle cx="60" cy="124" r="28" fill="none" stroke="#F0503F" stroke-opacity="0.35"/>
+<text x="60" y="166" class="lbl" style="fill:#ECE4D6" text-anchor="middle">KICK</text>
+<text x="60" y="178" class="sub" text-anchor="middle">last hit 0.4 s</text>
+<text x="108" y="96" class="lbl">LOW BAND</text>
+<rect x="108" y="102" width="176" height="10" rx="2" fill="#1E1A17" stroke="#1E1A17"/>
+<rect x="108" y="102" width="120" height="10" rx="2" fill="#ECE4D6" stroke="#ECE4D6"/>
+<line x1="244" y1="98" x2="244" y2="116" stroke="#F0503F" stroke-width="1.5"/>
+<text x="248" y="126" class="sub">hit threshold</text>
+<circle cx="134" cy="156" r="16" fill="#151210" stroke="#3A322C" stroke-width="2.5"/>
+<text x="134" y="186" class="lbl" style="fill:#ECE4D6" text-anchor="middle">DETECT</text>
+<text x="134" y="198" class="sub" text-anchor="middle">more hits</text>
+<circle cx="214" cy="156" r="16" fill="#151210" stroke="#3A322C" stroke-width="2.5"/>
+<text x="214" y="186" class="lbl" style="fill:#ECE4D6" text-anchor="middle">TRIM</text>
+<text x="214" y="198" class="sub" text-anchor="middle">0 dB</text>
+<rect x="288" y="140" width="76" height="32" rx="2" fill="none" stroke="#3A322C"/>
+<circle cx="300" cy="156" r="4" fill="#3A322C"/>
+<text x="310" y="160" class="lbl">MIDI IN</text>
+<line x1="16" y1="214" x2="376" y2="214" stroke="#3A322C"/>
+<text x="28" y="232" class="sub" style="fill:#A89E90">Feeding the lead instance on “Master”.</text>
+<text x="28" y="246" class="sub">Scenes, knobs and look are played there.</text>
+<rect x="278" y="224" width="86" height="22" rx="2" fill="none" stroke="#3A322C"/>
+<text x="321" y="239" class="lbl" style="fill:#ECE4D6" text-anchor="middle">MAKE LEAD</text>
+<text x="410" y="24" class="cap">B · NOW-CARD STATES (same slot in the PLAY view)</text>
+<rect x="410" y="36" width="280" height="118" rx="2" fill="#151210" stroke="#3A322C"/>
+<text x="420" y="52" class="cap" style="fill:#8A7F73">1 · ENGINE NOT RUNNING</text>
+<rect x="420" y="62" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<path d="M460 89 h16 M468 81 v16" stroke="#8A7F73"/>
+<text x="526" y="78" class="h" style="fill:#ECE4D6">No picture yet</text>
+<text x="526" y="94" class="sub" style="fill:#A89E90">The VJ Engine window is closed.</text>
+<text x="526" y="106" class="sub">Open it, then pick a scene.</text>
+<rect x="526" y="122" width="100" height="22" rx="2" fill="#F0503F" stroke="#F0503F"/>
+<text x="576" y="137" class="lbl" style="fill:#0C0A09" text-anchor="middle">START ENGINE</text>
+<rect x="702" y="36" width="280" height="118" rx="2" fill="#151210" stroke="#3A322C"/>
+<text x="712" y="52" class="cap" style="fill:#8A7F73">2 · STARTING</text>
+<rect x="712" y="62" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<rect x="712" y="114" width="40" height="2" fill="#E9A450"/>
+<text x="818" y="78" class="h" style="fill:#ECE4D6">Starting engine…</text>
+<text x="818" y="94" class="sub" style="fill:#A89E90">Waiting for the window (up to 8 s).</text>
+<text x="818" y="106" class="sub">Nothing? LOCATE VJ ENGINE.EXE</text>
+<rect x="410" y="168" width="280" height="118" rx="2" fill="#151210" stroke="#3A322C"/>
+<text x="420" y="184" class="cap" style="fill:#8A7F73">3 · CONNECTED, NO SOUND</text>
+<rect x="420" y="194" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<rect x="421" y="195" width="94" height="52" fill="#1E1A17"/>
+<text x="526" y="210" class="h" style="fill:#ECE4D6">Mesh Body</text>
+<text x="526" y="226" class="sub" style="fill:#A89E90">SILENT · play something in Live,</text>
+<text x="526" y="238" class="sub">or turn on DEMO to see it move.</text>
+<rect x="526" y="254" width="60" height="22" rx="2" fill="none" stroke="#ECE4D6"/>
+<text x="556" y="269" class="lbl" style="fill:#ECE4D6" text-anchor="middle">DEMO</text>
+<rect x="702" y="168" width="280" height="118" rx="2" fill="#151210" stroke="#E9A450" stroke-width="1.5"/>
+<text x="712" y="184" class="cap" style="fill:#8A7F73">4 · CUED (switch pending)</text>
+<rect x="712" y="194" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<rect x="818" y="254" width="14" height="6" fill="#E9A450" stroke="#E9A450"/>
+<rect x="835" y="254" width="14" height="6" fill="#E9A450" stroke="#E9A450"/>
+<rect x="852" y="254" width="14" height="6" fill="none" stroke="#E9A450"/>
+<rect x="869" y="254" width="14" height="6" fill="none" stroke="#E9A450"/>
+<text x="818" y="210" class="h" style="fill:#E9A450">Halo Ring next</text>
+<text x="818" y="226" class="sub" style="fill:#A89E90">switches on the next beat</text>
+<text x="818" y="238" class="sub">click again = cancel · shift = cut now*</text>
+<rect x="410" y="300" width="280" height="118" rx="2" fill="#151210" stroke="#F0503F" stroke-width="1.5"/>
+<text x="420" y="316" class="cap" style="fill:#8A7F73">5 · BLACKOUT</text>
+<rect x="420" y="326" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<rect x="421" y="327" width="94" height="52" fill="#000"/>
+<path d="M420 326 l96 54" stroke="#F0503F"/>
+<text x="526" y="342" class="h" style="fill:#F0503F">OUTPUT DARK</text>
+<text x="526" y="358" class="sub" style="fill:#A89E90">The audience sees black; all else runs.</text>
+<text x="526" y="370" class="sub">Press BLACKOUT again to return.</text>
+<rect x="702" y="300" width="280" height="118" rx="2" fill="#151210" stroke="#3A322C"/>
+<text x="712" y="316" class="cap" style="fill:#8A7F73">6 · MEDIA IN USE</text>
+<rect x="712" y="326" width="96" height="54" fill="#0C0A09" stroke="#3A322C"/>
+<rect x="716" y="330" width="88" height="46" fill="#5A1A12"/>
+<text x="818" y="342" class="h" style="fill:#ECE4D6">Media Negative</text>
+<text x="818" y="358" class="sub" style="fill:#A89E90">slot 3 · field_02.mp4 · 1280x720</text>
+<text x="818" y="370" class="sub">shown by IMG scenes · clip 4 bars</text>
+<text x="410" y="446" class="sub">* "cut now" needs a small engine change: today every scene switch waits for the beat.</text>
+<text x="410" y="460" class="sub">Signal red = live / output.  Tungsten = pending (cued, armed, loading).  Cyan = moved by MIDI or automation.</text>
+<text x="16" y="300" class="cap">C · SCENE TILE STATES (107 x 30)</text>
+<rect x="16" y="312" width="107" height="30" rx="2" fill="#151210" stroke="#3A322C"/>
+<rect x="20" y="314" width="40" height="26" fill="#1E1A17"/>
+<text x="64" y="331" class="sub" style="fill:#ECE4D6">Corridor</text>
+<text x="16" y="356" class="cap" style="fill:#8A7F73">idle</text>
+<rect x="136" y="312" width="107" height="30" rx="2" fill="#1E1A17" stroke="#A89E90"/>
+<rect x="140" y="314" width="40" height="26" fill="#1E1A17"/>
+<text x="184" y="331" class="sub" style="fill:#ECE4D6">Corridor</text>
+<text x="136" y="356" class="cap" style="fill:#8A7F73">hover</text>
+<rect x="256" y="312" width="107" height="30" rx="2" fill="#1E1A17" stroke="#F0503F"/>
+<rect x="256" y="312" width="3" height="30" fill="#F0503F"/>
+<rect x="260" y="314" width="40" height="26" fill="#1E1A17"/>
+<text x="304" y="331" class="sub" style="fill:#ECE4D6">Mesh Body</text>
+<text x="256" y="356" class="cap" style="fill:#8A7F73">LIVE</text>
+<rect x="16" y="368" width="107" height="30" rx="2" fill="#151210" stroke="#E9A450" stroke-dasharray="3 2" stroke-width="1.5"/>
+<rect x="20" y="370" width="40" height="26" fill="#1E1A17"/>
+<rect x="21" y="385" width="26" height="10" fill="#0C0A09"/>
+<text x="23" y="393" class="cap" style="fill:#E9A450;font-size:8px">CUED</text>
+<text x="64" y="387" class="sub" style="fill:#ECE4D6">Halo Ring</text>
+<text x="16" y="412" class="cap" style="fill:#8A7F73">CUED</text>
+<rect x="136" y="368" width="107" height="30" rx="2" fill="#151210" stroke="#3A322C"/>
+<rect x="140" y="370" width="40" height="26" fill="#1E1A17"/>
+<rect x="141" y="385" width="22" height="10" fill="#0C0A09"/>
+<text x="143" y="393" class="cap" style="fill:#A89E90;font-size:8px">IMG</text>
+<text x="184" y="387" class="sub" style="fill:#ECE4D6">Media Lines</text>
+<text x="136" y="412" class="cap" style="fill:#8A7F73">shows your media</text>
+<rect x="256" y="368" width="107" height="30" rx="2" fill="#0C0A09" stroke="#1E1A17"/>
+<rect x="260" y="370" width="40" height="26" fill="#1E1A17"/>
+<text x="304" y="387" class="sub" style="fill:#8A7F73">—</text>
+<text x="256" y="412" class="cap" style="fill:#8A7F73">no engine</text>
+<text x="16" y="440" class="cap">D · KNOB ANATOMY</text>
+<path d="M46.0 534.0 A34 34 0 1 1 94.0 534.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+<path d="M46.0 534.0 A34 34 0 0 1 77.9 476.9" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+<path d="M79.1 472.1 A39 39 0 0 1 103.6 490.1" fill="none" stroke="#F2937F" stroke-width="2"/>
+<path d="M100 480 l6 -6" stroke="#6FC3D6" stroke-width="2"/>
+<circle cx="70" cy="510" r="24" fill="#151210"/>
+<text x="70" y="514" class="val" text-anchor="middle">x1.20</text>
+<text x="70" y="566" class="lbl" style="fill:#ECE4D6" text-anchor="middle">SPEED</text>
+<text x="70" y="578" class="sub" text-anchor="middle">0 = frozen</text>
+<text x="130" y="478" class="sub" style="fill:#A89E90">track: line colour, 270° sweep, 3 px, round caps</text>
+<text x="130" y="492" class="sub" style="fill:#A89E90">value arc: bone, grows from the 7 o’clock position</text>
+<text x="130" y="506" class="sub" style="fill:#A89E90">outer ring (halation): how much the sound moves it right now</text>
+<text x="130" y="520" class="sub" style="fill:#A89E90">centre: a real unit (x1.20, 35 %, 2 bars, FROZEN), never a bare 0-100</text>
+<text x="130" y="534" class="sub" style="fill:#A89E90">label in tracked caps; sub-line says what it does in THIS scene</text>
+<text x="130" y="548" class="sub" style="fill:#A89E90">cyan tick for 1 s: the value was moved by MIDI or automation</text>
+</svg>

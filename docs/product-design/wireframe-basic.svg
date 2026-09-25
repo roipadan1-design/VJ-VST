@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="920" viewBox="0 0 760 460" font-family="IBM Plex Sans Condensed, Arial Narrow, sans-serif">
+  <!-- WIREFRAME: PLAY view (Basic). 760 x 460 logical px at 100 %. Lead instance (role MIX).
+       Tokens: ink-0 #0C0A09, ink-1 #151210, ink-2 #1E1A17, line #3A322C, bone #ECE4D6, ash #A89E90,
+       dust #8A7F73, signal #F0503F, tungsten #E9A450, halation #F2937F, remote #6FC3D6.
+       State shown: scene "Mesh Body" is LIVE, "Halo Ring" is CUED (switches on the next beat). -->
+  <title>PLAY view (Basic), 760 x 460</title>
+  <defs>
+    <style>
+      .lbl{fill:#A89E90;font-size:9px;letter-spacing:1.2px;font-weight:600}
+      .val{fill:#ECE4D6;font-size:10px;font-family:IBM Plex Mono, Consolas, monospace}
+      .sub{fill:#8A7F73;font-size:9px}
+      .name{fill:#ECE4D6;font-size:11px}
+      .note{fill:#6FC3D6;font-size:8px;font-family:IBM Plex Mono, Consolas, monospace}
+    </style>
+    <linearGradient id="thumbA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E1A17"/><stop offset="0.55" stop-color="#5A1A12"/><stop offset="1" stop-color="#0C0A09"/></linearGradient>
+    <linearGradient id="thumbB" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0C0A09"/><stop offset="0.5" stop-color="#3A322C"/><stop offset="1" stop-color="#151210"/></linearGradient>
+  </defs>
+
+  <rect width="760" height="460" fill="#0C0A09"/>
+
+  <!-- HEADER 0-44 -->
+  <rect x="0" y="0" width="760" height="44" fill="#151210"/>
+  <line x1="0" y1="44" x2="760" y2="44" stroke="#3A322C"/>
+  <text x="16" y="27" fill="#ECE4D6" font-size="14" font-weight="700" letter-spacing="4">SAFELIGHT</text>
+  <rect x="122" y="27" width="4" height="4" fill="#F0503F"/>
+  <!-- role chip: this instance is the LEAD (MIX); track name from the host -->
+  <rect x="140" y="11" width="118" height="22" rx="2" fill="none" stroke="#3A322C"/>
+  <text x="150" y="26" class="lbl" style="fill:#ECE4D6">LEAD · MIX</text>
+  <text x="218" y="26" class="sub">Master ▾</text>
+  <!-- engine pill -->
+  <rect x="270" y="11" width="262" height="22" rx="2" fill="#0C0A09" stroke="#3A322C"/>
+  <circle cx="283" cy="22" r="4" fill="#F0503F"/>
+  <text x="294" y="26" class="val">ENGINE  60 fps · 124.0 BPM · 17.3</text>
+  <!-- expand / edit toggle -->
+  <rect x="546" y="11" width="92" height="22" rx="2" fill="none" stroke="#3A322C"/>
+  <text x="560" y="26" class="lbl" style="fill:#ECE4D6">EDIT  ▸</text>
+  <!-- blackout: isolated top-right, outlined signal red -->
+  <rect x="652" y="9" width="92" height="26" rx="2" fill="none" stroke="#F0503F" stroke-width="1.5"/>
+  <text x="669" y="26" class="lbl" style="fill:#F0503F">BLACKOUT</text>
+
+  <!-- LEFT COLUMN x16-456 -->
+  <!-- NOW card -->
+  <text x="16" y="62" class="lbl">NOW</text>
+  <rect x="16" y="68" width="200" height="112" fill="url(#thumbA)" stroke="#3A322C"/>
+  <!-- HUD-style crop marks on the live thumbnail -->
+  <path d="M16 76 V68 H24 M208 68 H216 V76 M16 172 V180 H24 M208 180 H216 V172" stroke="#ECE4D6" fill="none"/>
+  <text x="22" y="176" class="note" style="fill:#ECE4D6">09</text>
+  <text x="228" y="88" fill="#ECE4D6" font-size="20" font-weight="600">Mesh Body</text>
+  <text x="228" y="106" class="sub">A breathing body of fine plexus lines;</text>
+  <text x="228" y="118" class="sub">it erodes to dust as the track builds.</text>
+  <rect x="228" y="128" width="30" height="12" rx="1" fill="#F0503F"/>
+  <text x="232" y="137" font-size="8" font-weight="700" fill="#0C0A09">LIVE</text>
+  <!-- cue line (tungsten = pending) -->
+  <rect x="228" y="148" width="228" height="32" rx="2" fill="none" stroke="#E9A450"/>
+  <text x="238" y="161" class="lbl" style="fill:#E9A450">NEXT ▸ HALO RING</text>
+  <text x="238" y="174" class="sub" style="fill:#E9A450">switches on the next beat</text>
+  <!-- beat countdown: 4 segments, 2 elapsed -->
+  <rect x="386" y="164" width="14" height="6" fill="#E9A450"/><rect x="403" y="164" width="14" height="6" fill="#E9A450"/>
+  <rect x="420" y="164" width="14" height="6" fill="none" stroke="#E9A450"/><rect x="437" y="164" width="14" height="6" fill="none" stroke="#E9A450"/>
+
+  <!-- SCENES grid: 4 x 4 tiles, thumb + name -->
+  <text x="16" y="202" class="lbl">SCENES</text>
+  <text x="70" y="202" class="sub">16 · click = cue on next beat</text>
+  <rect x="404" y="192" width="24" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="411" y="203" class="sub">◂</text>
+  <rect x="432" y="192" width="24" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="440" y="203" class="sub">▸</text>
+  <g id="tiles">
+    <!-- row 1 -->
+    <rect x="16" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="229" class="name">Hot Blobs</text>
+    <rect x="127" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="229" class="name">Dot Relief</text><rect x="130" y="228.0" width="22" height="10" fill="#0C0A09"/><text x="132" y="236.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="238" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="229" class="name">One Bit</text><rect x="241" y="228.0" width="22" height="10" fill="#0C0A09"/><text x="243" y="236.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="349" y="210" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="212" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="229" class="name">Corridor</text>
+    <!-- row 2 -->
+    <rect x="16" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="263" class="name">Fibers</text>
+    <rect x="127" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="263" class="name">Terminal</text>
+    <rect x="238" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="263" class="name">Ink</text>
+    <rect x="349" y="244" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="246" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="263" class="name">Signal Fog</text>
+    <!-- row 3: Mesh Body LIVE (signal bar), Halo Ring CUED (tungsten outline) -->
+    <rect x="16" y="278" width="107" height="30" fill="#1E1A17" stroke="#F0503F"/><rect x="16" y="278" width="3" height="30" fill="#F0503F"/><rect x="20" y="280" width="40" height="26" fill="url(#thumbA)"/><text x="64" y="297" class="name" font-weight="600">Mesh Body</text>
+    <rect x="127" y="278" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="297" class="name">Morphogen</text>
+    <rect x="238" y="278" width="107" height="30" fill="#151210" stroke="#E9A450" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="240" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="297" class="name" style="fill:#E9A450">Halo Ring</text><rect x="241" y="297.0" width="26" height="10" fill="#0C0A09"/><text x="243" y="305.0" class="note" style="fill:#E9A450">CUED</text>
+    <rect x="349" y="278" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="280" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="297" class="name">Emergence</text><rect x="352" y="297.0" width="22" height="10" fill="#0C0A09"/><text x="354" y="305.0" class="note" style="fill:#A89E90">IMG</text>
+    <!-- row 4 -->
+    <rect x="16" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="18" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="62" y="331" class="name">Negative</text>
+    <rect x="127" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="129" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="173" y="331" class="name">Media Neg.</text><rect x="130" y="330.0" width="22" height="10" fill="#0C0A09"/><text x="132" y="338.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="238" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="240" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="284" y="331" class="name">Media Lines</text><rect x="241" y="330.0" width="22" height="10" fill="#0C0A09"/><text x="243" y="338.0" class="note" style="fill:#A89E90">IMG</text>
+    <rect x="349" y="312" width="107" height="30" fill="#151210" stroke="#3A322C"/><rect x="351" y="314" width="40" height="26" fill="url(#thumbB)"/><text x="395" y="331" class="name">Membrane</text>
+  </g>
+
+  <!-- MOMENTS (snapshots) -->
+  <text x="16" y="364" class="lbl">MOMENTS</text>
+  <text x="84" y="364" class="sub">recall = morph over</text>
+  <rect x="170" y="354" width="44" height="14" rx="2" fill="none" stroke="#3A322C"/><text x="176" y="364" class="val" font-size="9">1 BAR ▾</text>
+  <rect x="16" y="370" width="84" height="36" fill="#1E1A17" stroke="#ECE4D6"/><text x="26" y="393" fill="#ECE4D6" font-size="14" font-weight="700">A</text><text x="42" y="392" class="sub">Intro fog</text>
+  <!-- morph progress in B (recalling) -->
+  <rect x="104" y="370" width="84" height="36" fill="#151210" stroke="#3A322C"/><text x="114" y="393" fill="#ECE4D6" font-size="14" font-weight="700">B</text><text x="130" y="392" class="sub">Build</text><rect x="104" y="402" width="50" height="4" fill="#F2937F"/>
+  <rect x="192" y="370" width="84" height="36" fill="#151210" stroke="#3A322C"/><text x="202" y="393" fill="#ECE4D6" font-size="14" font-weight="700">C</text><text x="218" y="392" class="sub">Drop</text>
+  <rect x="280" y="370" width="84" height="36" fill="none" stroke="#3A322C" stroke-dasharray="2 2"/><text x="290" y="393" fill="#8A7F73" font-size="14" font-weight="700">D</text><text x="306" y="392" class="sub">empty</text>
+  <rect x="372" y="370" width="84" height="36" rx="2" fill="none" stroke="#3A322C"/><text x="394" y="392" class="lbl">SAVE…</text>
+
+  <!-- SIGNAL mini strip -->
+  <text x="16" y="428" class="lbl">SOUND</text>
+  <rect x="62" y="420" width="300" height="8" fill="#1E1A17"/><rect x="62" y="420" width="196" height="8" fill="#ECE4D6"/>
+  <text x="372" y="428" class="val" font-size="9">LIVE</text>
+  <text x="16" y="448" class="sub">Engine window: </text><text x="90" y="448" class="val" font-size="9">SHOW · FULLSCREEN</text>
+
+  <!-- RIGHT COLUMN x472-744 -->
+  <line x1="464" y1="56" x2="464" y2="448" stroke="#3A322C"/>
+  <!-- the Four: hero knobs 2x2, each with scene-specific sub-label -->
+  <g id="knob" font-size="9">
+    <!-- 270-degree knobs: track (line), value arc (bone), outer modulation ring (halation) = how much the sound moves it now -->
+    <path d="M516.0 128.0 A34 34 0 1 1 564.0 128.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M516.0 128.0 A34 34 0 0 1 558.2 75.3" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M560.9 71.1 A39 39 0 0 1 571.6 81.1" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <circle cx="540" cy="104" r="24" fill="#151210"/>
+    <text x="540" y="108" text-anchor="middle" class="val">62%</text>
+    <text x="540" y="154" text-anchor="middle" class="lbl" style="fill:#ECE4D6">INTENSITY</text>
+    <text x="540" y="166" text-anchor="middle" class="sub">light · energy</text>
+    <path d="M652.0 128.0 A34 34 0 1 1 700.0 128.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M652.0 128.0 A34 34 0 0 1 676.0 70.0" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="676" cy="104" r="24" fill="#151210"/>
+    <text x="676" y="108" text-anchor="middle" class="val">x1.00</text>
+    <text x="676" y="154" text-anchor="middle" class="lbl" style="fill:#ECE4D6">SPEED</text>
+    <text x="676" y="166" text-anchor="middle" class="sub">0 = frozen</text>
+    <path d="M516.0 248.0 A34 34 0 1 1 564.0 248.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M516.0 248.0 A34 34 0 0 1 524.6 193.7" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M522.3 189.3 A39 39 0 0 1 554.4 187.7" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <circle cx="540" cy="224" r="24" fill="#151210"/>
+    <text x="540" y="228" text-anchor="middle" class="val">40%</text>
+    <text x="540" y="274" text-anchor="middle" class="lbl" style="fill:#ECE4D6">IMPACT</text>
+    <text x="540" y="286" class="sub" text-anchor="middle">how hard hits land</text>
+    <path d="M652.0 248.0 A34 34 0 1 1 700.0 248.0" fill="none" stroke="#3A322C" stroke-width="3" stroke-linecap="round"/>
+    <path d="M652.0 248.0 A34 34 0 0 1 653.9 198.1" fill="none" stroke="#ECE4D6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M650.7 194.3 A39 39 0 0 1 658.3 189.3" fill="none" stroke="#F2937F" stroke-width="2"/>
+    <!-- remote-change tick: this knob was just moved by MIDI / automation -->
+    <path d="M700 196 l6 -6" stroke="#6FC3D6" stroke-width="2"/>
+    <circle cx="676" cy="224" r="24" fill="#151210"/>
+    <text x="676" y="228" text-anchor="middle" class="val">35%</text>
+    <text x="676" y="274" text-anchor="middle" class="lbl" style="fill:#ECE4D6">ERODE</text>
+    <text x="676" y="286" class="sub" text-anchor="middle">here: body → dust</text>
+  </g>
+  <text x="746" y="64" class="note" text-anchor="end">⌁ = MIDI/automation moved it</text>
+
+  <!-- LISTEN: lamp-toggles (lamp flashes on each hit; off = ignored) -->
+  <text x="476" y="310" class="lbl">LISTEN TO</text>
+  <text x="542" y="310" class="sub">what the picture follows</text>
+  <rect x="476" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="486" cy="329" r="3" fill="#F0503F"/><text x="493" y="333" class="lbl" style="fill:#ECE4D6">KICK</text>
+  <rect x="530" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="540" cy="329" r="3" fill="#3A322C"/><text x="546" y="333" class="lbl" style="fill:#ECE4D6;font-size:8px;letter-spacing:0.4px">SNARE</text>
+  <rect x="584" y="316" width="50" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="594" cy="329" r="3" fill="#3A322C"/><text x="602" y="333" class="lbl" style="fill:#ECE4D6">HAT</text>
+  <rect x="638" y="316" width="50" height="26" rx="2" fill="none" stroke="#3A322C" stroke-dasharray="2 2"/><circle cx="648" cy="329" r="3" fill="none" stroke="#8A7F73"/><text x="656" y="333" class="lbl" style="fill:#8A7F73">BASS</text>
+  <rect x="692" y="316" width="52" height="26" rx="2" fill="#1E1A17" stroke="#ECE4D6"/><circle cx="702" cy="329" r="3" fill="#F2937F"/><text x="709" y="333" class="lbl" style="fill:#ECE4D6;letter-spacing:0.6px">LEVEL</text>
+
+  <!-- ACTIONS -->
+  <rect x="476" y="356" width="130" height="92" rx="2" fill="#1E1A17" stroke="#ECE4D6" stroke-width="1.5"/>
+  <text x="541" y="408" text-anchor="middle" fill="#ECE4D6" font-size="18" font-weight="700" letter-spacing="3">HIT</text>
+  <text x="541" y="424" text-anchor="middle" class="sub">space · MIDI</text>
+  <rect x="614" y="356" width="130" height="42" rx="2" fill="#151210" stroke="#3A322C"/>
+  <text x="679" y="381" text-anchor="middle" class="lbl" style="fill:#ECE4D6">CALM</text><text x="679" y="392" text-anchor="middle" class="sub">reactions fade out · 1 bar</text>
+  <rect x="614" y="406" width="130" height="42" rx="2" fill="#151210" stroke="#3A322C"/>
+  <text x="679" y="431" text-anchor="middle" class="lbl" style="fill:#ECE4D6">FREEZE</text><text x="679" y="442" text-anchor="middle" class="sub">motion stops, grain lives</text>
+</svg>
