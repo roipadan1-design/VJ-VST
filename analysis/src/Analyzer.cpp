@@ -91,7 +91,8 @@ void Analyzer::prepare (double newSampleRate)
 
     auto shortHopSeconds = (float) (shortHop / sampleRate);
     auto hopsPerSecond = (int) std::lround (sampleRate / shortHop);
-    const float refractory[3] = { 0.09f, 0.07f, 0.045f };
+    // Bass fires on the rise (~10 ms before its peak), so its window is 10 ms longer.
+    const float refractory[3] = { 0.10f, 0.07f, 0.045f };
 
     for (int r = 0; r < 3; ++r)
     {
@@ -103,6 +104,7 @@ void Analyzer::prepare (double newSampleRate)
         // 0.15 = a 3 dB low-band rise over the slow envelope.
         const float floors[3] = { 0.15f, 0.07f, 0.05f };
         s.absoluteFloor = floors[r];
+        s.fireOnRise = r == (int) OnsetRegion::bass; // kicks: fire on the rise, 5-10 ms sooner
         trackers[(size_t) r].prepare (hopsPerSecond, shortHopSeconds, s);
     }
 

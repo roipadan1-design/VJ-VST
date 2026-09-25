@@ -28,6 +28,13 @@ public:
         float absoluteFloor = 0.02f;
         float relativeFloor = 0.6f;
         float refractorySeconds = 0.07f;
+        // Fire on the frame the novelty CROSSES the threshold instead of at
+        // its local peak one hop later. Worth it where the novelty rises
+        // slowly (the bass band's fast/slow power ratio peaks 10-20 ms after
+        // the kick). Re-arms once the novelty falls back below the threshold,
+        // so a long rise never fires twice; strength is estimated from the
+        // slope at the crossing.
+        bool fireOnRise = false;
     };
 
     struct Detection
@@ -60,6 +67,8 @@ private:
     float prev2 = 0.0f, prev1 = 0.0f;
     float prev1Threshold = 0.0f;
     int64_t lastFired = -1000000;
+    bool armed = true;
+    int quietHops = 0;
     float lastThreshold = 0.0f;
 };
 
