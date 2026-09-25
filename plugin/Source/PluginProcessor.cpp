@@ -8,7 +8,7 @@ const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Speed", 
 const juce::StringArray VJAnalyzerProcessor::moveIds { "drift", "push", "softness", "sync", "reverse", "freeze" };
 const juce::StringArray VJAnalyzerProcessor::moveNames { "Drift", "Push", "Softness", "Sync", "Reverse", "Freeze" };
 const juce::StringArray VJAnalyzerProcessor::clipSyncNames { "Free", "1 Beat", "1 Bar", "2 Bars", "4 Bars", "8 Bars" };
-const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext" };
+const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext", "sceneGo" };
 const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
 const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
 // Index = engine /v2/look slot. Slot 13 (Calm) is the separate bool parameter "calm".
@@ -233,7 +233,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
                                                        NormalisableRange<float> (0.0f, 150.0f, 1.0f), 0.0f,
                                                        AudioParameterFloatAttributes().withStringFromValueFunction (
                                                            [] (float v, int) { return v < 0.5f ? String ("Off") : String (roundToInt (v)) + " ms"; })));
-    const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene" };
+    const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene", "Go" };
     for (int i = 0; i < actionIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[i], 1 }, actionNames[i], false));
     return layout;
@@ -367,6 +367,63 @@ void VJAnalyzerProcessor::parameterChanged (const juce::String& id, float newVal
     actionPending[(size_t) index] = true;
 }
 
+void VJAnalyzerProcessor::cueScene (int engineIndex)
+{
+    cuedScene = engineIndex;
+}
+
+void VJAnalyzerProcessor::fireScene (int engineIndex)
+{
+    if (engineIndex < 0)
+        return;
+    cuedScene = -1;
+    // Through the host parameter (so Live records/recalls it) and immediately.
+    if (auto* param = state.getParameter ("preset"))
+    {
+        param->beginChangeGesture();
+        param->setValueNotifyingHost (param->convertTo0to1 ((float) (engineIndex + 1)));
+        param->endChangeGesture();
+    }
+    worker.selectPresetNow (engineIndex);
+    firedScene = engineIndex;
+    firedAt = juce::Time::getMillisecondCounterHiRes() * 0.001;
+}
+
+void VJAnalyzerProcessor::stepCue (int direction)
+{
+    const auto status = worker.getEngineStatus();
+    const int n = status.numPresets;
+    if (! status.connected || n <= 0)
+    {
+        worker.stepScene (direction); // no list to cue from: plain previous / next
+        return;
+    }
+    auto base = cuedScene.load();
+    if (base < 0) base = firedScene.load();
+    if (base < 0) base = status.presetIndex;
+    const auto target = (((base + direction) % n) + n) % n;
+    cuedScene = target == status.presetIndex ? -1 : target;
+}
+
+void VJAnalyzerProcessor::goCue()
+{
+    fireScene (cuedScene.exchange (-1));
+}
+
+void VJAnalyzerProcessor::updateCue()
+{
+    const auto fired = firedScene.load();
+    if (fired < 0 && cuedScene.load() < 0)
+        return;
+    const auto live = worker.getEngineStatus().presetIndex;
+    // Fired: shown as "switching" until the engine reports it live (or gives up).
+    if (fired >= 0 && (fired == live || juce::Time::getMillisecondCounterHiRes() * 0.001 - firedAt > 4.0))
+        firedScene = -1;
+    // Cueing the scene that is already live means nothing is cued.
+    if (cuedScene.load() == live)
+        cuedScene = -1;
+}
+
 void VJAnalyzerProcessor::timerCallback()
 {
     updateLatency();
@@ -378,13 +435,16 @@ void VJAnalyzerProcessor::timerCallback()
         if (i >= 1 && i <= 4)
             recallSnapshot (i - 1);
         else if (i == 5 || i == 6)
-            worker.stepScene (i == 5 ? -1 : 1);
+            stepCue (i == 5 ? -1 : 1);
+        else if (i == 7)
+            goCue();
         // Reset, so the next press (whatever the controller sends) fires again.
         if (auto* p = state.getParameter (actionIds[i]))
             p->setValueNotifyingHost (0.0f);
     }
 
     advanceMorph();
+    updateCue();
 
     AnalysisWorker::Controls c;
     c.role = (int) state.getRawParameterValue ("role")->load();

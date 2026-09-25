@@ -88,6 +88,7 @@ private:
     int getNumRows() override;
     void paintListBoxItem (int row, juce::Graphics&, int width, int height, bool selected) override;
     void listBoxItemClicked (int row, const juce::MouseEvent&) override;
+    void listBoxItemDoubleClicked (int row, const juce::MouseEvent&) override;
 
     void setParameter (const juce::String& id, float plainValue);
     void openEngine();
@@ -107,7 +108,7 @@ private:
     MacroKnob sensitivity, trim, lookahead, drift, push, softness, reactivity;
     juce::ComboBox response;
     juce::ToggleButton sendControls { "Send macros" };
-    juce::TextButton previous { "<" }, next { ">" }, hit { "HIT" }, blackout { "BLACKOUT" };
+    juce::TextButton previous { "<" }, next { ">" }, go { "GO" }, hit { "HIT" }, blackout { "BLACKOUT" };
     juce::TextButton freeze { "FREEZE" }, reverse { "REVERSE" }, sync { "SYNC" };
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> moveAttachments;
     juce::ListBox presetList;
@@ -153,6 +154,7 @@ private:
     void ensureMediaScene();
     bool sceneUsesMedia (int index) const { return juce::isPositiveAndBelow (index, status.presetUsesMedia.size()) && status.presetUsesMedia[index]; }
     double hitFlash = -10.0;
+    int shownCue = -1, shownFired = -1; // what the scene list last painted
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VJAnalyzerEditor)
 };

@@ -341,11 +341,18 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     hit.onClick = [this, press] { press ("hit"); hitFlash = now(); };
     addAndMakeVisible (hit);
 
+    // Scenes are cued, then fired: click a scene (or < >) to mark it NEXT,
+    // GO switches to it - on the next beat while Live plays.
     previous.onClick = [press] { press ("scenePrev"); };
     next.onClick = [press] { press ("sceneNext"); };
-    previous.setTooltip ("Previous scene (parameter 'Previous Scene')");
-    next.setTooltip ("Next scene (parameter 'Next Scene')");
+    go.onClick = [press] { press ("sceneGo"); };
+    previous.setTooltip ("Cue the previous scene - GO fires it (parameter 'Previous Scene')");
+    next.setTooltip ("Cue the next scene - GO fires it (parameter 'Next Scene')");
+    go.setTooltip ("Switch to the cued scene (amber). While Live plays it lands on the next beat. "
+                   "MIDI-mappable: parameter 'Go'. Double-click a scene = cue + GO.");
+    go.setColour (juce::TextButton::buttonOnColourId, vjui::amber);
     addAndMakeVisible (previous);
+    addAndMakeVisible (go);
     addAndMakeVisible (next);
 
     engineButton.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
@@ -488,6 +495,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     useMedia.onClick = [this] { if (useMedia.getToggleState()) ensureMediaScene(); };
 
     presetList.setModel (this);
+    presetList.setComponentID ("sceneList"); // found by PluginHarness --cuetest
     presetList.setRowHeight (24);
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
@@ -590,10 +598,7 @@ void VJAnalyzerEditor::selectPreset (int engineIndex)
 {
     if (status.numPresets > 0)
         engineIndex = juce::jlimit (0, status.numPresets - 1, engineIndex);
-
-    // Through the host parameter (so Live records/recalls it) and immediately.
-    setParameter ("preset", (float) (engineIndex + 1));
-    processor.getWorker().selectPresetNow (engineIndex);
+    processor.fireScene (engineIndex);
 }
 
 // The line under each knob: what SHAPE knobs do in the live scene, live
@@ -647,9 +652,19 @@ void VJAnalyzerEditor::timerCallback()
 {
     meters = processor.getWorker().getMeters();
     auto newStatus = processor.getWorker().getEngineStatus();
+    const auto cue = processor.getCuedScene(), fired = processor.getFiredScene();
     const bool listChanged = newStatus.presetNames != status.presetNames || newStatus.presetIndex != status.presetIndex
                           || newStatus.presetUsesMedia != status.presetUsesMedia;
+    const bool cueChanged = cue != shownCue || fired != shownFired;
     status = newStatus;
+    shownCue = cue;
+    shownFired = fired;
+
+    go.setToggleState (cue >= 0, juce::dontSendNotification);
+    if (cueChanged)
+        repaint (sceneNameArea.getUnion (sceneTextArea));
+    if (cue >= 0 || fired >= 0 || cueChanged)
+        presetList.repaint(); // the cued row pulses
 
     if (listChanged)
     {
@@ -722,6 +737,8 @@ int VJAnalyzerEditor::getNumRows() { return status.presetNames.size(); }
 void VJAnalyzerEditor::paintListBoxItem (int row, juce::Graphics& g, int width, int height, bool)
 {
     auto current = row == status.presetIndex;
+    auto cued = row == shownCue;
+    auto firing = row == shownFired && ! current;
     auto r = juce::Rectangle<int> (0, 0, width, height).reduced (2, 1);
     if (current)
     {
@@ -730,9 +747,28 @@ void VJAnalyzerEditor::paintListBoxItem (int row, juce::Graphics& g, int width, 
         g.setColour (vjui::mint);
         g.fillRoundedRectangle (r.removeFromLeft (3).toFloat(), 1.5f);
     }
-    g.setColour (current ? vjui::text : vjui::dim.brighter (0.2f));
+    else if (cued || firing)
+    {
+        // Cued: pulsing amber outline, waits for GO. Firing: solid amber, lands on the beat.
+        auto pulse = 0.55f + 0.45f * (float) std::sin (now() * juce::MathConstants<double>::twoPi * 1.5);
+        g.setColour (vjui::amber.withAlpha (firing ? 0.22f : 0.08f));
+        g.fillRoundedRectangle (r.toFloat(), 5.0f);
+        g.setColour (vjui::amber.withAlpha (firing ? 1.0f : pulse));
+        g.drawRoundedRectangle (r.toFloat().reduced (0.5f), 5.0f, 1.2f);
+    }
+    g.setColour (current || cued || firing ? vjui::text : vjui::dim.brighter (0.2f));
     g.setFont (uiFont (12.5f, current));
     g.drawText (status.presetNames[row], juce::Rectangle<int> (12, 0, width - 52, height), juce::Justification::centredLeft);
+    if (cued || firing)
+    {
+        // Tag left of the IMG badge: NEXT (press GO) / BEAT (switching on the next beat).
+        auto tag = juce::Rectangle<float> ((float) width - 80.0f, (float) height * 0.5f - 7.0f, 36.0f, 14.0f);
+        g.setColour (vjui::amber);
+        g.fillRoundedRectangle (tag, 4.0f);
+        g.setColour (vjui::background);
+        g.setFont (uiFont (9.5f, true));
+        g.drawText (firing ? "BEAT" : "NEXT", tag.toNearestInt(), juce::Justification::centred);
+    }
     if (sceneUsesMedia (row))
     {
         // This scene shows your image / clip (Media scenes always, the others with USE MEDIA).
@@ -746,7 +782,14 @@ void VJAnalyzerEditor::paintListBoxItem (int row, juce::Graphics& g, int width, 
 
 void VJAnalyzerEditor::listBoxItemClicked (int row, const juce::MouseEvent&)
 {
-    selectPreset (row);
+    // Click = cue (NEXT); clicking the live or the cued scene again clears the cue.
+    processor.cueScene (row == status.presetIndex || row == processor.getCuedScene() ? -1 : row);
+    shownCue = -2; // repaint on the next tick
+}
+
+void VJAnalyzerEditor::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)
+{
+    selectPreset (row); // cue + GO in one gesture
 }
 
 void VJAnalyzerEditor::paintHeader (juce::Graphics& g, juce::Rectangle<int> r)
@@ -908,7 +951,21 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     g.setColour (status.connected ? vjui::text : vjui::dim);
     g.setFont (uiFont (19.0f, true));
     g.drawText (status.connected ? status.presetName : juce::String ("-"), sceneNameArea, juce::Justification::centredLeft, true);
-    if (status.connected && status.sceneDescription.isNotEmpty())
+    if (status.connected && juce::isPositiveAndBelow (juce::jmax (shownCue, shownFired), status.presetNames.size()))
+    {
+        // A scene is cued or on its way: say which, and what happens next.
+        const bool firing = shownFired >= 0 && shownFired != status.presetIndex;
+        const auto target = status.presetNames[firing ? shownFired : shownCue];
+        g.setColour (vjui::amber);
+        g.setFont (uiFont (12.5f, true));
+        g.drawText ("NEXT: " + target, sceneTextArea.withHeight (18), juce::Justification::centredLeft, true);
+        g.setColour (vjui::dim.brighter (0.2f));
+        g.setFont (uiFont (11.0f));
+        g.drawFittedText (firing ? juce::String ("switching on the next beat...")
+                                 : juce::String ("press GO to switch (double-click a scene = cue + GO)"),
+                          sceneTextArea.withTrimmedTop (20), juce::Justification::topLeft, 2, 1.0f);
+    }
+    else if (status.connected && status.sceneDescription.isNotEmpty())
     {
         g.setColour (vjui::dim.brighter (0.2f));
         g.setFont (uiFont (11.0f));
@@ -1018,9 +1075,10 @@ void VJAnalyzerEditor::resized()
         hit.setBounds (actions.removeFromLeft (actions.getWidth() / 2).withTrimmedRight (4));
         blackout.setBounds (actions.withTrimmedLeft (4));
         s.removeFromBottom (8);
-        auto nav = s.removeFromBottom (28);
-        previous.setBounds (nav.removeFromLeft (nav.getWidth() / 2).withTrimmedRight (4));
-        next.setBounds (nav.withTrimmedLeft (4));
+        auto nav = s.removeFromBottom (34);
+        previous.setBounds (nav.removeFromLeft (44).withTrimmedRight (4));
+        next.setBounds (nav.removeFromRight (44).withTrimmedLeft (4));
+        go.setBounds (nav.reduced (4, 0));
         s.removeFromBottom (8);
         presetList.setBounds (s);
     }

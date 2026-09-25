@@ -34,7 +34,7 @@ MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
     oscReceiver.addListener (this);
 
     statusSender.connect ("127.0.0.1", 9); // binds a local socket; real targets come from /v2/hello
-    startTimer (200);
+    startTimer (50);
 }
 
 MainComponent::~MainComponent()
@@ -352,6 +352,14 @@ void MainComponent::updateAdaptiveQuality (double now)
 
 void MainComponent::timerCallback()
 {
+    // Status every 200 ms, and on the next 50 ms tick after a scene change,
+    // so the plug-in's scene list follows the switch without lag.
+    const auto liveIndex = presetManager.getCurrentIndex();
+    if (liveIndex == lastStatusIndex && ++fastTicks < 4)
+        return;
+    fastTicks = 0;
+    lastStatusIndex = liveIndex;
+
     auto ports = featureBus.getReplyPorts (nowSeconds());
     if (ports.isEmpty())
         return;

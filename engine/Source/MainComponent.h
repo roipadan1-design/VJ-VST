@@ -71,6 +71,7 @@ private:
     std::atomic<float> clockBpm { 120.0f };
     std::atomic<bool> clockFollowing { false };
     int statusTick = 0;
+    int lastStatusIndex = -2, fastTicks = 0; // status goes out at once on a scene change
 
     // Adaptive quality (Q key cycles Auto / 100 / 75 / 50 %, OSC /v2/quality <0=auto|scale>).
     void updateAdaptiveQuality (double now);

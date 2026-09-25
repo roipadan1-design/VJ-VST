@@ -112,6 +112,18 @@ static int runSelfTest()
     pump (0.5);
     check (std::abs (get ("macro1") - 0.2f) < 0.01f && ! processor.isMorphing(), "morph lands on the snapshot");
 
+    // Scene cue: a click only marks NEXT; GO (the MIDI-mappable parameter) fires it.
+    processor.cueScene (3);
+    pump (0.1);
+    check (processor.getCuedScene() == 3 && (int) get ("preset") == 0, "cueing a scene does not switch it");
+    set ("sceneGo", 1.0f);
+    pump (0.1);
+    check ((int) get ("preset") == 4 && processor.getCuedScene() == -1 && processor.getFiredScene() == 3,
+           "GO fires the cued scene (preset 4 = engine scene 3)");
+    set ("sceneGo", 1.0f);
+    pump (0.1);
+    check ((int) get ("preset") == 4, "GO with nothing cued does nothing");
+
     juce::MemoryBlock saved;
     processor.getStateInformation (saved);
     VJAnalyzerProcessor restored;
@@ -128,6 +140,14 @@ int main (int argc, char** argv)
 
     if (argc > 1 && juce::String (argv[1]) == "--selftest")
         return runSelfTest();
+
+    // --cuetest out.png: with a running engine, clicks a scene in the list
+    // (cue), snapshots the UI, presses GO and reports how long the engine
+    // took to switch (should be at most one beat at the fake 120 BPM).
+    const bool cueTest = argc > 1 && juce::String (argv[1]) == "--cuetest";
+    if (cueTest) { --argc; ++argv; }
+    int cueTarget = -1;
+    double goAt = 0.0, switchedAt = 0.0;
 
     juce::String outPath = argc > 1 ? juce::String (argv[1]) : juce::String ("plugin_ui.png");
     double seconds = argc > 2 ? juce::String (argv[2]).getDoubleValue() : 6.0;
@@ -169,6 +189,44 @@ int main (int argc, char** argv)
             for (auto* child : editor->getChildren())
                 if (auto* b = dynamic_cast<juce::TextButton*> (child); b != nullptr && b->getButtonText() == "USE MEDIA")
                     b->triggerClick();
+        }
+
+        if (cueTest)
+        {
+            auto status = processor.getWorker().getEngineStatus();
+            const auto t = samples / rate;
+            if (cueTarget < 0 && t > 3.0 && status.connected && status.numPresets > 2)
+            {
+                cueTarget = (status.presetIndex + 2) % status.numPresets;
+                auto* list = dynamic_cast<juce::ListBox*> (editor->findChildWithID ("sceneList"));
+                if (list != nullptr)
+                    if (auto* row = list->getComponentAt (list->getRowPosition (cueTarget, true).getCentre()))
+                    {
+                        auto centre = row->getLocalBounds().getCentre().toFloat();
+                        juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), centre, {}, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                            row, row, juce::Time::getCurrentTime(), centre, juce::Time::getCurrentTime(), 1, false);
+                        row->mouseDown (e);
+                        row->mouseUp (e);
+                    }
+                std::printf ("clicked scene %d, cued = %d, live = %d\n", cueTarget, processor.getCuedScene(), status.presetIndex);
+            }
+            else if (cueTarget >= 0 && goAt == 0.0 && t > 4.0)
+            {
+                auto shot = editor->createComponentSnapshot (editor->getLocalBounds(), true, 1.0f);
+                juce::File cuedFile (juce::File::getCurrentWorkingDirectory().getChildFile (outPath).withFileExtension ("").getFullPathName() + "-cued.png");
+                cuedFile.deleteFile();
+                juce::FileOutputStream cuedStream (cuedFile);
+                juce::PNGImageFormat().writeImageToStream (shot, cuedStream);
+                std::printf ("still live = %d before GO (cued %d)\n", status.presetIndex, processor.getCuedScene());
+                if (auto* p = processor.getState().getParameter ("sceneGo"))
+                    p->setValueNotifyingHost (1.0f);
+                goAt = juce::Time::getMillisecondCounterHiRes();
+            }
+            else if (goAt > 0.0 && switchedAt == 0.0 && status.presetIndex == cueTarget)
+            {
+                switchedAt = juce::Time::getMillisecondCounterHiRes();
+                std::printf ("GO -> plug-in sees the switch: %.0f ms (one beat = 500 ms)\n", switchedAt - goAt);
+            }
         }
 
         // Real-time pacing, pumping the message loop for the editor/timers.

@@ -52,7 +52,7 @@ public:
     static const juce::StringArray moveIds, moveNames;
 
     // Momentary actions as host parameters, so a MIDI controller can press
-    // them (Live's MIDI Map): HIT, recall snapshot A-D, previous / next scene.
+    // them (Live's MIDI Map): HIT, recall snapshot A-D, previous / next scene, GO.
     // They fire on the rising edge and reset themselves.
     static const juce::StringArray actionIds;
 
@@ -81,6 +81,14 @@ public:
     int getActiveSnapshot() const noexcept { return activeSnapshot; }
     bool isMorphing() const noexcept { return morph.active; }
 
+    // Scene cue, theatre style: clicking a scene or Previous / Next Scene only
+    // marks it NEXT; GO (parameter "Go") fires it, on the scene's beat grid.
+    // Engine indices; -1 = none. "Fired" = sent, engine not switched yet.
+    void cueScene (int engineIndex);
+    void fireScene (int engineIndex);
+    int getCuedScene() const noexcept { return cuedScene.load(); }
+    int getFiredScene() const noexcept { return firedScene.load(); }
+
     // The performer's stills / clips (media slots 0-7), saved with the Live set.
     // Slot 0 keeps the original "mediaPath" key, so older sets still load.
     static juce::Identifier mediaKey (int slot) { return slot == 0 ? juce::Identifier ("mediaPath") : juce::Identifier ("mediaPath" + juce::String (slot)); }
@@ -101,7 +109,12 @@ private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void timerCallback() override; // pushes parameter values to the worker (message thread)
     void parameterChanged (const juce::String& id, float newValue) override; // momentary actions, any thread
-    std::array<std::atomic<bool>, 7> actionPending {};
+    std::array<std::atomic<bool>, 8> actionPending {};
+    void stepCue (int direction);
+    void goCue();
+    void updateCue();
+    std::atomic<int> cuedScene { -1 }, firedScene { -1 };
+    double firedAt = 0.0;
     void advanceMorph();
     static juce::StringArray snapshotParamIds();
 

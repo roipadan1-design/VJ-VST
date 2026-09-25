@@ -84,8 +84,11 @@ Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Aud
 - **SNAPSHOTS** A-D: light STORE, then click a slot to save the 8 macros, every LOOK knob and the palette.
   Clicking a slot recalls it, morphing over the chosen time (Cut / 1 beat / 1 bar / 4 bars / 16 bars at the
   host tempo). Snapshots are saved with the Live set; the morph time is an automatable parameter.
+- **SCENES** are cued, then fired: clicking a scene (or < >) marks it NEXT (amber), **GO** switches to it on
+  the scene's beat grid while Live plays (at once when stopped). Double-click a scene = cue + GO. The row shows
+  BEAT until the engine has switched.
 - **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black. Momentary host
-  parameters for MIDI buttons: Hit, Snapshot A-D, Previous Scene, Next Scene (fire on the rising edge, reset
+  parameters for MIDI buttons: Hit, Snapshot A-D, Previous Scene, Next Scene (move the cue), Go (fire on the rising edge, reset
   themselves). Toggles: Freeze, Reverse, Sync, Use Media, Blackout, Calm.
 - **MEDIA**: 8 slot buttons (host parameter *Media Slot*, 1-8: which one the scenes show), LOAD a still (PNG /
   JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into the selected slot, CLEAR it, USE MEDIA
