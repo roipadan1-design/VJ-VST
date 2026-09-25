@@ -78,7 +78,7 @@ juce::StringArray VJAnalyzerProcessor::snapshotParamIds()
     for (int i = 0; i < 8; ++i)
         ids.add ("macro" + juce::String (i + 1));
     ids.addArray (lookIds);
-    ids.addArray ({ "drift", "push", "softness" }); // older snapshots simply keep the current values
+    ids.addArray ({ "drift", "push", "softness", "shots", "hud" }); // older snapshots simply keep the current values
     return ids;
 }
 
@@ -223,6 +223,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "reverse", 1 }, "Reverse", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "freeze", 1 }, "Freeze", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "useMedia", 1 }, "Use Media", false));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "shots", 1 }, "Shots", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "hud", 1 }, "HUD", NormalisableRange<float> (0.0f, 1.0f), 0.0f));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "lookahead", 1 }, "Visual Lookahead",
                                                        NormalisableRange<float> (0.0f, 150.0f, 1.0f), 0.0f,
                                                        AudioParameterFloatAttributes().withStringFromValueFunction (
@@ -393,6 +395,8 @@ void VJAnalyzerProcessor::timerCallback()
     for (int i = 0; i < lookIds.size(); ++i)
         c.look[(size_t) i] = state.getRawParameterValue (lookIds[i])->load();
     c.look[13] = state.getRawParameterValue ("calm")->load() > 0.5f ? 1.0f : 0.0f;
+    c.look[14] = state.getRawParameterValue ("shots")->load();
+    c.look[15] = state.getRawParameterValue ("hud")->load();
     auto colours = getPaletteColours();
     for (int i = 0; i < 3; ++i)
     {

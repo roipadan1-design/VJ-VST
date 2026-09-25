@@ -454,6 +454,25 @@ PRESETS = [
             route('audio.high.activity', 'lines.dots', 0.3), route('descriptor.build', 'lines.fill', 0.3)],
            {'intensity': 'glow', 'form': 'stipple', 'scale': 'zoom', 'erode': 'fading lines', 'detail': 'fine lines'},
            seed=1616),
+
+    preset('16 - Membrane.json', 'membrane', 'Membrane',
+           'After the un_source reel: a crumpled sheet of thousands of points; its folds pile the points into bright ridges, '
+           'a band stays in focus while the rest melts into bokeh, pale haze drifts behind. Pair with SHOTS and HUD for the cuts of the reel.',
+           [stage('sheet', 'membrane.fs', [
+               param('morph', 0.0, 0.6, 0.12, integrate=True), param('pan', 0.0, 0.5, 0.05, integrate=True),
+               param('zoom', 0.5, 3.0, 1.2), param('depth', 0, 0.6, 0.25), param('grid', 60, 260, 150),
+               param('fold', 0, 1, 0.6), param('sparse', 0, 1, 0.45), param('focus', 0, 1, 0.45), param('dof', 0, 1, 0.6),
+               param('haze', 0, 1, 0.35), param('sparkle', 0, 1, 0), param('surge', 0, 1, 0),
+               param('emission', 0.2, 4.0, 1.3)])],
+           [route('macro.intensity', 'sheet.emission', 0.6, 0.5), route('macro.form', 'sheet.fold', 0.8, 0.5),
+            route('macro.scale', 'sheet.zoom', -0.6, 0.5), route('macro.erode', 'sheet.sparse', 0.8, 0.5),
+            route('macro.detail', 'sheet.grid', 0.8, 0.5),
+            route('env.kick', 'sheet.surge', 0.6), route('audio.high.activity', 'sheet.sparkle', 0.5),
+            route('descriptor.build', 'sheet.haze', 0.5), route('lfo.phrase', 'sheet.focus', 0.15, 0.5)],
+           {'intensity': 'glow', 'form': 'folds', 'scale': 'size', 'erode': 'thinning', 'detail': 'points'},
+           post={'bloom': {'enabled': True, 'amount': 0.2, 'threshold': 0.85, 'levels': 5},
+                 'toneMap': 'reinhard', 'exposureEv': 0.3, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.3},
+           seed=1717),
 ]
 
 if __name__ == '__main__':

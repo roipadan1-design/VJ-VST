@@ -1,0 +1,475 @@
+{
+  "schemaVersion": "2.0",
+  "id": "membrane",
+  "name": "Membrane",
+  "description": "After the un_source reel: a crumpled sheet of thousands of points; its folds pile the points into bright ridges, a band stays in focus while the rest melts into bokeh, pale haze drifts behind. Pair with SHOTS and HUD for the cuts of the reel.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "sheet",
+      "kind": "generator",
+      "shader": "Instrument/membrane.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "morph",
+          "label": "Morph",
+          "min": 0.0,
+          "max": 0.6,
+          "default": 0.12,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "pan",
+          "label": "Pan",
+          "min": 0.0,
+          "max": 0.5,
+          "default": 0.05,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.5,
+          "max": 3.0,
+          "default": 1.2,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "depth",
+          "label": "Depth",
+          "min": 0,
+          "max": 0.6,
+          "default": 0.25,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "grid",
+          "label": "Grid",
+          "min": 60,
+          "max": 260,
+          "default": 150,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fold",
+          "label": "Fold",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "sparse",
+          "label": "Sparse",
+          "min": 0,
+          "max": 1,
+          "default": 0.45,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "focus",
+          "label": "Focus",
+          "min": 0,
+          "max": 1,
+          "default": 0.45,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "dof",
+          "label": "Dof",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "haze",
+          "label": "Haze",
+          "min": 0,
+          "max": 1,
+          "default": 0.35,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "sparkle",
+          "label": "Sparkle",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "surge",
+          "label": "Surge",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.2,
+          "max": 4.0,
+          "default": 1.3,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "glow",
+      "default": 0.5
+    },
+    {
+      "id": "speed",
+      "slot": 1,
+      "label": "Speed",
+      "default": 0.5
+    },
+    {
+      "id": "form",
+      "slot": 2,
+      "label": "folds",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
+      "slot": 3,
+      "label": "size",
+      "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.4
+    },
+    {
+      "id": "erode",
+      "slot": 5,
+      "label": "thinning",
+      "default": 0.5
+    },
+    {
+      "id": "glide",
+      "slot": 6,
+      "label": "Glide",
+      "default": 0.25
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "points",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 250,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 200,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 110,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 80,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-sheet-emission",
+      "source": "macro.intensity",
+      "destination": "stage.sheet.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-form-sheet-fold",
+      "source": "macro.form",
+      "destination": "stage.sheet.fold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-sheet-zoom",
+      "source": "macro.scale",
+      "destination": "stage.sheet.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-sheet-sparse",
+      "source": "macro.erode",
+      "destination": "stage.sheet.sparse",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-detail-sheet-grid",
+      "source": "macro.detail",
+      "destination": "stage.sheet.grid",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "env-kick-sheet-surge",
+      "source": "env.kick",
+      "destination": "stage.sheet.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-high-activity-sheet-sparkle",
+      "source": "audio.high.activity",
+      "destination": "stage.sheet.sparkle",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 12,
+      "releaseMs": 250
+    },
+    {
+      "id": "descriptor-build-sheet-haze",
+      "source": "descriptor.build",
+      "destination": "stage.sheet.haze",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 120,
+      "releaseMs": 400
+    },
+    {
+      "id": "lfo-phrase-sheet-focus",
+      "source": "lfo.phrase",
+      "destination": "stage.sheet.focus",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.15,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "beat",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.2,
+      "threshold": 0.85,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.3,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.3
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 1717,
+    "notes": "target, not measured"
+  }
+}

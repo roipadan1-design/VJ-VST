@@ -85,6 +85,11 @@ namespace
         uniform vec3 c2;
         uniform float paletteMix;
         uniform float duo;            // 1 = two-layer scene: red = body, green = detail
+        uniform float shotZoom;       // SHOTS: framing held until the next shot
+        uniform vec2 shotOffset;
+        uniform float invertAmt, blackAmt, shapeOn, shapeType, shapeFill;
+        uniform vec4 shapeParams;     // centre (uv), radius (height units), angle
+        uniform float hud, hudSeed;
         uniform float drift;          // MOVE Drift: slow camera over the whole picture
         uniform float driftTime;      // scene clock (stops with Speed 0 / Freeze)
 
@@ -163,9 +168,50 @@ namespace
             return ((a - 0.5) + 0.45 * (b - 0.5)) * 4.2;
         }
 
+)" // split: MSVC caps a single string literal at ~16 KB
+    R"(
         float lineMask (float d, float width)
         {
             return 1.0 - smoothstep (width * 0.5, width * 0.5 + 1.0, abs (d));
+        }
+
+        float segDist (vec2 p, vec2 a, vec2 b)
+        {
+            vec2 pa = p - a, ba = b - a;
+            return length (pa - ba * clamp (dot (pa, ba) / max (dot (ba, ba), 1e-9), 0.0, 1.0));
+        }
+
+        // HUD in pixel space: squares linked by hairlines, crosshairs, big faint circles.
+        float hudLayer (vec2 px, float scale)
+        {
+            float a = 0.0;
+            vec2 res = resolution;
+            vec2 prev = vec2 (0.0);
+            for (int i = 0; i < 5; ++i)
+            {
+                vec2 pt = (vec2 (hash (vec2 (float (i), hudSeed)), hash (vec2 (float (i) + 7.0, hudSeed))) * vec2 (0.8, 0.7) + vec2 (0.1, 0.15)) * res;
+                vec2 d = abs (px - pt);
+                float m = max (d.x, d.y);
+                a = max (a, step (m, 5.0 * scale) * step (3.6 * scale, m) * 0.9);
+                if (i > 0)
+                    a = max (a, lineMask (segDist (px, prev, pt), 1.0) * 0.35);
+                prev = pt;
+            }
+            for (int i = 0; i < 4; ++i)
+            {
+                vec2 pt = (vec2 (hash (vec2 (float (i) + 20.0, hudSeed)), hash (vec2 (float (i) + 31.0, hudSeed))) * 0.8 + 0.1) * res;
+                vec2 d = abs (px - pt);
+                float arm = 9.0 * scale;
+                a = max (a, (step (d.x, 0.6) * step (d.y, arm) + step (d.y, 0.6) * step (d.x, arm)) * 0.6);
+            }
+            for (int i = 0; i < 2; ++i)
+            {
+                vec2 c = (vec2 (hash (vec2 (float (i) + 40.0, hudSeed)), hash (vec2 (float (i) + 51.0, hudSeed))) * 0.6 + 0.2) * res;
+                float r = (0.12 + 0.25 * hash (vec2 (float (i) + 60.0, hudSeed))) * res.y;
+                float dist = length (px - c);
+                a = max (a, lineMask (dist - r, 1.0) * 0.25 + step (dist, r) * 0.06);
+            }
+            return clamp (a, 0.0, 1.0);
         }
 
         void main()
@@ -187,6 +233,8 @@ namespace
                 c = vec2 (c.x * cos (a) - c.y * sin (a), c.x * sin (a) + c.y * cos (a)) / z;
                 pd = c / vec2 (aspect, 1.0) + 0.5 + off;
             }
+            // SHOTS: the framing jumps on a shot and holds (always zoomed in, no edges).
+            pd = 0.5 + (pd - 0.5) / shotZoom + shotOffset;
 
             // --- gate weave: the whole frame drifts a pixel or so, stepped at 24 fps
             vec2 p = pd + weaveOffset / resolution;
@@ -308,6 +356,36 @@ namespace
             // --- smear dropouts: sparse light dashes on single rows during bursts
             float dash = step (1.0 - smear * 0.006 * burst, hash (vec2 (floor (px.x / (46.0 * scale)), srow + filmFrame * 3.1)));
             col = mix (col, c2, dash * 0.65);
+
+            // --- HUD: a measuring-instrument overlay in the light colour
+            vec3 light = mix (vec3 (1.0), c2, paletteMix);
+            if (hud > 0.001)
+                col = mix (col, light, hudLayer (px, scale) * hud);
+
+            // --- SHOTS: shape punch (white, or a window onto an inverted close-up),
+            // a short negative, a black frame
+            if (shapeOn > 0.5)
+            {
+                vec2 sp = (uv - shapeParams.xy) * vec2 (resolution.x / resolution.y, 1.0);
+                float r = shapeParams.z;
+                vec2 dir = vec2 (cos (shapeParams.w), sin (shapeParams.w));
+                float inA = step (length (sp), r);
+                float inB = step (length (sp - dir * r * 0.55), r * 0.9);
+                float mask = shapeType < 0.5 ? inA
+                           : shapeType < 1.5 ? inA * (1.0 - inB)                 // crescent
+                           : shapeType < 2.5 ? inA * inB                         // lens
+                           : inA * step (0.0, dot (sp, dir));                   // half disc
+                vec3 win = texture2D (image, shapeParams.xy + (pd - shapeParams.xy) / 1.8).rgb;
+                float wl = clamp (luma (win), 0.0, 1.0);
+                vec3 inverted = mix (vec3 (1.0 - wl), gradientMap (1.0 - wl), paletteMix);
+                col = mix (col, shapeFill > 0.5 ? light : inverted, mask);
+            }
+            if (invertAmt > 0.0)
+            {
+                float il = clamp (luma (col), 0.0, 1.0);
+                col = mix (col, mix (vec3 (1.0) - col, gradientMap (1.0 - il), paletteMix), invertAmt);
+            }
+            col *= 1.0 - blackAmt;
 
             // --- kick flash: black / mid / light frame
             vec3 flashColour = flashType < 0.5 ? vec3 (0.0) : (flashType < 1.5 ? c1 : c2);
@@ -440,6 +518,15 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
     snareEnv = decay (snareEnv, 0.22);
     hatEnv = decay (hatEnv, 0.08);
     flashTimer = juce::jmax (0.0f, flashTimer - (float) dt);
+    invertTimer = juce::jmax (0.0f, invertTimer - (float) dt);
+    blackTimer = juce::jmax (0.0f, blackTimer - (float) dt);
+    shapeTimer = juce::jmax (0.0f, shapeTimer - (float) dt);
+    const auto shots = look.get (LookSettings::shots);
+    if (shots <= 0.001f)
+    {
+        shotZoom = 1.0f; // knob off: back to the full frame
+        shotOffset = {};
+    }
 
     for (auto& e : signals.events)
     {
@@ -449,6 +536,15 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
             case EventType::userTrigger:
             {
                 kickEnv = 1.0f;
+                // SHOTS: only some hits cut - more with the knob and with
+                // stronger hits; never more than 3 a second.
+                {
+                    const auto s = shots * (e.type == EventType::userTrigger ? 1.0f : reactAmount);
+                    const auto strong = e.type == EventType::userTrigger || e.strength > 0.3f;
+                    if (s > 0.001f && strong && timeSeconds - lastShotTime > 0.34
+                        && random.nextFloat() < s * (0.3f + 0.7f * juce::jlimit (0.0f, 1.0f, e.strength)))
+                        fireShot (s, timeSeconds);
+                }
                 // Flash: scaled by Reactivity/Calm and limited to 3 per second
                 // (photosensitivity guideline) whatever the tempo.
                 auto flash = look.get (LookSettings::flash) * (e.type == EventType::userTrigger ? 1.0f : reactAmount);
@@ -465,6 +561,11 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
                 snareEnv = 1.0f;
                 symbolSeed = (float) random.nextInt (997) + 1.0f;
                 glitchSeed = (float) random.nextInt (997) + 1.0f;
+                if (shots > 0.001f && e.strength > 0.3f && timeSeconds - lastShotTime > 0.34
+                    && random.nextFloat() < shots * reactAmount * 0.5f * e.strength)
+                    fireShot (shots, timeSeconds);
+                else if (shots <= 0.001f && random.nextFloat() < 0.25f)
+                    hudSeed = (float) random.nextInt (997) + 1.0f; // HUD alone: re-dealt now and then
                 break;
             case EventType::hat:
                 hatEnv = 1.0f;
@@ -520,6 +621,46 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
     else if (dust > 0.05f && random.nextFloat() < frameDt * dust / 10.0f)
         hair = { random.nextFloat(), random.nextFloat(), random.nextFloat() * juce::MathConstants<float>::twoPi,
                  60.0f + 120.0f * random.nextFloat(), random.nextFloat(), 0.5f + 2.5f * random.nextFloat(), 0.0f };
+}
+
+void LookPass::fireShot (float shots, double timeSeconds)
+{
+    lastShotTime = timeSeconds;
+    hudSeed = (float) random.nextInt (997) + 1.0f;
+    const auto r = random.nextFloat();
+
+    if (r < 0.45f)
+    {
+        // Reframe: a new "camera" on the same scene, held until the next shot
+        // (one in five goes back to the full frame).
+        if (random.nextFloat() < 0.2f)
+        {
+            shotZoom = 1.0f;
+            shotOffset = {};
+        }
+        else
+        {
+            shotZoom = 1.15f + random.nextFloat() * 0.75f * (0.4f + 0.6f * shots);
+            const auto room = 0.5f * (1.0f - 1.0f / shotZoom) * 0.9f;
+            shotOffset = { (random.nextFloat() * 2.0f - 1.0f) * room, (random.nextFloat() * 2.0f - 1.0f) * room };
+        }
+    }
+    else if (r < 0.62f)
+    {
+        invertTimer = 0.05f + 0.04f * random.nextFloat();   // 3-5 frames of negative
+    }
+    else if (r < 0.92f)
+    {
+        shapeTimer = 0.035f + 0.05f * random.nextFloat();   // 2-5 frames
+        shapeType = (float) random.nextInt (4);
+        shapeFill = random.nextFloat() < 0.45f ? 1.0f : 0.0f;
+        shapeParams = { 0.2f + 0.6f * random.nextFloat(), 0.2f + 0.6f * random.nextFloat(),
+                        0.15f + 0.35f * random.nextFloat(), random.nextFloat() * juce::MathConstants<float>::twoPi };
+    }
+    else
+    {
+        blackTimer = 0.02f;                                  // one black frame
+    }
 }
 
 void LookPass::ensureNoiseTextures()
@@ -687,6 +828,16 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     finalProgram->setUniform ("paletteMix", look.paletteMix);
     finalProgram->setUniform ("duo", look.duo);
     finalProgram->setUniform ("drift", look.drift);
+    finalProgram->setUniform ("shotZoom", shotZoom);
+    finalProgram->setUniform ("shotOffset", shotOffset.x, shotOffset.y);
+    finalProgram->setUniform ("invertAmt", invertTimer > 0.0f ? 1.0f : 0.0f);
+    finalProgram->setUniform ("blackAmt", blackTimer > 0.0f ? 1.0f : 0.0f);
+    finalProgram->setUniform ("shapeOn", shapeTimer > 0.0f ? 1.0f : 0.0f);
+    finalProgram->setUniform ("shapeType", shapeType);
+    finalProgram->setUniform ("shapeFill", shapeFill);
+    finalProgram->setUniform ("shapeParams", shapeParams[0], shapeParams[1], shapeParams[2], shapeParams[3]);
+    finalProgram->setUniform ("hud", look.get (LookSettings::hud));
+    finalProgram->setUniform ("hudSeed", hudSeed);
     finalProgram->setUniform ("driftTime", look.driftTime);
     quad.draw (*finalProgram);
 

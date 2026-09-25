@@ -392,6 +392,15 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         knob->setTooltip (k.tip);
         addAndMakeVisible (knob);
     }
+    {
+        auto* shots = digitalKnobs.add (new MacroKnob (state, "shots", "Shots", vjui::amber, false));
+        shots->setTooltip ("SHOTS - some strong hits become short cuts: a new framing held until the next one, a few frames of negative, "
+                           "a circle / crescent / lens punch, a black frame. More with the knob; max 3 a second.");
+        addAndMakeVisible (shots);
+        auto* hud = digitalKnobs.add (new MacroKnob (state, "hud", "HUD", vjui::text, false));
+        hud->setTooltip ("HUD - a measuring-instrument overlay: crosshairs, small squares linked by hairlines, big faint circles. Re-dealt on every shot.");
+        addAndMakeVisible (hud);
+    }
 
     calm.setClickingTogglesState (true);
     calm.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
@@ -918,7 +927,7 @@ void VJAnalyzerEditor::resized()
         auto row2 = l;
         lookDivider = juce::Rectangle<int> (lookArea.getX() + 14, row2.getY() - 5, lookArea.getWidth() - 28, 1);
 
-        const int knobW = (row1.getWidth() - 24) / 12;
+        const int knobW = (row1.getWidth() - 24) / (filmKnobs.size() + digitalKnobs.size());
         auto film = row1.removeFromLeft (knobW * 5);
         filmCaption = film.removeFromTop (14);
         for (auto* k : filmKnobs)

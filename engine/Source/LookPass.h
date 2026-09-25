@@ -21,19 +21,26 @@
 //  11 Blacks     lifted, tinted blacks (the film base)
 //  12 Reactivity master amount of every audio-driven reaction (1 = as designed)
 //  13 Calm       0/1: fades every audio reaction out over one bar (and back in)
+//  14 Shots      cut grammar (after the un_source reel): selected strong hits
+//                become short cuts - a new framing held until the next shot,
+//                a 2-4 frame negative, a circle / crescent / lens / half-disc
+//                punch (white, or a window onto an inverted close-up), a black
+//                frame. Density grows with the knob; max 3 per second.
+//  15 HUD        measuring-instrument overlay: crosshairs, small squares linked
+//                by hairlines, large faint circles; re-dealt on every shot
 //
 // The 3-colour palette is a gradient map on luminance (shadow / mid / light);
 // `paletteMix` 0 shows the scene's own colours.
 struct LookSettings
 {
-    static constexpr int numSlots = 14;
+    static constexpr int numSlots = 16;
     enum Slot { grain = 0, crush, flash, glitch, trails, symbols, cutRate,
-                smear, halation, weave, dust, blacks, reactivity, calm };
+                smear, halation, weave, dust, blacks, reactivity, calm, shots, hud };
 
     // Ambient defaults: film on, every digital disturbance (flash, glitch,
     // symbols, smear, auto cuts) off until the performer asks for it.
     std::array<float, numSlots> values { 0.3f, 0.35f, 0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
-                                         0.0f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f, 0.0f };
+                                         0.0f, 0.35f, 0.3f, 0.3f, 0.35f, 1.0f, 0.0f, 0.0f, 0.0f };
     std::array<juce::Colour, 3> palette { juce::Colour (0xff050000), juce::Colour (0xffe01008), juce::Colour (0xffff9a86) };
     float paletteMix = 1.0f;
     // Set per frame from the live scene (not a performer control): 1 = the
@@ -89,6 +96,16 @@ private:
     float flashTimer = 0.0f, flashType = 0.0f; // type 0 black, 1 mid colour, 2 light colour
     double lastFlashTime = -10.0;
     float symbolSeed = 1.0f, glitchSeed = 1.0f;
+
+    // SHOTS state (see slot 14).
+    float shotZoom = 1.0f;
+    juce::Point<float> shotOffset;
+    float invertTimer = 0.0f, blackTimer = 0.0f, shapeTimer = 0.0f;
+    float shapeType = 0.0f, shapeFill = 0.0f;
+    std::array<float, 4> shapeParams { 0.5f, 0.5f, 0.3f, 0.0f }; // centre x, y (uv), radius (height units), angle
+    float hudSeed = 1.0f;
+    double lastShotTime = -10.0;
+    void fireShot (float shots, double timeSeconds);
 
     // Film state, advanced at 24 fps (the grain / weave / flicker clock).
     double filmTime = 0.0;
