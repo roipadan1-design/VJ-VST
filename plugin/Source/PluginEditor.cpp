@@ -221,6 +221,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     : AudioProcessorEditor (p), processor (p),
       sensitivity (p.getState(), "sensitivity", "Hit Sens", vjui::amber, false),
       trim (p.getState(), "trim", "Trim", vjui::dim, false),
+      lookahead (p.getState(), "lookahead", "Lookahead", vjui::violet, false),
       drift (p.getState(), "drift", "Drift", vjui::mint, false),
       push (p.getState(), "push", "Push", vjui::mint, false),
       softness (p.getState(), "softness", "Softness", vjui::magenta, false),
@@ -267,7 +268,9 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     reactivity.setTooltip ("REACTIVITY - how much the picture follows the sound at all (1 = as designed, 0 = only knobs and LFOs).");
     sensitivity.setTooltip ("How easily hits are detected (more or fewer hits).");
     trim.setTooltip ("Input level for the analysis only - the audio is never changed.");
-    for (auto* k : { &drift, &push, &softness, &reactivity, &sensitivity, &trim })
+    lookahead.setTooltip ("VISUAL LOOKAHEAD - delays the sound by this much (Live compensates) so the visuals can react early and land "
+                          "exactly with the music. Only for playback / DJ sets: live instruments through Live would be late too. 0 = off.");
+    for (auto* k : { &drift, &push, &softness, &reactivity, &sensitivity, &trim, &lookahead })
         addAndMakeVisible (k);
 
     struct ToggleDef { juce::TextButton* button; const char* id; juce::Colour colour; const char* tip; };
@@ -553,6 +556,7 @@ void VJAnalyzerEditor::updateKnobLabels()
     macros[1]->setSubLabel (speedText, speedColour);
     macros[6]->setSubLabel (paramText ("macro7"), vjui::dim);
     push.setSubLabel (paramText ("push"), vjui::dim);
+    lookahead.setSubLabel (paramText ("lookahead"), vjui::dim);
     softness.setSubLabel (paramText ("softness"), vjui::dim);
     auto impactName = status.connected ? status.macroLabels[4] : juce::String();
     macros[4]->setSubLabel (impactName.equalsIgnoreCase ("impact") ? juce::String() : impactName, vjui::mint.withAlpha (0.85f));
@@ -839,8 +843,10 @@ void VJAnalyzerEditor::resized()
         sendControls.setBounds (opts);
         s.removeFromBottom (6);
         auto knobs = s.removeFromBottom (92);
-        sensitivity.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2));
-        trim.setBounds (knobs);
+        auto third = knobs.getWidth() / 3;
+        sensitivity.setBounds (knobs.removeFromLeft (third));
+        trim.setBounds (knobs.removeFromLeft (third));
+        lookahead.setBounds (knobs);
     }
 
     // SHAPE: five knobs in a row.

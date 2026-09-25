@@ -82,6 +82,7 @@ private:
 
     int requestedOrCurrent() const noexcept { return pendingIndex >= 0 ? pendingIndex : currentIndex; }
     bool activate (int index, FrameContext& frame);
+    void prebuild (int index, FrameContext& frame);
     bool ensurePrograms (juce::OpenGLContext&);
 
     void updateAutoCut (const FrameContext& frame, const LookSettings& look);
@@ -93,6 +94,11 @@ private:
     std::unique_ptr<PresetInstance> current, outgoing;
     std::atomic<int> currentIndex { -1 };   // read by the status timer on the message thread
     int pendingIndex = -1;
+    // A requested scene is built (shaders compiled) as soon as it is asked
+    // for and swapped in on the grid, so the cut lands exactly on the beat.
+    std::unique_ptr<PresetInstance> prebuilt;
+    int prebuiltIndex = -1;
+    double lastBeatTime = -10.0, lastBarTime = -10.0;
     std::atomic<int> requestedIndex { -1 };
 
     Transition transition;

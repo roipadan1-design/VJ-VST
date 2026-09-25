@@ -114,6 +114,11 @@ private:
     std::array<std::atomic<float>, MoveSettings::numSlots> moveValues {};
     SceneClock sceneClock;
     MediaBin mediaBin;
+    // Low latency (/v2/lowlatency <0|1>, default on): wait for the previous
+    // frame's GPU work before sampling the audio features, so the driver
+    // can't queue several frames between the music and the screen.
+    std::atomic<bool> lowLatency { true };
+    void* frameFence = nullptr; // GLsync
     int lastMediaVersion = -1;
     double lastClockBeat = 0.0;
     std::atomic<float> currentSpeed { 1.0f };   // for /v2/status

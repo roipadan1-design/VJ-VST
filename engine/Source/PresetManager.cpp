@@ -171,9 +171,17 @@ bool PresetManager::activate (int index, FrameContext& frame)
     juce::String error;
     const bool cutNow = std::exchange (forceCut, false);
 
-    auto instance = entry.v2 != nullptr
-                      ? V2Instance::create (*entry.v2, shadersDirectory, sourceLibrary, frame.gl, error)
-                      : LegacyInstance::create (entry.legacy, shadersDirectory, frame.gl, error);
+    std::unique_ptr<PresetInstance> instance;
+    if (prebuiltIndex == index && prebuilt != nullptr)
+        instance = std::move (prebuilt);
+    else
+        instance = entry.v2 != nullptr
+                     ? V2Instance::create (*entry.v2, shadersDirectory, sourceLibrary, frame.gl, error)
+                     : LegacyInstance::create (entry.legacy, shadersDirectory, frame.gl, error);
+    if (prebuilt != nullptr)
+        prebuilt->releaseGLObjects();
+    prebuilt.reset();
+    prebuiltIndex = -1;
 
     if (instance == nullptr)
     {
@@ -238,6 +246,20 @@ bool PresetManager::activate (int index, FrameContext& frame)
     return true;
 }
 
+void PresetManager::prebuild (int index, FrameContext& frame)
+{
+    if (prebuilt != nullptr)
+        prebuilt->releaseGLObjects();
+    prebuilt.reset();
+    prebuiltIndex = index; // set even on failure: activate() retries once and logs
+
+    auto& entry = entries.getReference (index);
+    juce::String error;
+    prebuilt = entry.v2 != nullptr
+                 ? V2Instance::create (*entry.v2, shadersDirectory, sourceLibrary, frame.gl, error)
+                 : LegacyInstance::create (entry.legacy, shadersDirectory, frame.gl, error);
+}
+
 void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
 {
     if (entries.isEmpty() || ! ensurePrograms (frame.gl))
@@ -249,8 +271,14 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
 
     // Pick up a new request; schema-2 presets may wait for the next beat/bar.
     auto requested = requestedIndex.exchange (-1);
+    bool arrivedNow = false;
     if (requested >= 0)
+    {
         pendingIndex = (requested == currentIndex.load() && current != nullptr) ? -1 : requested; // re-selecting the live preset is a no-op
+        arrivedNow = pendingIndex >= 0;
+    }
+    if (frame.clock.crossedBeat()) lastBeatTime = frame.now;
+    if (frame.clock.crossedBar())  lastBarTime = frame.now;
 
     if (pendingIndex >= 0)
     {
@@ -261,11 +289,21 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
         const bool waitForGrid = quantize != Quantize::none && frame.clock.isFollowingTransport();
         const bool onGrid = (quantize == Quantize::beat && frame.clock.crossedBeat())
                          || (quantize == Quantize::bar && frame.clock.crossedBar());
+        // A request landing just after the grid line (a button pressed "on"
+        // the beat, 30 Hz automation) belongs to that line: switch now
+        // instead of waiting a whole beat or bar.
+        const bool justMissed = arrivedNow
+                             && ((quantize == Quantize::beat && frame.now - lastBeatTime < 0.1)
+                                 || (quantize == Quantize::bar && frame.now - lastBarTime < 0.1));
 
-        if (forceCut || ! waitForGrid || onGrid)
+        if (forceCut || ! waitForGrid || onGrid || justMissed)
         {
             activate (pendingIndex, frame);
             pendingIndex = -1;
+        }
+        else if (prebuiltIndex != pendingIndex)
+        {
+            prebuild (pendingIndex, frame);
         }
     }
 
@@ -426,6 +464,10 @@ void PresetManager::releaseGLObjects()
 
     quad.release();
     lookPass.release();
+    if (prebuilt != nullptr)
+        prebuilt->releaseGLObjects();
+    prebuilt.reset();
+    prebuiltIndex = -1;
     blendProgram.reset();
     outputProgram.reset();
 }

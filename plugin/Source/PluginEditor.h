@@ -100,7 +100,7 @@ private:
 
     juce::OwnedArray<juce::TextButton> roleButtons;
     juce::OwnedArray<MacroKnob> macros;              // by slot 0-7 (placed in SHAPE / MOVE / REACT)
-    MacroKnob sensitivity, trim, drift, push, softness, reactivity;
+    MacroKnob sensitivity, trim, lookahead, drift, push, softness, reactivity;
     juce::ComboBox response;
     juce::ToggleButton sendControls { "Send macros" };
     juce::TextButton previous { "<" }, next { ">" }, hit { "HIT" }, blackout { "BLACKOUT" };

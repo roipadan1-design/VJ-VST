@@ -86,6 +86,9 @@ void MainComponent::initialise()
 void MainComponent::shutdown()
 {
     spoutSender.shutdown();
+    if (frameFence != nullptr)
+        glDeleteSync ((GLsync) frameFence);
+    frameFence = nullptr;
     presetManager.releaseGLObjects();
     mediaBin.release();
 }
@@ -158,6 +161,14 @@ void MainComponent::render()
         fpsWindowStartSeconds = now;
     }
 
+    if (frameFence != nullptr)
+    {
+        if (lowLatency.load())
+            glClientWaitSync ((GLsync) frameFence, GL_SYNC_FLUSH_COMMANDS_BIT, 50000000); // <= 50 ms
+        glDeleteSync ((GLsync) frameFence);
+        frameFence = nullptr;
+    }
+
     auto signals = featureBus.takeSnapshot (now);
     sectionTracker.update (signals, dt);
     ReactMask react;
@@ -223,6 +234,7 @@ void MainComponent::render()
     // presetManager.render() leaves the default framebuffer (0) holding this
     // frame's final image - share it as-is, no extra copy/blit needed.
     spoutSender.sendFrame (0, physicalWidth, physicalHeight);
+    frameFence = glFenceSync (GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
     if (pendingSnapshot.exchange (false))
         captureSnapshot (physicalWidth, physicalHeight);
@@ -636,6 +648,12 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         auto slot = (int) numberArg (0, -1.0f);
         if (juce::isPositiveAndBelow (slot, LookSettings::numSlots) && message.size() > 1)
             lookValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+        return;
+    }
+
+    if (address == "/v2/lowlatency")
+    {
+        lowLatency = message.size() == 0 || numberArg (0, 1.0f) > 0.5f;
         return;
     }
 

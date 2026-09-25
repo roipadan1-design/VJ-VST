@@ -223,6 +223,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "reverse", 1 }, "Reverse", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "freeze", 1 }, "Freeze", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "useMedia", 1 }, "Use Media", false));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "lookahead", 1 }, "Visual Lookahead",
+                                                       NormalisableRange<float> (0.0f, 150.0f, 1.0f), 0.0f,
+                                                       AudioParameterFloatAttributes().withStringFromValueFunction (
+                                                           [] (float v, int) { return v < 0.5f ? String ("Off") : String (roundToInt (v)) + " ms"; })));
     const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene" };
     for (int i = 0; i < actionIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[i], 1 }, actionNames[i], false));
@@ -261,6 +265,21 @@ void VJAnalyzerProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     lastSampleRate = sampleRate;
     worker.prepare (sampleRate, samplesPerBlock);
+    delayBuffer.setSize (2, (int) std::ceil (sampleRate * 0.16) + samplesPerBlock);
+    delayBuffer.clear();
+    delayWrite = 0;
+    updateLatency();
+}
+
+void VJAnalyzerProcessor::updateLatency()
+{
+    auto ms = state.getRawParameterValue ("lookahead")->load();
+    auto samples = juce::jlimit (0, juce::jmax (0, delayBuffer.getNumSamples() - 1), (int) std::round (ms * 0.001 * lastSampleRate));
+    if (samples != delaySamples.load())
+    {
+        delaySamples = samples;
+        setLatencySamples (samples); // tells Live (delay compensation)
+    }
 }
 
 void VJAnalyzerProcessor::releaseResources()
@@ -272,7 +291,7 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // Audio is untouched: this is an analyser, never a processor of the sound.
+    // Audio is untouched (unless Visual Lookahead delays it, below): this is an analyser.
     const auto numSamples = buffer.getNumSamples();
     const float* left = buffer.getNumChannels() > 0 ? buffer.getReadPointer (0) : nullptr;
     const float* right = buffer.getNumChannels() > 1 ? buffer.getReadPointer (1) : nullptr;
@@ -284,6 +303,27 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         auto m = metadata.getMessage();
         if (m.isNoteOn())
             worker.pushNote (m.getNoteNumber(), m.getVelocity());
+    }
+
+    // Visual look-ahead: the analysis above saw the undelayed audio; what
+    // leaves the plug-in is delayed (and reported to Live as latency).
+    if (const auto delay = delaySamples.load(); delay > 0 && delayBuffer.getNumSamples() > delay)
+    {
+        const auto size = delayBuffer.getNumSamples();
+        for (int ch = 0; ch < juce::jmin (2, buffer.getNumChannels()); ++ch)
+        {
+            auto* io = buffer.getWritePointer (ch);
+            auto* line = delayBuffer.getWritePointer (ch);
+            auto w = delayWrite;
+            for (int i = 0; i < numSamples; ++i)
+            {
+                line[w] = io[i];
+                auto r = w - delay;
+                io[i] = line[r < 0 ? r + size : r];
+                w = w + 1 == size ? 0 : w + 1;
+            }
+        }
+        delayWrite = (delayWrite + numSamples) % size;
     }
 
     vj::protocol::Transport t;
@@ -323,6 +363,8 @@ void VJAnalyzerProcessor::parameterChanged (const juce::String& id, float newVal
 
 void VJAnalyzerProcessor::timerCallback()
 {
+    updateLatency();
+
     for (int i = 0; i < actionIds.size(); ++i)
     {
         if (! actionPending[(size_t) i].exchange (false))

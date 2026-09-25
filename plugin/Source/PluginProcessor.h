@@ -116,6 +116,15 @@ private:
     juce::AudioProcessorValueTreeState state;
     AnalysisWorker worker;
 
+    // Visual look-ahead ("lookahead" ms, default 0 = off): the audio leaving
+    // the plug-in is delayed and reported as latency, so Live's delay
+    // compensation delays everything else too - while the analysis reads the
+    // undelayed input, i.e. the visuals see the music early.
+    juce::AudioBuffer<float> delayBuffer;
+    int delayWrite = 0;
+    std::atomic<int> delaySamples { 0 };
+    void updateLatency();
+
     // Transport discontinuity detection (audio thread only).
     double lastPpq = 0.0, lastSampleRate = 48000.0;
     bool lastPlaying = false;
