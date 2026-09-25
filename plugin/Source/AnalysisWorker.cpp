@@ -263,6 +263,31 @@ void AnalysisWorker::sendControlsIfChanged()
             sendPacket (writer.finish());
         }
 
+    // Media: the engine ignores a repeated path, so re-sending with the rest
+    // of the state (every second) is cheap and survives an engine restart.
+    if (controlsNeverSent || c.mediaPath != sentControls.mediaPath)
+    {
+        if (c.mediaPath.isNotEmpty())
+        {
+            writer.begin ("/v2/media/load");
+            writer.addInt (0);
+            writer.addString (c.mediaPath.toStdString());
+            sendPacket (writer.finish());
+        }
+        else if (sentControls.mediaPath.isNotEmpty())
+        {
+            writer.begin ("/v2/media/clear");
+            writer.addInt (0);
+            sendPacket (writer.finish());
+        }
+    }
+    if (controlsNeverSent || c.useMedia != sentControls.useMedia)
+    {
+        writer.begin ("/v2/media/use");
+        writer.addInt (c.useMedia ? 1 : 0);
+        sendPacket (writer.finish());
+    }
+
     // Preset only on change (never re-asserted): the engine keyboard, other
     // devices or scene links may have moved on and must not be overridden.
     // preset 0 means "leave the engine's choice alone"; 1..64 select index-1.
@@ -368,6 +393,15 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
         for (int i = 0; i < m.size() && i < 8; ++i)
             status.macroLabels.add (m[i].isString() ? m[i].getString() : juce::String());
         status.sceneDescription = m.size() > 8 && m[8].isString() ? m[8].getString() : juce::String();
+    }
+    else if (address == "/v2/media/status" && m.size() >= 6)
+    {
+        // <active> <use> then per slot <name> <w> <h> <loading>; the plug-in uses slot 1.
+        auto asInt = [&m] (int i) { return m[i].isInt32() ? m[i].getInt32() : (int) m[i].getFloat32(); };
+        status.mediaName = m[2].isString() ? m[2].getString() : juce::String();
+        status.mediaWidth = asInt (3);
+        status.mediaHeight = asInt (4);
+        status.mediaLoading = asInt (5) != 0;
     }
     else if (address == "/v2/presets")
     {

@@ -87,6 +87,7 @@ void MainComponent::shutdown()
 {
     spoutSender.shutdown();
     presetManager.releaseGLObjects();
+    mediaBin.release();
 }
 
 void MainComponent::render()
@@ -199,9 +200,12 @@ void MainComponent::render()
     }
 
     videoPlayer.updateGLTexture();
+    mediaBin.uploadPending();
 
     FrameContext frame { openGLContext, time, now, dt, signals, clock, macroBank, &look };
     frame.motion = sceneClock.getFrame();
+    frame.media = mediaBin.getActiveTexture();
+    frame.useMedia = mediaBin.getUseMedia();
     frame.videoTexture = videoPlayer.getTextureID();
     frame.width = physicalWidth;
     frame.height = physicalHeight;
@@ -358,6 +362,23 @@ void MainComponent::timerCallback()
         labels.addString (presetManager.getCurrentDescription());
     }
 
+    // Media bin: on every change and every ~2 s.
+    const bool sendMedia = mediaBin.getVersion() != lastMediaVersion || (statusTick % 10) == 5;
+    juce::OSCMessage media ("/v2/media/status");
+    if (sendMedia)
+    {
+        lastMediaVersion = mediaBin.getVersion();
+        media.addInt32 (mediaBin.getActive());
+        media.addInt32 (mediaBin.getUseMedia() ? 1 : 0);
+        for (auto& i : mediaBin.getInfo())
+        {
+            media.addString (i.name);
+            media.addInt32 (i.width);
+            media.addInt32 (i.height);
+            media.addInt32 (i.loading ? 1 : 0);
+        }
+    }
+
     // Preset names every ~2 s (cheap, and late-joining clients catch up).
     const bool sendList = (statusTick++ % 10) == 0;
     juce::OSCMessage list ("/v2/presets");
@@ -372,6 +393,8 @@ void MainComponent::timerCallback()
             statusSender.sendToIPAddress ("127.0.0.1", port, list);
         if (sendLabels)
             statusSender.sendToIPAddress ("127.0.0.1", port, labels);
+        if (sendMedia)
+            statusSender.sendToIPAddress ("127.0.0.1", port, media);
     }
 }
 
@@ -388,7 +411,7 @@ bool MainComponent::isSupportedVideoFile (const juce::File& file)
 bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 {
     for (auto& path : files)
-        if (isSupportedVideoFile (juce::File (path)))
+        if (isSupportedVideoFile (juce::File (path)) || MediaBin::isSupportedImage (juce::File (path)))
             return true;
 
     return false;
@@ -396,11 +419,18 @@ bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 
 void MainComponent::filesDropped (const juce::StringArray& files, int, int)
 {
+    // Images go into the media bin: the active slot first, then the next
+    // slots (several dropped at once fill several slots).
+    int slot = mediaBin.getActive();
     for (auto& path : files)
     {
         juce::File file (path);
 
-        if (isSupportedVideoFile (file))
+        if (MediaBin::isSupportedImage (file) && slot < MediaBin::numSlots)
+        {
+            mediaBin.requestLoad (slot++, file);
+        }
+        else if (isSupportedVideoFile (file))
         {
             loadVideoFile (file);
             break;
@@ -606,6 +636,20 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
         auto slot = (int) numberArg (0, -1.0f);
         if (juce::isPositiveAndBelow (slot, LookSettings::numSlots) && message.size() > 1)
             lookValues[(size_t) slot] = juce::jlimit (0.0f, 1.0f, numberArg (1, 0.0f));
+        return;
+    }
+
+    if (address.startsWith ("/v2/media/"))
+    {
+        auto slot = (int) numberArg (0, (float) mediaBin.getActive());
+        if (address == "/v2/media/load" && message.size() > 1 && message[1].isString())
+            mediaBin.requestLoad (slot, juce::File (message[1].getString()));
+        else if (address == "/v2/media/select")
+            mediaBin.select (slot);
+        else if (address == "/v2/media/clear")
+            mediaBin.requestClear (slot);
+        else if (address == "/v2/media/use")
+            mediaBin.setUseMedia (numberArg (0, 1.0f) > 0.5f);
         return;
     }
 

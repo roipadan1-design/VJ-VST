@@ -81,6 +81,10 @@ public:
     int getActiveSnapshot() const noexcept { return activeSnapshot; }
     bool isMorphing() const noexcept { return morph.active; }
 
+    // The performer's image (media slot 1), saved with the Live set.
+    juce::String getMediaPath() const { return state.state.getProperty ("mediaPath").toString(); }
+    void setMediaPath (const juce::String& path) { state.state.setProperty ("mediaPath", path, nullptr); }
+
     // The three colours actually sent to the engine (preset or custom).
     std::array<juce::Colour, 3> getPaletteColours() const;
     juce::Colour getCustomColour (int i) const;

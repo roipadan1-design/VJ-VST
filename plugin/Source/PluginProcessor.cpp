@@ -222,6 +222,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "sync", 1 }, "Sync", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "reverse", 1 }, "Reverse", false));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { "freeze", 1 }, "Freeze", false));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { "useMedia", 1 }, "Use Media", false));
     const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene" };
     for (int i = 0; i < actionIds.size(); ++i)
         layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[i], 1 }, actionNames[i], false));
@@ -362,6 +363,8 @@ void VJAnalyzerProcessor::timerCallback()
         c.react[(size_t) i] = state.getRawParameterValue (reactIds[i])->load() > 0.5f;
     for (int i = 0; i < moveIds.size(); ++i)
         c.move[(size_t) i] = state.getRawParameterValue (moveIds[i])->load();
+    c.mediaPath = getMediaPath();
+    c.useMedia = state.getRawParameterValue ("useMedia")->load() > 0.5f;
     worker.setControls (c);
 
     worker.setTarget (state.state.getProperty ("engineHost", "127.0.0.1").toString(),

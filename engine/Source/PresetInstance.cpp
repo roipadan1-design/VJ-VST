@@ -165,12 +165,17 @@ void V2Instance::advanceSources (const FrameContext& f)
     }
 }
 
-void V2Instance::bindSources()
+void V2Instance::bindSources (const FrameContext& f)
 {
     for (auto& s : sourceStates)
     {
         SourceLibrary::Texture tex;
-        if (s.def.type == V2Source::Type::text)
+        const bool wantsMedia = s.def.type == V2Source::Type::media || (s.def.type == V2Source::Type::images && f.useMedia);
+        if (wantsMedia && f.media.id != 0)
+        {
+            tex = f.media;
+        }
+        else if (s.def.type == V2Source::Type::text)
         {
             tex = sources.text (s.def.words[s.index % s.def.words.size()], s.def.font);
         }
@@ -189,7 +194,7 @@ void V2Instance::render (const FrameContext& f, const GLRenderTarget& output)
 {
     modulation.process (f.signals, f.clock, f.macros, f.motion, f.dt, f.now);
     advanceSources (f);
-    bindSources();
+    bindSources (f);
     auto& values = modulation.getValues();
 
     int readIndex = -1; // which stageTargets entry holds the latest image

@@ -136,7 +136,11 @@ private:
     AnalysisWorker::EngineStatus status;
     juce::Rectangle<int> headerArea, signalArea, shapeArea, moveArea, reactArea, scenesArea, lookArea;
     juce::Rectangle<int> sceneNameArea, sceneTextArea, speedTextArea;
-    juce::Rectangle<int> mediaArea; // reserved for the media panel (LOAD / USE MEDIA)
+    juce::Rectangle<int> mediaArea, mediaCaption, mediaInfoArea;
+    juce::TextButton mediaLoad { "LOAD IMAGE" }, mediaClear { "CLEAR" }, useMedia { "USE MEDIA" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> useMediaAttachment;
+    std::unique_ptr<juce::FileChooser> mediaChooser;
+    void loadMedia();
     double hitFlash = -10.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VJAnalyzerEditor)

@@ -7,6 +7,7 @@
 #include "FeatureBus.h"
 #include "Modulation.h"
 #include "Motion.h"
+#include "MediaBin.h"
 
 // The VJ Engine window: owns the GL context, the preset library/compositor
 // (PresetManager), the analysis intake (FeatureBus) and the outputs (window,
@@ -19,7 +20,9 @@
 //               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>,
 //               /v2/look <slot 0-6> <0-1>, /v2/palette <9 floats rgb x3> [mix],
 //               /v2/react <kick> <snare> <hat> <bass> <level> (0/1),
-//               /v2/move <slot 0-5> <0-1> (drift, push, softness, sync, reverse, freeze)
+//               /v2/move <slot 0-5> <0-1> (drift, push, softness, sync, reverse, freeze),
+//               /v2/media/load <slot> <path>, /v2/media/select <slot>, /v2/media/clear <slot>,
+//               /v2/media/use <0|1>  (PNG / JPEG; also by dropping an image on the window)
 //  - legacy:    /preset/select|next|previous, /preset/transitionduration,
 //               /effect/toggle, /effect/param, /display/*, /fullscreen,
 //               /camera/open, /video/load, /debug/snapshot
@@ -110,6 +113,8 @@ private:
     MoveSettings move;
     std::array<std::atomic<float>, MoveSettings::numSlots> moveValues {};
     SceneClock sceneClock;
+    MediaBin mediaBin;
+    int lastMediaVersion = -1;
     double lastClockBeat = 0.0;
     std::atomic<float> currentSpeed { 1.0f };   // for /v2/status
     int lastLabelsIndex = -2;                   // scene whose knob names were last sent

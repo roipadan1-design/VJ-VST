@@ -1,0 +1,487 @@
+{
+  "schemaVersion": "2.0",
+  "id": "media-lines",
+  "name": "Media Lines",
+  "description": "Your loaded image redrawn as fine light linework on black with a sparse stipple, drifting slowly; kicks push in, snares brighten the lines. Shows the built-in forms until an image is loaded.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "frame",
+      "kind": "generator",
+      "shader": "Instrument/media_frame.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.6,
+          "max": 2.5,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fit",
+          "label": "Fit",
+          "min": 0,
+          "max": 1,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "wander",
+          "label": "Wander",
+          "min": 0.0,
+          "max": 0.5,
+          "default": 0.1,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "roam",
+          "label": "Roam",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "surge",
+          "label": "Surge",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ],
+      "sources": {
+        "source": {
+          "type": "media",
+          "fallback": "Images/Forms",
+          "advance": "none"
+        }
+      }
+    },
+    {
+      "id": "lines",
+      "kind": "effect",
+      "shader": "Instrument/media_lines.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "radius",
+          "label": "Radius",
+          "min": 0.8,
+          "max": 4.0,
+          "default": 1.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "threshold",
+          "label": "Threshold",
+          "min": 0.005,
+          "max": 0.2,
+          "default": 0.04,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "dots",
+          "label": "Dots",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fill",
+          "label": "Fill",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.06,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "flash",
+          "label": "Flash",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "emission",
+          "label": "Emission",
+          "min": 0.2,
+          "max": 4.0,
+          "default": 1.2,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "glow",
+      "default": 0.5
+    },
+    {
+      "id": "speed",
+      "slot": 1,
+      "label": "Speed",
+      "default": 0.5
+    },
+    {
+      "id": "form",
+      "slot": 2,
+      "label": "stipple",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
+      "slot": 3,
+      "label": "zoom",
+      "default": 0.5
+    },
+    {
+      "id": "impact",
+      "slot": 4,
+      "label": "Impact",
+      "default": 0.4
+    },
+    {
+      "id": "erode",
+      "slot": 5,
+      "label": "fading lines",
+      "default": 0.5
+    },
+    {
+      "id": "glide",
+      "slot": 6,
+      "label": "Glide",
+      "default": 0.25
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "fine lines",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "kick",
+      "type": "ad",
+      "attackMs": 3,
+      "decayMs": 250,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 200,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "hat",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 110,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "swell",
+      "type": "ad",
+      "attackMs": 5,
+      "decayMs": 900,
+      "peak": 1,
+      "retrigger": "max"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 80,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-lines-emission",
+      "source": "macro.intensity",
+      "destination": "stage.lines.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-intensity-lines-fill",
+      "source": "macro.intensity",
+      "destination": "stage.lines.fill",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.3,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-form-lines-dots",
+      "source": "macro.form",
+      "destination": "stage.lines.dots",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-frame-zoom",
+      "source": "macro.scale",
+      "destination": "stage.frame.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-lines-threshold",
+      "source": "macro.erode",
+      "destination": "stage.lines.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-detail-lines-radius",
+      "source": "macro.detail",
+      "destination": "stage.lines.radius",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "env-kick-frame-surge",
+      "source": "env.kick",
+      "destination": "stage.frame.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "env-snare-lines-flash",
+      "source": "env.snare",
+      "destination": "stage.lines.flash",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.8,
+      "attackMs": 0,
+      "releaseMs": 0,
+      "scaleBy": "macro.impact"
+    },
+    {
+      "id": "audio-high-activity-lines-dots",
+      "source": "audio.high.activity",
+      "destination": "stage.lines.dots",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
+      "attackMs": 12,
+      "releaseMs": 250
+    },
+    {
+      "id": "descriptor-build-lines-fill",
+      "source": "descriptor.build",
+      "destination": "stage.lines.fill",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
+      "attackMs": 120,
+      "releaseMs": 400
+    }
+  ],
+  "triggers": [
+    {
+      "id": "kick",
+      "on": "event.kick",
+      "minStrength": 0.1,
+      "refractoryMs": 90,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "on": "event.hat",
+      "minStrength": 0.1,
+      "refractoryMs": 45,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hat",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "on": "event.userTrigger",
+      "minStrength": 0,
+      "refractoryMs": 50,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "kick",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "swell",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "beat",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.22,
+      "threshold": 0.9,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.3,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.25
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 1616,
+    "notes": "target, not measured"
+  }
+}

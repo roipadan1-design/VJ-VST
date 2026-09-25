@@ -24,6 +24,8 @@ struct FrameContext
     const MacroBank& macros;
     const LookSettings* look = nullptr; // global look (grade, grain, cut rate...), owned by the caller
     MotionFrame motion;                 // scene clock (Speed / Freeze / Reverse / Push / Softness)
+    SourceLibrary::Texture media;       // the performer's active media slot (id 0 = none loaded)
+    bool useMedia = false;              // USE MEDIA: feed it to every "images" source too
     unsigned int videoTexture = 0;
     int width = 0, height = 0;
 
@@ -88,7 +90,7 @@ private:
     };
 
     void advanceSources (const FrameContext&);
-    void bindSources();
+    void bindSources (const FrameContext&);
 
     SourceLibrary& sources;
     juce::Array<SourceState> sourceStates;

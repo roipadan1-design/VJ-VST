@@ -409,6 +409,19 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         addAndMakeVisible (s);
     }
 
+    mediaLoad.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
+    mediaLoad.setTooltip ("Load your own image (PNG / JPEG). The Media scenes use it; USE MEDIA puts it into every scene that works on images.");
+    mediaLoad.onClick = [this] { loadMedia(); };
+    addAndMakeVisible (mediaLoad);
+    mediaClear.setTooltip ("Remove the image (scenes go back to their built-in forms)");
+    mediaClear.onClick = [this] { processor.setMediaPath ({}); };
+    addAndMakeVisible (mediaClear);
+    useMedia.setClickingTogglesState (true);
+    useMedia.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
+    useMedia.setTooltip ("Feed your image to Dot Relief, One Bit, Emergence and every other scene that works on images");
+    addAndMakeVisible (useMedia);
+    useMediaAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "useMedia", useMedia);
+
     presetList.setModel (this);
     presetList.setRowHeight (24);
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
@@ -474,6 +487,19 @@ void VJAnalyzerEditor::editColour (int index)
         processor.setCustomColour (index, c);
     });
     juce::CallOutBox::launchAsynchronously (std::move (picker), swatches[index]->getScreenBounds(), nullptr);
+}
+
+void VJAnalyzerEditor::loadMedia()
+{
+    juce::File start (processor.getMediaPath());
+    mediaChooser = std::make_unique<juce::FileChooser> ("Load an image", start.existsAsFile() ? start.getParentDirectory() : juce::File(),
+                                                        "*.png;*.jpg;*.jpeg");
+    mediaChooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                               [this] (const juce::FileChooser& chooser) {
+                                   auto picked = chooser.getResult();
+                                   if (picked.existsAsFile())
+                                       processor.setMediaPath (picked.getFullPathName());
+                               });
 }
 
 void VJAnalyzerEditor::selectPreset (int engineIndex)
@@ -589,6 +615,7 @@ void VJAnalyzerEditor::timerCallback()
     repaint (headerArea);
     repaint (signalArea);
     repaint (sceneNameArea.getUnion (sceneTextArea));
+    repaint (mediaInfoArea);
 }
 
 int VJAnalyzerEditor::getNumRows() { return status.presetNames.size(); }
@@ -741,6 +768,20 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     g.drawText ("PALETTE", paletteCaption, juce::Justification::centredLeft);
     g.drawText ("SNAPSHOTS", snapshotCaption, juce::Justification::centredLeft);
     g.drawText ("VISUALS REACT TO", reactToCaption, juce::Justification::centredLeft);
+    g.drawText ("MEDIA", mediaCaption, juce::Justification::centredLeft);
+
+    // What the engine has in the media slot.
+    {
+        juce::File file (processor.getMediaPath());
+        juce::String info = file.getFileName().isEmpty() ? juce::String ("no image - scenes use their built-in forms")
+                          : ! status.connected ? file.getFileName()
+                          : status.mediaLoading ? file.getFileName() + "  (loading...)"
+                          : status.mediaWidth > 0 ? file.getFileName() + "  " + juce::String (status.mediaWidth) + "x" + juce::String (status.mediaHeight)
+                          : file.getFileName() + "  (not loaded)";
+        g.setColour (file.getFileName().isEmpty() ? vjui::dim : vjui::text);
+        g.setFont (uiFont (10.5f));
+        g.drawText (info, mediaInfoArea, juce::Justification::centredLeft, true);
+    }
     g.setColour (vjui::outline);
     g.fillRect (lookDivider);
 
@@ -901,5 +942,12 @@ void VJAnalyzerEditor::resized()
         morphBox.setBounds (snaps.removeFromLeft (104).reduced (0, 1));
         row2.removeFromLeft (24);
         mediaArea = row2;
+        auto m = mediaArea;
+        mediaCaption = m.removeFromTop (14);
+        mediaInfoArea = m.removeFromBottom (14);
+        auto buttons = m.withSizeKeepingCentre (m.getWidth(), 28);
+        mediaLoad.setBounds (buttons.removeFromLeft (buttons.getWidth() * 2 / 5).reduced (2, 0));
+        useMedia.setBounds (buttons.removeFromLeft (buttons.getWidth() * 3 / 5).reduced (2, 0));
+        mediaClear.setBounds (buttons.reduced (2, 0));
     }
 }

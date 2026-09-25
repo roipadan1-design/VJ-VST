@@ -34,11 +34,13 @@ struct V2Parameter
 // "sources" block on a stage):
 //   { "type": "images", "folder": "Images/Portraits", "advance": "bar", "every": 2, "order": "random" }
 //   { "type": "text", "words": ["MIR", "GIB", "ALLES"], "font": "Arial Black", "advance": "beat" }
+//   { "type": "media", "fallback": "Images/Forms" }  - the performer's active media slot
+//     (MediaBin); the fallback folder shows while nothing is loaded
 // advance: none | beat | bar | event.<name> - the source steps to its next
 // image/word on that clock boundary or hit, every `every` times.
 struct V2Source
 {
-    enum class Type { images, text };
+    enum class Type { images, text, media };
     enum class Advance { none, beat, bar, event };
 
     juce::String input;           // ISF image input name

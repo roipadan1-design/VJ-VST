@@ -98,6 +98,8 @@ def triggers(reseed_on_kick=False):
 
 
 FORMS = {'type': 'images', 'folder': 'Images/Forms', 'advance': 'bar', 'every': 2, 'order': 'random'}
+# The performer's active media slot; the forms show while nothing is loaded.
+MEDIA = {'type': 'media', 'fallback': 'Images/Forms', 'advance': 'none'}
 
 
 def param(name, lo, hi, default, label=None, cyclic=False, integrate=False):
@@ -159,6 +161,12 @@ def stage(sid, shader, params, sources=None, kind='generator', scale=1.0):
     return s
 
 
+MEDIA_FRAME_PARAMS = None   # filled in below (needs param())
+NEGATIVE_PARAMS = None
+DUO_POST = {'palette': 'duo', 'bloom': {'enabled': True, 'amount': 0.12, 'threshold': 0.85, 'levels': 4},
+            'toneMap': 'none', 'exposureEv': 0.0, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.2}
+
+
 def check(file_name, body):
     """The control-model rules (see the module docstring)."""
     params = {}
@@ -189,6 +197,12 @@ def check(file_name, body):
     for mid in SHAPE_MACROS:
         assert labels[mid] and labels[mid][0].islower(), '%s: give %s a scene-specific name' % (file_name, mid)
 
+
+MEDIA_FRAME_PARAMS = [param('zoom', 0.6, 2.5, 1.0), param('fit', 0, 1, 1.0), param('wander', 0.0, 0.5, 0.1, integrate=True),
+                      param('roam', 0, 1, 0.5), param('surge', 0, 1, 0)]
+NEGATIVE_PARAMS = [param('polarity', 0, 1, 1), param('threshold', 0.2, 0.8, 0.45), param('contrast', 0, 1, 0.6),
+                   param('detail', 0, 3, 1.0), param('outline', 0, 1, 0.12), param('dither', 0, 1, 0.0),
+                   param('storm', 0, 1, 0), param('cell', 1, 6, 2), param('flash', 0, 1, 0)]
 
 PRESETS = [
     preset('01 - Hot Blobs.json', 'hot-blobs', 'Hot Blobs',
@@ -409,6 +423,37 @@ PRESETS = [
            post={'palette': 'duo', 'bloom': {'enabled': True, 'amount': 0.12, 'threshold': 0.85, 'levels': 4},
                  'toneMap': 'none', 'exposureEv': 0.0, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.2},
            seed=1414, reseed_on_kick=True),
+
+    # --- The performer's own images (MediaBin: drop a PNG/JPEG on the engine or LOAD in the plug-in).
+    preset('14 - Media Negative.json', 'media-negative', 'Media Negative',
+           'Your loaded image through the Negative treatment: the negative body in red, fine bright detail in cyan, '
+           'kicks break it into per-channel 1-bit noise. Shows the built-in forms until an image is loaded.',
+           [stage('frame', 'media_frame.fs', MEDIA_FRAME_PARAMS, {'source': MEDIA}),
+            stage('neg', 'negative_split.fs', NEGATIVE_PARAMS, kind='effect')],
+           [route('macro.intensity', 'neg.threshold', -0.5, 0.5),
+            route('macro.form', 'neg.outline', 0.8, 0.5), route('macro.form', 'neg.detail', 0.3, 0.5),
+            route('macro.scale', 'frame.zoom', 0.6, 0.5),
+            route('macro.erode', 'neg.dither', 0.6, 0.5), route('macro.erode', 'neg.cell', 0.5, 0.5),
+            route('macro.detail', 'neg.contrast', 0.6, 0.5),
+            route('env.kick', 'neg.storm', 0.8), route('env.snare', 'neg.flash', 1.0), route('env.swell', 'frame.surge', 0.4),
+            route('descriptor.build', 'neg.dither', 0.5), route('audio.high.activity', 'neg.outline', 0.3)],
+           {'intensity': 'red body', 'form': 'cyan', 'scale': 'zoom', 'erode': 'noise', 'detail': 'contrast'},
+           post=DUO_POST, seed=1515),
+
+    preset('15 - Media Lines.json', 'media-lines', 'Media Lines',
+           'Your loaded image redrawn as fine light linework on black with a sparse stipple, drifting slowly; '
+           'kicks push in, snares brighten the lines. Shows the built-in forms until an image is loaded.',
+           [stage('frame', 'media_frame.fs', MEDIA_FRAME_PARAMS, {'source': MEDIA}),
+            stage('lines', 'media_lines.fs', [
+               param('radius', 0.8, 4.0, 1.6), param('threshold', 0.005, 0.2, 0.04), param('dots', 0, 1, 0.3),
+               param('fill', 0, 0.5, 0.06), param('flash', 0, 1, 0), param('emission', 0.2, 4.0, 1.2)], kind='effect')],
+           [route('macro.intensity', 'lines.emission', 0.6, 0.5), route('macro.intensity', 'lines.fill', 0.3, 0.5),
+            route('macro.form', 'lines.dots', 0.8, 0.5), route('macro.scale', 'frame.zoom', 0.6, 0.5),
+            route('macro.erode', 'lines.threshold', 0.5, 0.5), route('macro.detail', 'lines.radius', -0.6, 0.5),
+            route('env.kick', 'frame.surge', 0.6), route('env.snare', 'lines.flash', 0.8),
+            route('audio.high.activity', 'lines.dots', 0.3), route('descriptor.build', 'lines.fill', 0.3)],
+           {'intensity': 'glow', 'form': 'stipple', 'scale': 'zoom', 'erode': 'fading lines', 'detail': 'fine lines'},
+           seed=1616),
 ]
 
 if __name__ == '__main__':

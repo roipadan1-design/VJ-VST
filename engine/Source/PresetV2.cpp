@@ -107,8 +107,10 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
                     V2Source src;
                     auto& sv = prop.value;
                     src.input = prop.name.toString();
-                    src.type = str (sv, "type", "images") == "text" ? V2Source::Type::text : V2Source::Type::images;
-                    src.folder = str (sv, "folder");
+                    auto type = str (sv, "type", "images");
+                    src.type = type == "text" ? V2Source::Type::text
+                             : type == "media" ? V2Source::Type::media : V2Source::Type::images;
+                    src.folder = src.type == V2Source::Type::media ? str (sv, "fallback", "Images/Forms") : str (sv, "folder");
                     src.font = str (sv, "font", "Arial Black");
                     if (auto* words = sv.getProperty ("words", juce::var()).getArray())
                         for (auto& w : *words)
@@ -127,7 +129,7 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
                         return false;
                     }
 
-                    if ((src.type == V2Source::Type::images && (src.folder.isEmpty() || src.folder.contains ("..")))
+                    if ((src.type != V2Source::Type::text && (src.folder.isEmpty() || src.folder.contains ("..")))
                         || (src.type == V2Source::Type::text && src.words.isEmpty()))
                     {
                         error = "source '" + src.input + "' needs a safe folder (images) or words (text)";
