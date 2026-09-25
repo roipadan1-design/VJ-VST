@@ -136,7 +136,7 @@ void vjui::LookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton&
 //==============================================================================
 MacroKnob::MacroKnob (juce::AudioProcessorValueTreeState& state, const juce::String& paramId, const juce::String& l,
                       juce::Colour a, bool isLarge)
-    : label (l), accent (a), large (isLarge)
+    : label (l), accent (a), subColour (vjui::dim), large (isLarge)
 {
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
@@ -146,18 +146,36 @@ MacroKnob::MacroKnob (juce::AudioProcessorValueTreeState& state, const juce::Str
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, paramId, slider);
 }
 
+void MacroKnob::setSubLabel (const juce::String& text, juce::Colour colour)
+{
+    if (text != subLabel || colour != subColour)
+    {
+        subLabel = text;
+        subColour = colour;
+        repaint();
+    }
+}
+
 void MacroKnob::resized()
 {
     auto r = getLocalBounds();
-    r.removeFromBottom (large ? 18 : 15);
+    r.removeFromBottom ((large ? 18 : 15) + 14);
     slider.setBounds (r);
 }
 
 void MacroKnob::paint (juce::Graphics& g)
 {
-    g.setColour (large ? vjui::text : vjui::dim);
+    auto r = getLocalBounds();
+    auto sub = r.removeFromBottom (14);
+    g.setColour (large ? vjui::text : vjui::text.withAlpha (0.8f));
     g.setFont (uiFont (large ? 12.0f : 10.5f, true));
-    g.drawText (label.toUpperCase(), getLocalBounds().removeFromBottom (large ? 18 : 15), juce::Justification::centred);
+    g.drawText (label.toUpperCase(), r.removeFromBottom (large ? 18 : 15), juce::Justification::centred);
+    if (subLabel.isNotEmpty())
+    {
+        g.setColour (subColour);
+        g.setFont (uiFont (10.5f));
+        g.drawText (subLabel, sub, juce::Justification::centredTop, true);
+    }
 }
 
 //==============================================================================
@@ -202,7 +220,11 @@ namespace
 VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     : AudioProcessorEditor (p), processor (p),
       sensitivity (p.getState(), "sensitivity", "Hit Sens", vjui::amber, false),
-      trim (p.getState(), "trim", "Trim", vjui::dim, false)
+      trim (p.getState(), "trim", "Trim", vjui::dim, false),
+      drift (p.getState(), "drift", "Drift", vjui::mint, false),
+      push (p.getState(), "push", "Push", vjui::mint, false),
+      softness (p.getState(), "softness", "Softness", vjui::magenta, false),
+      reactivity (p.getState(), "reactivity", "Reactivity", vjui::magenta, false)
 {
     setLookAndFeel (&lookAndFeel);
     auto& state = processor.getState();
@@ -217,32 +239,78 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         addAndMakeVisible (b);
     }
 
-    const juce::Colour accents[] = { vjui::magenta, vjui::mint, vjui::violet, vjui::amber };
+    // Macro slots: SHAPE (0 Intensity, 2 Form, 3 Scale, 5 Erode, 7 Detail),
+    // MOVE (1 Speed, 6 Glide), REACT (4 Impact).
+    const juce::Colour macroAccents[] = { vjui::amber, vjui::mint, vjui::violet, vjui::violet,
+                                          vjui::magenta, vjui::violet, vjui::mint, vjui::violet };
+    const bool macroLarge[] = { true, true, true, true, false, true, false, true };
+    const char* macroTips[] = {
+        "INTENSITY - light and energy of the scene.",
+        "SPEED - how fast everything in the scene moves. 0 = frozen, middle = the designed speed, full = x4. Hits never change speed.",
+        "FORM - the scene's character (the line under the knob says what it is here).",
+        "SCALE - bigger as you turn it up.",
+        "IMPACT - how hard each hit (kick, snare, HIT) lands. 0 = no hit reactions at all.",
+        "ERODE - from pristine to worn, torn and dissolved.",
+        "GLIDE - inertia: how long speed changes take to arrive (0 - 4 bars).",
+        "DETAIL - density and fineness." };
     for (int i = 0; i < 8; ++i)
-        addAndMakeVisible (macros.add (new MacroKnob (state, "macro" + juce::String (i + 1), VJAnalyzerProcessor::macroNames[i],
-                                                      i < 4 ? accents[i] : vjui::dim.brighter (0.3f), i < 4)));
+    {
+        auto* k = macros.add (new MacroKnob (state, "macro" + juce::String (i + 1), VJAnalyzerProcessor::macroNames[i],
+                                             macroAccents[i], macroLarge[i]));
+        k->setTooltip (macroTips[i]);
+        addAndMakeVisible (k);
+    }
 
-    addAndMakeVisible (sensitivity);
-    addAndMakeVisible (trim);
+    drift.setTooltip ("DRIFT - a slow camera over the whole picture (push-in, turn, pan). Stops with Speed 0 / Freeze.");
+    push.setTooltip ("PUSH - how much the music speeds motion up (loud passages up to x2). Never moves a frozen scene.");
+    softness.setTooltip ("SOFTNESS - how long every hit reaction lingers (decays x0.5 - x4).");
+    reactivity.setTooltip ("REACTIVITY - how much the picture follows the sound at all (1 = as designed, 0 = only knobs and LFOs).");
+    sensitivity.setTooltip ("How easily hits are detected (more or fewer hits).");
+    trim.setTooltip ("Input level for the analysis only - the audio is never changed.");
+    for (auto* k : { &drift, &push, &softness, &reactivity, &sensitivity, &trim })
+        addAndMakeVisible (k);
+
+    struct ToggleDef { juce::TextButton* button; const char* id; juce::Colour colour; const char* tip; };
+    const ToggleDef toggles[] = {
+        { &freeze, "freeze", vjui::text, "Stops all motion (the film grain keeps running). Hits still land unless Impact is 0." },
+        { &reverse, "reverse", vjui::violet, "Runs all motion backwards." },
+        { &sync, "sync", vjui::amber, "Speeds follow the tempo (the designed speed at 120 BPM)." } };
+    for (auto& t : toggles)
+    {
+        t.button->setClickingTogglesState (true);
+        t.button->setColour (juce::TextButton::buttonOnColourId, t.colour);
+        t.button->setTooltip (t.tip);
+        addAndMakeVisible (t.button);
+        moveAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, t.id, *t.button));
+    }
 
     response.addItemList ({ "Adaptive", "Locked" }, 1);
+    response.setTooltip ("Adaptive: follows each song's loudness. Locked: stays put after calibration.");
     addAndMakeVisible (response);
     responseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "normalizer", response);
 
+    sendControls.setTooltip ("Only ONE instance should send the knobs (normally the one on the master).");
     addAndMakeVisible (sendControls);
     sendAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "sendControls", sendControls);
 
     blackout.setClickingTogglesState (true);
     blackout.setColour (juce::TextButton::buttonOnColourId, vjui::danger);
+    blackout.setTooltip ("Fades the output to black");
     addAndMakeVisible (blackout);
     blackoutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "blackout", blackout);
 
+    // HIT / scene -/+ go through their host parameters, so MIDI-mapped
+    // buttons and these clicks do exactly the same thing.
+    auto press = [this] (const juce::String& id) { setParameter (id, 1.0f); };
     hit.setColour (juce::TextButton::buttonOnColourId, vjui::magenta);
-    hit.onClick = [this] { processor.getWorker().sendUserTrigger(); hitFlash = now(); };
+    hit.setTooltip ("A manual hit (acts like a kick). MIDI-mappable: parameter 'Hit'.");
+    hit.onClick = [this, press] { press ("hit"); hitFlash = now(); };
     addAndMakeVisible (hit);
 
-    previous.onClick = [this] { selectPreset (juce::jmax (0, status.presetIndex - 1)); };
-    next.onClick = [this] { selectPreset (status.presetIndex + 1); };
+    previous.onClick = [press] { press ("scenePrev"); };
+    next.onClick = [press] { press ("sceneNext"); };
+    previous.setTooltip ("Previous scene (parameter 'Previous Scene')");
+    next.setTooltip ("Next scene (parameter 'Next Scene')");
     addAndMakeVisible (previous);
     addAndMakeVisible (next);
 
@@ -258,7 +326,9 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     {
         auto* b = snapshotButtons.add (new juce::TextButton (juce::String::charToString ((juce::juce_wchar) ('A' + i))));
         b->setColour (juce::TextButton::buttonOnColourId, vjui::violet);
-        b->setTooltip ("Recall snapshot (morphs over the selected time). With STORE lit: save the current macros, LOOK and palette here.");
+        b->setTooltip ("Recall snapshot (morphs over the selected time; MIDI-mappable as 'Snapshot "
+                       + juce::String::charToString ((juce::juce_wchar) ('A' + i))
+                       + "'). With STORE lit: save the current knobs, LOOK and palette here.");
         b->onClick = [this, i] {
             if (storeButton.getToggleState())
             {
@@ -266,7 +336,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
                 storeButton.setToggleState (false, juce::dontSendNotification);
             }
             else
-                processor.recallSnapshot (i);
+                setParameter ("snap" + juce::String (i + 1), 1.0f);
         };
         addAndMakeVisible (b);
     }
@@ -291,16 +361,34 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
             state, VJAnalyzerProcessor::reactIds[i], *b));
     }
 
-    // LOOK row (image treatment), FILM row (35mm physics), then Reactivity.
-    struct KnobDef { int slot; juce::Colour accent; };
-    const KnobDef lookRow[] = { { 0, vjui::amber }, { 1, vjui::magenta }, { 7, vjui::violet }, { 3, vjui::violet },
-                                { 4, vjui::mint }, { 5, vjui::text }, { 2, vjui::danger }, { 6, vjui::amber } };
-    const KnobDef filmRow[] = { { 8, vjui::danger }, { 9, vjui::amber }, { 10, vjui::text }, { 11, vjui::dim.brighter (0.4f) },
-                                { 12, vjui::mint } };
-    for (auto& k : lookRow)
-        addAndMakeVisible (lookKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false)));
+    // LOOK: FILM (35mm physics) and DIGITAL (disturbances), by look slot.
+    struct KnobDef { int slot; juce::Colour accent; const char* tip; };
+    const KnobDef filmRow[] = {
+        { 0, vjui::amber, "Film grain, 24 fps, following the image's brightness" },
+        { 8, vjui::danger, "Red glow bleeding out of the highlights" },
+        { 9, vjui::amber, "Gate weave, rare frame slips, flicker, soft colour fringes" },
+        { 10, vjui::text, "Dust specks, hairs and scratches - rare and correlated" },
+        { 11, vjui::dim.brighter (0.4f), "Lifted, tinted blacks (the film base)" } };
+    const KnobDef digitalRow[] = {
+        { 1, vjui::magenta, "Soft S-curve -> posterised -> hard two-tone" },
+        { 4, vjui::mint, "Frame memory: motion leaves a trail" },
+        { 3, vjui::violet, "Row tears, pixel blocks, RGB split (pulsed by hits)" },
+        { 7, vjui::violet, "VHS tracking drift on rows, in bursts" },
+        { 5, vjui::text, "Braille symbol strips, re-dealt on snares" },
+        { 2, vjui::danger, "Chance a kick drops a black / colour frame (max 3 per second)" },
+        { 6, vjui::amber, "Automatic cuts between scenes: off, every 16/8/4/2/1 beats, every kick" } };
     for (auto& k : filmRow)
-        addAndMakeVisible (filmKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false)));
+    {
+        auto* knob = filmKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false));
+        knob->setTooltip (k.tip);
+        addAndMakeVisible (knob);
+    }
+    for (auto& k : digitalRow)
+    {
+        auto* knob = digitalKnobs.add (new MacroKnob (state, VJAnalyzerProcessor::lookIds[k.slot], VJAnalyzerProcessor::lookNames[k.slot], k.accent, false));
+        knob->setTooltip (k.tip);
+        addAndMakeVisible (knob);
+    }
 
     calm.setClickingTogglesState (true);
     calm.setColour (juce::TextButton::buttonOnColourId, vjui::mint);
@@ -309,6 +397,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     calmAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "calm", calm);
 
     paletteBox.addItemList (VJAnalyzerProcessor::paletteNames, 1);
+    paletteBox.setTooltip ("3-colour palette for every scene (Split = red/cyan for Negative; Scene Colors = off)");
     addAndMakeVisible (paletteBox);
     paletteAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (state, "palette", paletteBox);
 
@@ -325,7 +414,7 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     presetList.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (presetList);
 
-    setSize (1060, 740);
+    setSize (1180, 800);
     startTimerHz (30);
 }
 
@@ -397,6 +486,52 @@ void VJAnalyzerEditor::selectPreset (int engineIndex)
     processor.getWorker().selectPresetNow (engineIndex);
 }
 
+// The line under each knob: what SHAPE knobs do in the live scene, live
+// readouts for Speed / Glide / Push / Softness.
+void VJAnalyzerEditor::updateKnobLabels()
+{
+    auto& state = processor.getState();
+    auto paramText = [&state] (const juce::String& id) {
+        auto* p = state.getParameter (id);
+        return p != nullptr ? p->getCurrentValueAsText() : juce::String();
+    };
+
+    const int shapeSlots[] = { 0, 2, 3, 5, 7 };
+    for (auto slot : shapeSlots)
+    {
+        auto sceneName = status.connected ? status.macroLabels[slot] : juce::String();
+        if (sceneName.equalsIgnoreCase (VJAnalyzerProcessor::macroNames[slot]))
+            sceneName = {};
+        macros[slot]->setSubLabel (sceneName, vjui::mint.withAlpha (0.85f));
+    }
+
+    // Speed: what the scene clock actually runs at (Speed x Push, Freeze, Reverse).
+    juce::String speedText;
+    auto speedColour = vjui::dim;
+    if (status.connected)
+    {
+        auto s = status.speed;
+        if (std::abs (s) < 0.005f)
+        {
+            speedText = "FROZEN";
+            speedColour = vjui::danger;
+        }
+        else
+        {
+            speedText = "x" + juce::String (std::abs (s), 2) + (s < 0.0f ? "  reverse" : "");
+            speedColour = vjui::mint;
+        }
+    }
+    else
+        speedText = paramText ("macro2");
+    macros[1]->setSubLabel (speedText, speedColour);
+    macros[6]->setSubLabel (paramText ("macro7"), vjui::dim);
+    push.setSubLabel (paramText ("push"), vjui::dim);
+    softness.setSubLabel (paramText ("softness"), vjui::dim);
+    auto impactName = status.connected ? status.macroLabels[4] : juce::String();
+    macros[4]->setSubLabel (impactName.equalsIgnoreCase ("impact") ? juce::String() : impactName, vjui::mint.withAlpha (0.85f));
+}
+
 void VJAnalyzerEditor::timerCallback()
 {
     meters = processor.getWorker().getMeters();
@@ -422,17 +557,21 @@ void VJAnalyzerEditor::timerCallback()
     for (int i = 0; i < roleButtons.size(); ++i)
         roleButtons[i]->setToggleState (i == role, juce::dontSendNotification);
 
-    // Macros, LOOK and REACT TO only reach the engine from the instance with
+    // Knobs, LOOK and REACT TO only reach the engine from the instance with
     // "Send macros" on - everywhere else they are shown dimmed.
     const bool sending = processor.getState().getRawParameterValue ("sendControls")->load() > 0.5f;
     const auto alpha = sending ? 1.0f : 0.35f;
-    for (auto* c : macros)       c->setAlpha (alpha);
-    for (auto* c : lookKnobs)    c->setAlpha (alpha);
-    for (auto* c : filmKnobs)    c->setAlpha (alpha);
-    calm.setAlpha (alpha);
-    for (auto* c : reactButtons) c->setAlpha (alpha);
-    for (auto* c : swatches)     c->setAlpha (alpha);
-    paletteBox.setAlpha (alpha);
+    juce::Array<juce::Component*> global;
+    for (juce::Component* c : std::initializer_list<juce::Component*> { &drift, &push, &softness, &reactivity, &calm, &freeze,
+                                                                        &reverse, &sync, &paletteBox, &storeButton, &morphBox })
+        global.add (c);
+    for (auto* c : macros)       global.add (c);
+    for (auto* c : filmKnobs)    global.add (c);
+    for (auto* c : digitalKnobs) global.add (c);
+    for (auto* c : reactButtons) global.add (c);
+    for (auto* c : swatches)     global.add (c);
+    for (auto* c : global)
+        c->setAlpha (alpha);
 
     for (int i = 0; i < snapshotButtons.size(); ++i)
     {
@@ -440,16 +579,16 @@ void VJAnalyzerEditor::timerCallback()
         b->setToggleState (i == processor.getActiveSnapshot(), juce::dontSendNotification);
         b->setAlpha ((processor.hasSnapshot (i) || storeButton.getToggleState() ? 1.0f : 0.4f) * alpha);
     }
-    storeButton.setAlpha (alpha);
-    morphBox.setAlpha (alpha);
 
     auto colours = processor.getPaletteColours();
     for (int i = 0; i < swatches.size(); ++i)
         swatches[i]->setColour (colours[(size_t) i]);
 
+    updateKnobLabels();
+
     repaint (headerArea);
     repaint (signalArea);
-    repaint (scenesArea.withHeight (70));
+    repaint (sceneNameArea.getUnion (sceneTextArea));
 }
 
 int VJAnalyzerEditor::getNumRows() { return status.presetNames.size(); }
@@ -565,6 +704,7 @@ void VJAnalyzerEditor::paintSignalPanel (juce::Graphics& g, juce::Rectangle<int>
     drawLamp (g, lamps.removeFromLeft (lampW).toFloat(), meters.lastOnset[1], vjui::violet, "MID");
     drawLamp (g, lamps.removeFromLeft (lampW).toFloat(), meters.lastOnset[2], vjui::mint, "HIGH");
     drawLamp (g, lamps.toFloat(), meters.lastMidi, vjui::amber, "MIDI");
+    r.removeFromTop (4);
 
     // Status line.
     auto& t = meters.transport;
@@ -580,7 +720,7 @@ void VJAnalyzerEditor::paintSignalPanel (juce::Graphics& g, juce::Rectangle<int>
         line << "   gap";
     g.setColour (f.gateOpen ? vjui::text : vjui::dim);
     g.setFont (uiFont (11.0f, true));
-    g.drawText (line, r.removeFromBottom (16), juce::Justification::centredLeft);
+    g.drawText (line, r.removeFromTop (16), juce::Justification::centredLeft);
 }
 
 void VJAnalyzerEditor::paint (juce::Graphics& g)
@@ -588,29 +728,32 @@ void VJAnalyzerEditor::paint (juce::Graphics& g)
     g.fillAll (vjui::background);
     paintHeader (g, headerArea);
     paintSignalPanel (g, signalArea);
-    drawPanel (g, performArea, "PERFORM");
+    drawPanel (g, shapeArea, "SHAPE  -  what the scene looks like");
+    drawPanel (g, moveArea, "MOVE  -  0 = still");
+    drawPanel (g, reactArea, "REACT  -  hits");
     drawPanel (g, scenesArea, "SCENES");
     drawPanel (g, lookArea, "LOOK");
-    {
-        g.setColour (vjui::dim);
-        g.setFont (uiFont (10.5f, true));
-        g.drawText ("FILM", filmCaption, juce::Justification::centredLeft);
-        g.drawText ("REACTION", reactionCaption, juce::Justification::centredLeft);
-        g.drawText ("PALETTE", paletteCaption, juce::Justification::centredLeft);
-        g.drawText ("SNAPSHOTS", snapshotCaption, juce::Justification::centredLeft);
-        g.setColour (vjui::outline);
-        g.fillRect (lookDivider);
-    }
 
     g.setColour (vjui::dim);
     g.setFont (uiFont (10.5f, true));
-    g.drawText ("VISUALS REACT TO", reactArea.withHeight (14), juce::Justification::centredLeft);
+    g.drawText ("FILM", filmCaption, juce::Justification::centredLeft);
+    g.drawText ("DIGITAL", digitalCaption, juce::Justification::centredLeft);
+    g.drawText ("PALETTE", paletteCaption, juce::Justification::centredLeft);
+    g.drawText ("SNAPSHOTS", snapshotCaption, juce::Justification::centredLeft);
+    g.drawText ("VISUALS REACT TO", reactToCaption, juce::Justification::centredLeft);
+    g.setColour (vjui::outline);
+    g.fillRect (lookDivider);
 
-    // Current scene name, large.
-    auto nameArea = scenesArea.reduced (14).withTrimmedTop (18).removeFromTop (30);
+    // Current scene name, large, and what it is.
     g.setColour (status.connected ? vjui::text : vjui::dim);
     g.setFont (uiFont (19.0f, true));
-    g.drawText (status.connected ? status.presetName : juce::String ("-"), nameArea, juce::Justification::centredLeft, true);
+    g.drawText (status.connected ? status.presetName : juce::String ("-"), sceneNameArea, juce::Justification::centredLeft, true);
+    if (status.connected && status.sceneDescription.isNotEmpty())
+    {
+        g.setColour (vjui::dim.brighter (0.2f));
+        g.setFont (uiFont (11.0f));
+        g.drawFittedText (status.sceneDescription, sceneTextArea, juce::Justification::topLeft, 4, 1.0f);
+    }
 
     if (now() - hitFlash < 0.15)
     {
@@ -634,86 +777,129 @@ void VJAnalyzerEditor::resized()
         b->setBounds (roles.removeFromLeft (roleW).reduced (2, 0));
 
     r.removeFromTop (8);
-    lookArea = r.removeFromBottom (228);
+    lookArea = r.removeFromBottom (214);
     r.removeFromBottom (10);
-    signalArea = r.removeFromLeft (280);
-    reactArea = signalArea.reduced (14).removeFromBottom (16 + 6 + 42).removeFromTop (42);
+    signalArea = r.removeFromLeft (250);
+    r.removeFromLeft (10);
+    scenesArea = r.removeFromRight (250);
+    r.removeFromRight (10);
+    shapeArea = r.removeFromTop (236);
+    r.removeFromTop (10);
+    moveArea = r.removeFromLeft (372);
+    r.removeFromLeft (10);
+    reactArea = r;
+
+    // SIGNAL: meters are painted; input controls at the bottom.
     {
-        auto chips = reactArea.withTrimmedTop (16);
+        auto s = signalArea.reduced (14);
+        auto opts = s.removeFromBottom (28);
+        response.setBounds (opts.removeFromLeft (100).reduced (0, 2));
+        opts.removeFromLeft (8);
+        sendControls.setBounds (opts);
+        s.removeFromBottom (6);
+        auto knobs = s.removeFromBottom (92);
+        sensitivity.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2));
+        trim.setBounds (knobs);
+    }
+
+    // SHAPE: five knobs in a row.
+    {
+        auto s = shapeArea.reduced (14).withTrimmedTop (22);
+        const int order[] = { 0, 2, 3, 5, 7 };
+        auto w = s.getWidth() / 5;
+        for (auto slot : order)
+            macros[slot]->setBounds (s.removeFromLeft (w).reduced (6, 0));
+    }
+
+    // MOVE: Speed large, Glide / Drift / Push, then FREEZE / REVERSE / SYNC.
+    {
+        auto m = moveArea.reduced (14).withTrimmedTop (22);
+        auto buttons = m.removeFromBottom (32);
+        m.removeFromBottom (8);
+        macros[1]->setBounds (m.removeFromLeft (132));
+        m.removeFromLeft (6);
+        auto w = m.getWidth() / 3;
+        auto row = m.withSizeKeepingCentre (m.getWidth(), juce::jmin (m.getHeight(), 118));
+        macros[6]->setBounds (row.removeFromLeft (w).reduced (2, 0));
+        drift.setBounds (row.removeFromLeft (w).reduced (2, 0));
+        push.setBounds (row.reduced (2, 0));
+        auto bw = buttons.getWidth() / 3;
+        freeze.setBounds (buttons.removeFromLeft (bw).reduced (3, 0));
+        reverse.setBounds (buttons.removeFromLeft (bw).reduced (3, 0));
+        sync.setBounds (buttons.reduced (3, 0));
+    }
+
+    // REACT: Impact / Softness / Reactivity, CALM, REACT TO chips.
+    {
+        auto a = reactArea.reduced (14).withTrimmedTop (22);
+        auto chips = a.removeFromBottom (28);
+        reactToCaption = a.removeFromBottom (16);
+        a.removeFromBottom (4);
+        calm.setBounds (a.removeFromBottom (30).withSizeKeepingCentre (120, 30));
+        a.removeFromBottom (6);
+        auto w = a.getWidth() / 3;
+        macros[4]->setBounds (a.removeFromLeft (w).reduced (2, 0));
+        softness.setBounds (a.removeFromLeft (w).reduced (2, 0));
+        reactivity.setBounds (a.reduced (2, 0));
         auto chipW = chips.getWidth() / reactButtons.size();
         for (auto* b : reactButtons)
             b->setBounds (chips.removeFromLeft (chipW).reduced (2, 0));
     }
-    r.removeFromLeft (10);
-    scenesArea = r.removeFromRight (270);
-    r.removeFromRight (10);
-    performArea = r;
 
-    // Perform: 4 large macros in a 2x2 grid, 4 small below, then response controls.
-    auto p = performArea.reduced (14).withTrimmedTop (20);
-    auto snaps = p.removeFromBottom (32);
-    p.removeFromBottom (6);
-    auto bottom = p.removeFromBottom (34);
-    auto small = p.removeFromBottom (78);
-    snapshotCaption = snaps.removeFromLeft (76);
-    for (auto* b : snapshotButtons)
-        b->setBounds (snaps.removeFromLeft (40).reduced (2, 0));
-    snaps.removeFromLeft (8);
-    storeButton.setBounds (snaps.removeFromLeft (72).reduced (2, 0));
-    snaps.removeFromLeft (8);
-    morphBox.setBounds (snaps.removeFromLeft (100).reduced (0, 2));
-    auto cellW = p.getWidth() / 2, cellH = p.getHeight() / 2;
-    for (int i = 0; i < 4; ++i)
-        macros[i]->setBounds (p.getX() + (i % 2) * cellW, p.getY() + (i / 2) * cellH, cellW, cellH);
-    auto smallW = small.getWidth() / 4;
-    for (int i = 4; i < 8; ++i)
-        macros[i]->setBounds (small.removeFromLeft (smallW).reduced (4, 0));
-    response.setBounds (bottom.removeFromLeft (110).reduced (0, 4));
-    bottom.removeFromLeft (10);
-    sendControls.setBounds (bottom.reduced (0, 4));
+    // SCENES: name + description (painted), list, < >, HIT / BLACKOUT.
+    {
+        auto s = scenesArea.reduced (14).withTrimmedTop (20);
+        sceneNameArea = s.removeFromTop (28);
+        sceneTextArea = s.removeFromTop (58);
+        s.removeFromTop (6);
+        auto actions = s.removeFromBottom (40);
+        hit.setBounds (actions.removeFromLeft (actions.getWidth() / 2).withTrimmedRight (4));
+        blackout.setBounds (actions.withTrimmedLeft (4));
+        s.removeFromBottom (8);
+        auto nav = s.removeFromBottom (28);
+        previous.setBounds (nav.removeFromLeft (nav.getWidth() / 2).withTrimmedRight (4));
+        next.setBounds (nav.withTrimmedLeft (4));
+        s.removeFromBottom (8);
+        presetList.setBounds (s);
+    }
 
-    // Look: row 1 = image treatment (8 knobs); row 2 = FILM (4) | REACTION
-    // (Reactivity + CALM) | PALETTE (preset + three colour chips).
-    auto l = lookArea.reduced (14).withTrimmedTop (20);
-    auto row1 = l.removeFromTop (l.getHeight() / 2 - 4);
-    l.removeFromTop (8);
-    auto row2 = l;
-    auto knobW = row1.getWidth() / lookKnobs.size();
-    for (auto* k : lookKnobs)
-        k->setBounds (row1.removeFromLeft (knobW).reduced (6, 0));
-    lookDivider = juce::Rectangle<int> (lookArea.getX() + 14, row2.getY() - 5, lookArea.getWidth() - 28, 1);
+    // LOOK: row 1 = FILM (5) | DIGITAL (7); row 2 = PALETTE | SNAPSHOTS | media.
+    {
+        auto l = lookArea.reduced (14).withTrimmedTop (20);
+        auto row1 = l.removeFromTop (106);
+        l.removeFromTop (8);
+        auto row2 = l;
+        lookDivider = juce::Rectangle<int> (lookArea.getX() + 14, row2.getY() - 5, lookArea.getWidth() - 28, 1);
 
-    const int filmW = 96;
-    auto film = row2.removeFromLeft (filmW * 4);
-    filmCaption = film.removeFromTop (14);
-    for (int i = 0; i < 4; ++i)
-        filmKnobs[i]->setBounds (film.removeFromLeft (filmW).reduced (4, 0));
-    row2.removeFromLeft (18);
-    auto reaction = row2.removeFromLeft (filmW + 104);
-    reactionCaption = reaction.removeFromTop (14);
-    filmKnobs[4]->setBounds (reaction.removeFromLeft (filmW).reduced (4, 0));
-    calm.setBounds (reaction.withSizeKeepingCentre (92, 34).translated (0, -8));
-    row2.removeFromLeft (18);
-    paletteCaption = row2.removeFromTop (14);
-    paletteBox.setBounds (row2.removeFromLeft (124).withSizeKeepingCentre (124, 28).translated (0, -8));
-    row2.removeFromLeft (10);
-    auto swatchW = row2.getWidth() / 3;
-    for (auto* s : swatches)
-        s->setBounds (row2.removeFromLeft (swatchW).reduced (3, 2));
+        const int knobW = (row1.getWidth() - 24) / 12;
+        auto film = row1.removeFromLeft (knobW * 5);
+        filmCaption = film.removeFromTop (14);
+        for (auto* k : filmKnobs)
+            k->setBounds (film.removeFromLeft (knobW).reduced (4, 0));
+        row1.removeFromLeft (24);
+        digitalCaption = row1.removeFromTop (14);
+        for (auto* k : digitalKnobs)
+            k->setBounds (row1.removeFromLeft (knobW).reduced (4, 0));
 
-    // Scenes: name (painted), list, transport buttons, hit/blackout, sensitivity/trim.
-    auto s = scenesArea.reduced (14).withTrimmedTop (52);
-    auto knobs = s.removeFromBottom (74);
-    sensitivity.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2));
-    trim.setBounds (knobs);
-    s.removeFromBottom (8);
-    auto actions = s.removeFromBottom (40);
-    hit.setBounds (actions.removeFromLeft (actions.getWidth() / 2).reduced (0, 0).withTrimmedRight (4));
-    blackout.setBounds (actions.withTrimmedLeft (4));
-    s.removeFromBottom (8);
-    auto nav = s.removeFromBottom (28);
-    previous.setBounds (nav.removeFromLeft (nav.getWidth() / 2).withTrimmedRight (4));
-    next.setBounds (nav.withTrimmedLeft (4));
-    s.removeFromBottom (8);
-    presetList.setBounds (s);
+        auto palette = row2.removeFromLeft (330);
+        paletteCaption = palette.removeFromTop (14);
+        paletteBox.setBounds (palette.removeFromLeft (124).withSizeKeepingCentre (124, 28));
+        palette.removeFromLeft (8);
+        auto swatchW = palette.getWidth() / 3;
+        for (auto* s : swatches)
+            s->setBounds (palette.removeFromLeft (swatchW).reduced (3, 0));
+        row2.removeFromLeft (24);
+
+        auto snaps = row2.removeFromLeft (380);
+        snapshotCaption = snaps.removeFromTop (14);
+        snaps = snaps.withSizeKeepingCentre (snaps.getWidth(), 30);
+        for (auto* b : snapshotButtons)
+            b->setBounds (snaps.removeFromLeft (44).reduced (2, 0));
+        snaps.removeFromLeft (8);
+        storeButton.setBounds (snaps.removeFromLeft (76).reduced (2, 0));
+        snaps.removeFromLeft (8);
+        morphBox.setBounds (snaps.removeFromLeft (104).reduced (0, 1));
+        row2.removeFromLeft (24);
+        mediaArea = row2;
+    }
 }
