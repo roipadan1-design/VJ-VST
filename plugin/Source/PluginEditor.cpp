@@ -1069,7 +1069,8 @@ void VJAnalyzerEditor::updateMode()
     mode = desired;
 
     const bool lead = mode != Mode::source, drawer = mode == Mode::edit;
-    for (auto* c : std::initializer_list<juce::Component*> { &enginePill, &fullscreenButton, &leadChip, &editButton, &blackout,
+    leadChip.setVisible (false); // lead status lives in EDIT > SETUP (it only duplicated EDIT here)
+    for (auto* c : std::initializer_list<juce::Component*> { &enginePill, &fullscreenButton, &editButton, &blackout,
                                                              &previous, &next, &go, &cueField, &sceneGrid, &reactRow, &colourPicker,
                                                              &lookPicker, &lookAmount, &mediaChip, &loadButton, &morphButton,
                                                              &freeze, &hit, &drop })
@@ -1120,10 +1121,9 @@ void VJAnalyzerEditor::resized()
 
 void VJAnalyzerEditor::layoutPlay()
 {
-    enginePill.setBounds (124, 8, 280, 24);
-    fullscreenButton.setBounds (408, 8, 48, 24);
-    leadChip.setBounds (462, 8, 102, 24);
-    editButton.setBounds (572, 8, 76, 24);
+    enginePill.setBounds (124, 8, 330, 24);
+    fullscreenButton.setBounds (460, 8, 52, 24);
+    editButton.setBounds (560, 8, 88, 24);
     blackout.setBounds (660, 6, 84, 28);
 
     previous.setBounds (16, 116, 32, 36);
