@@ -35,76 +35,110 @@ In Live: *Preferences > Plug-ins > Use VST3 Plug-in System Folders: On*, then *R
 ## VJ Analyzer (VST3)
 
 Drop it on any audio track (Audio Effects > Plug-ins > VJVST > VJ Analyzer). Audio passes through untouched.
+Every control is a host parameter: automate it or MIDI-map it with Live's MIDI Map mode (if one doesn't show up,
+click *Configure* on the device and touch it). IDs never change between builds, so old sets and maps keep working.
 
-- **Role** (MIX / KICK / SNARE / HAT / BASS / TEXTURE). Put one on the master (or a drum bus) as **MIX**. For
-  tighter hits add more instances on the kick / snare / hat tracks with those roles: the engine then uses them
-  instead of guessing drums from the full mix. With no role sources, the mix's bass/mid/high transients stand in.
-- **MIDI**: route a MIDI track's output to the analyzer's track (*MIDI To*). Played notes arrive as zero-guess
-  events; on a KICK-role analyzer a note *is* a kick (and suppresses audio-detected kicks for 2 s).
-- **Controls** - four groups, one rule each (every knob is a host parameter: automate it or MIDI-map it with
-  Live's MIDI Map mode; if one doesn't show up for mapping, click *Configure* on the device and touch it). Only
-  enable **Send macros** on one analyzer (normally the MIX one). The line under each knob says what it does in the
-  current scene (sent by the engine), or shows a live readout; a thin ring outside a knob shows how far the
-  music is moving what that knob controls right now.
-  - **SHAPE** ("visible in every scene, always the same direction"): macros Intensity (1), Form (3), Scale (4,
-    always bigger as it rises), Erode (6, pristine -> worn / torn / dissolved), Detail (8). Each scene names them.
-  - **MOVE** ("0 = still"): Speed (macro 2: 0 frozen, 0.5 designed speed, 1 = x4), Glide (macro 7: inertia of
-    speed changes, 0-4 bars), Drift (slow camera over the whole picture), Push (music leans on the speed, up to
-    x2 - never moves a frozen scene), FREEZE, REVERSE, SYNC (speeds follow tempo; designed speed at 120 BPM).
-    One engine scene clock drives every scene's motion, so these act everywhere.
-  - **REACT** ("hits never touch speed"): Impact (macro 5, scales every hit reaction; 0 = none), Softness
-    (hit decays x0.5-x4), Reactivity, CALM, VISUALS REACT TO.
-  - **LOOK**: FILM and DIGITAL rows (below), palette, snapshots, MEDIA.
-  Macro IDs `macro1`..`macro8` are unchanged from earlier builds, so old automation still points at the same slots.
-- **Preset**: 0 = leave the engine's choice; the list on the right selects directly and records the choice in
-  the parameter, so the Live set recalls it.
-- **VISUALS REACT TO** (KICK / SNARE / HAT / BASS / LEVEL): global gate on what drives the picture. A closed
-  channel's hits are dropped and its continuous signals fade to neutral (LEVEL = whole-mix loudness, brightness
-  and build-ups). HIT, MIDI notes and the tempo clock always pass. The role buttons at the top say what is on
-  *this* track; REACT TO says what the *visuals* follow. Macros, LOOK and REACT TO are sent only by the instance
-  with **Send macros** on - on other instances they are shown dimmed.
-- **FILM** (in the LOOK panel): a real 35mm chain - band-limited grain that follows luminance and steps at
-  24 fps (added *before* Crush, so it dithers the threshold), Halation (red glow out of highlights), Weave
-  (gate weave, rare frame slips, flicker, soft fringing), Dust (specks, hairs, scratches - rare and
-  correlated), Blacks (lifted, tinted film base); output is blue-noise dithered against banding.
-- **Reactivity** scales every audio-driven movement (1 = as designed, 0 = only knobs and LFOs); **CALM** fades
-  all reactions out over one bar and back in. Flash, kick-cuts and SHOTS are each capped at 3 per second.
-- **LOOK** (global, on top of every scene): Grain, Crush (soft -> posterised -> hard two-tone), Flash (chance a kick
-  drops a black / colour frame), Glitch (row tears, pixel blocks, RGB split), Trails, Symbols (braille strips,
-  re-dealt on snares), Cut Rate (automatic cuts between scenes: off, every 16/8/4/2/1 beats, every kick),
-  **SHOTS** (cut grammar after the un_source reel: selected strong hits become short cuts - a new framing held
-  until the next shot, 3-5 frames of negative, a circle / crescent / lens / half-disc punch showing the light
-  colour or an inverted close-up, a black frame) and **HUD** (crosshairs, squares linked by hairlines, faint
-  circles, re-dealt on every shot). Digital disturbances default to 0 (ambient).
-  **Palette** maps the image through 3 colours (shadow / mid / light): pick a preset (Blood, Ember, Bone, Ice,
-  Acid, Violet, Rust, the film families Nitrate, Cyanotype, Tungsten, Ash, and *Split* - black / red / cyan, made
-  for the Negative scene; it is last in the list), click a colour chip to edit it (that makes it *Custom*), or
-  *Scene Colors* to switch the mapping off. Two-layer scenes (Negative) are coloured per layer instead: body =
-  mid colour, detail = light colour, over the shadow colour.
-- **SNAPSHOTS** A-D: light STORE, then click a slot to save the 8 macros, every LOOK knob and the palette.
-  Clicking a slot recalls it, morphing over the chosen time (Cut / 1 beat / 1 bar / 4 bars / 16 bars at the
-  host tempo). Snapshots are saved with the Live set; the morph time is an automatable parameter.
-- **SCENES** are cued, then fired: clicking a scene (or < >) marks it NEXT (amber), **GO** switches to it on
-  the scene's beat grid while Live plays (at once when stopped). Double-click a scene = cue + GO. The row shows
-  BEAT until the engine has switched.
-- **HIT** fires a manual hit (event `userTrigger`); **BLACKOUT** fades the output to black. Momentary host
-  parameters for MIDI buttons: Hit, Snapshot A-D, Previous Scene, Next Scene (move the cue), Go (fire on the rising edge, reset
-  themselves). Toggles: Freeze, Reverse, Sync, Use Media, Blackout, Calm.
-- **MEDIA**: 8 slot buttons (host parameter *Media Slot*, 1-8: which one the scenes show), LOAD a still (PNG /
-  JPEG) or a short clip (MP4 / MOV / M4V / AVI / WMV / MKV / WEBM) into the selected slot, CLEAR it, USE MEDIA
-  (host parameter), LOOP / PING-PONG for clips (host parameter *Clip Mode*), and *Clip Sync* (Free = the clip's
-  own frame rate x Speed; or 1 beat .. 8 bars - the clip is stretched over that length and phase-locked to the
-  scene's beat clock, still frozen by Speed 0). Every slot's path is saved with the
-  Live set and re-sent to the engine on connect; files dropped on the engine window show in their slots too. Clips are decoded once into memory (Media Foundation; <= 30 fps, long edge <= 1280, 600 MB per clip,
-  1.5 GB for all slots - longer clips are scaled down, then cut) and play on the scene clock: Speed 0 freezes
-  them, Reverse plays them backwards, Push speeds them up, every SHOTS reframe cuts them to another eighth. A clip
-  plays while it is still decoding.
-- **Lookahead** (0-150 ms, default Off): delays the audio the plug-in passes and reports it as latency, so Live's
-  delay compensation delays everything else too while the analysis reads the undelayed input - the visuals see
-  the music early. For playback / DJ sets only (live instruments through Live would be late as well).
-- **Hit Sens** (0.25-4) scales onset thresholds; **Trim** adjusts analysis input only; **Adaptive / Locked**
-  selects the normaliser mode.
-- Header pill: engine connection, engine fps, tempo (host / free), internal render scale.
+### Lead and source instances
+
+Exactly one instance **leads**: it sends the knobs, look, scene and blackout to the engine. It is elected
+automatically: an instance pinned with MAKE LEAD, else a MIX instance, preferring a track called Master / Main,
+else the oldest. So the old "Send macros" fight (two instances overwriting each other) is gone; the parameter
+*Send Controls* now means "may lead" (EDIT > SETUP > CAN LEAD). The lead shows the full window; every other
+instance shows a small **SOURCE** view: its role, a hit lamp, its band meter, DETECT / TRIM and MAKE LEAD.
+
+**Role** (MIX / KICK / SNARE / HAT / BASS / TEXTURE) follows the **track name** while AUTO is on ("Kick 808"
+-> KICK, "Hats" -> HAT, "Sub" -> BASS, "Master" -> MIX); picking one by hand turns AUTO off. KICK / SNARE / HAT
+instances replace the drum guesses from the full mix. **MIDI** routed to an analyzer arrives as zero-guess
+events; on a KICK instance a note *is* a kick, and a note of velocity 100 or more is always an accent.
+
+### PLAY (760 x 480, the lead's main view)
+
+- **Header**:
+  - the engine pill (START ENGINE when it is off; else fps, BPM and bar)
+  - FULL (engine full screen)
+  - LEAD (the track name; click for setup)
+  - EDIT (opens the drawer)
+  - BLACKOUT (a steady red frame around the window while dark)
+- **SCENE**: the live scene with its one-line description, and a 4 x 4 grid. Click a tile = cue it (NEXT, amber);
+  **GO** switches on the scene's beat (at once when Live is stopped); double-click = cue + GO; `<` `>` move the
+  cue. IMG marks scenes that show your media.
+- **REACT**:
+  - **STILL / BREATHE / PULSE / PUNCH**: the character, i.e. how the picture follows the music (parameter *React
+    Style*; STILL = *Calm*: reactions fade out over one bar).
+  - **The lamps** KICK / SNARE / HAT / BASS / LEVEL flash with the music. Click one to make the picture ignore
+    that channel (the *React* toggles).
+  - **The caption** says "resting", "build-up" or "DROP" live.
+- **STYLE**: COLOUR (the palette, with its stripes), LOOK (Clean / Film / Worn / Broken / Print / Data; parameter
+  *Look*) and LOOK AMOUNT (0 = clean picture, 100 % = the look as set; parameter *Look Amount*).
+- **IMAGE**: the active media slot. LOAD, or drop an image or clip anywhere on the window. If the live scene
+  can't show it, the plug-in switches to Media Negative and says so.
+- **MOMENTS A-D** (the snapshots):
+  - Click an empty moment to save the knobs, look, colour and reactions there.
+  - Click a stored one to blend to it over the *morph* time.
+  - Right-click to save over it or clear it.
+  - A moment is named by its recipe ("Film · Blood").
+- **The 8 knobs**:
+  - SHAPE: Intensity, Form, Scale, Erode, Detail. The line under each says what it does in this scene.
+  - MOTION: Speed and Glide, plus FREEZE.
+  - **REACT** (macro 5, *React*; it was Impact): how much the music moves the picture. 0 = ignores it, 50 % = as
+    designed (default), 100 % = wild. The thin outer ring flashes with every accent.
+- **HIT**: a manual accent that lands even in STILL or at REACT 0.
+- **DROP**: the big moment by hand, also detected automatically.
+- **The info line** at the bottom explains whatever the mouse is over, or says what the plug-in is waiting for.
+
+### EDIT drawer (the window grows to 1180 x 480)
+
+- **LOOK**:
+  - the six looks and AMOUNT
+  - FILM knobs: Grain, Halation, Gate Weave, Dust (builds up through a section), Film Base
+  - DIGITAL knobs: Crush, Trails, Glitch, Smear, Glyphs
+  - ON ACCENTS knobs: Flash, SHOTS, HUD
+
+  Turning a knob makes the look *Custom*.
+- **COLOUR**: 14 palette cards (Scene Colors = palette off; Split = black / red / cyan for Negative) and the three
+  custom colours.
+- **REACT**:
+  - the character row
+  - REACT, FOLLOW (*Reactivity*, a trim on the steady following), DECAY (*Softness*: 50 % = as the character
+    says) and MUSIC PUSH (*Push*: 30 % = as the character says)
+  - the FOLLOWS toggles
+  - a live readout of accents, drops, rest and build-up
+  - DROP NOW
+- **MOTION**: Camera Drift, FREEZE / REVERSE / TEMPO-LOCK (*Sync*), and AUTO SCENE CUTS (*Cut Rate*: off, every
+  16 / 8 / 4 / 2 / 1 beats, or on every accent).
+- **MEDIA**:
+  - 8 slot cards (click = show it; drop a file on a card = load it there)
+  - LOAD, CLEAR, and USE IN ALL IMAGE SCENES
+  - LOOP / PING-PONG, and the clip length (Free, 1 beat .. 8 bars)
+- **SETUP**:
+  - the role (AUTO), LEAD status, MAKE LEAD and CAN LEAD
+  - DETECT (*Hit Sensitivity*), TRIM, LOOKAHEAD (0-150 ms; playback / DJ sets only)
+  - LEVEL Auto / Fixed (*Response*)
+  - the signal meters
+  - the engine path, with LOCATE
+
+### How the picture reacts (engine: `Reaction.h`)
+
+- **Accents, not every hit.** Each kick is ranked against the last 16. Only the strong ones (and downbeats, MIDI
+  velocity 100 or more, HIT, and the first hit after a pause) become **accents**: the full event, held for a few
+  frames, a short punch of light, and a small eased push forward of the scene's own motion (never a jump, never
+  runaway speed). The others are small **ticks**. Snares join the ranking only in PUNCH.
+- **Rest.** When the music goes quiet, the picture rests: darker (to about a third in PULSE) and sparser, with
+  the grain still alive. The first hit wakes it.
+- **Body, energy and air.** The bass, the loudness and the highs are measured against each song's own range, so
+  a mastered track and a quiet sketch both use the whole range. They drive each scene's mass, its rest look and
+  its surface.
+- **Build-up and drop.**
+  - A build-up counts only when the music really rises (not when it simply starts).
+  - The drop fires on a loud release after a build-up (or after a rest), or with DROP: a bloom, a bigger lurch,
+    and each scene's own release.
+  - Scars (extra dust, Ink holes, Terminal wear) accumulate through a section and are wiped by the drop.
+- **Characters.**
+  - BREATHE: only the big moments land; slow, deep rest.
+  - PULSE (default): every beat felt, strong hits land.
+  - PUNCH: tight, more hits, snares too.
+- **Safety.** At most 3 accents / flashes / cuts per second. Speed 0 or FREEZE: accents still light up, but
+  nothing moves.
 
 ## VJ Engine
 
@@ -153,14 +187,15 @@ Engine listens on UDP 9000 (loopback). All of the following are accepted:
 | `/v2/preset` | i index **or** s name | select preset (name = case-insensitive substring) |
 | `/v2/preset/next`, `/v2/preset/previous` | | |
 | `/v2/blackout` | [i 0/1] | set / toggle |
-| `/v2/trigger` | | manual hit |
+| `/v2/trigger` | [s "drop"] | manual hit (a forced accent); with "drop": the performer's DROP |
+| `/v2/style` | i 0-2 | reaction character: 0 BREATHE, 1 PULSE, 2 PUNCH (REACT itself is macro slot 4) |
 | `/v2/transition` | f ms | override every preset's transition length (<0 restores) |
 | `/v2/quality` | f 0 = auto, else fixed scale | |
 | `/v2/demo` | [i 0/1] | |
 | legacy `/audio/level|bass|mid|high|beatphase|onset`, `/preset/select|next|previous`, `/preset/transitionduration`, `/effect/toggle`, `/effect/param`, `/display/*`, `/fullscreen`, `/camera/open`, `/video/load`, `/debug/snapshot` | | unchanged |
 
-Engine -> subscribed clients (5 Hz): `/v2/status` (index, name, count, blackout, fps, bpm, following-host, demo,
-render scale, scene speed), `/v2/macroActivity` (8 floats: how far the sound moves each macro slot's targets,
+Engine -> subscribed clients (5 Hz, and on the next 50 ms tick after a scene change): `/v2/status` (index, name, count, blackout, fps, bpm, following-host, demo,
+render scale, scene speed, then rest 0-1, tension 0-1, accent envelope, accents so far, drops so far; at once on a scene change), `/v2/macroActivity` (8 floats: how far the sound moves each macro slot's targets,
 peak-held ~0.3 s - the plug-in's knob rings), `/v2/presets` (names, every ~2 s), `/v2/macros` (the live scene's 8 knob names by
 slot + its description; on scene change and every ~2 s) and `/v2/media/status` (active slot, use-media, then per
 slot name, width, height, loading).

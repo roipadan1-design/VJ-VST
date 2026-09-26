@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="960" viewBox="0 0 760 480">
+  <!-- WIREFRAME v2 (CONTROL-MAP.md). PLAY view, lead instance, 760 x 480 logical px at 100 %. State: Mesh Body LIVE, Halo Ring cued (NEXT), react character PULSE, look Film 100 %, colour Blood. Cyan ids (H1, S5, K2 ...) refer to the component tables in CONTROL-MAP.md section 2.1; they are not part of the UI. Scene sub-labels under the SHAPE knobs are examples; the engine sends the real ones per scene. -->
+  <title>PLAY view v2, 760 x 480</title>
+  <rect x="0" y="0" width="760" height="480" rx="0" fill="#0C0A09"/>
+  <rect x="0" y="0" width="760" height="40" rx="0" fill="#151210"/>
+  <line x1="0" y1="40" x2="760" y2="40" stroke="#3A322C" stroke-width="1"/>
+  <text x="16" y="25" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="12" fill="#ECE4D6" font-weight="700" letter-spacing="2.2">VJ ANALYZER</text>
+  <rect x="124" y="8" width="300" height="24" rx="2" fill="#0C0A09" stroke="#3A322C" stroke-width="1"/>
+  <circle cx="136" cy="20" r="4" fill="#F0503F"/>
+  <text x="146" y="24" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400">ENGINE   60 fps · 124.0 BPM · 17.3</text>
+  <rect x="428" y="8" width="24" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <path d="M434 17 V14 H437 M443 14 H446 V17 M446 23 V26 H443 M437 26 H434 V23" stroke="#A89E90" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <rect x="460" y="8" width="100" height="24" rx="2" fill="none" stroke="#3A322C" stroke-width="1"/>
+  <text x="470" y="24" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#ECE4D6" font-weight="700" letter-spacing="1.1">LEAD</text>
+  <text x="500" y="24" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#A89E90" font-weight="400">· Master</text>
+  <rect x="572" y="8" width="76" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="610.0" y="23.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="1.0">EDIT  ▸</text>
+  <rect x="660" y="6" width="84" height="28" rx="2" fill="none" stroke="#F0503F" stroke-width="1.5"/>
+  <text x="702.0" y="23.6" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#F0503F" font-weight="600" text-anchor="middle" letter-spacing="1.0">BLACKOUT</text>
+  <text x="16" y="37" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H1</text>
+  <text x="124" y="38" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H2</text>
+  <text x="428" y="38" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H3</text>
+  <text x="460" y="38" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H4</text>
+  <text x="572" y="38" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H5</text>
+  <text x="660" y="38" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">H6</text>
+  <text x="16" y="57" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">SCENE</text>
+  <text x="464" y="57" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="400" text-anchor="end">click = cue  ·  GO = switch  ·  double-click = both</text>
+  <rect x="16" y="70" width="32" height="14" rx="1" fill="#F0503F"/>
+  <text x="32" y="80.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="8" fill="#0C0A09" font-weight="700" text-anchor="middle" letter-spacing="0.8">LIVE</text>
+  <text x="56" y="86" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="20" fill="#ECE4D6" font-weight="600">Mesh Body</text>
+  <text x="16" y="104" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10.5" fill="#8A7F73" font-weight="400">A breathing body of fine plexus lines; it erodes to dust as the track builds.</text>
+  <rect x="16" y="116" width="32" height="36" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="32.0" y="138.32" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="12" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="1.0">◂</text>
+  <rect x="52" y="116" width="276" height="36" rx="2" fill="none" stroke="#E9A450" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="62" y="131" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#E9A450" font-weight="700" letter-spacing="1.0">NEXT  ▸  HALO RING</text>
+  <text x="62" y="145" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#8A7F73" font-weight="400">press GO to switch</text>
+  <rect x="332" y="116" width="32" height="36" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="348.0" y="138.32" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="12" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="1.0">▸</text>
+  <rect x="372" y="116" width="92" height="36" rx="2" fill="#E9A450" stroke="#E9A450" stroke-width="1"/>
+  <text x="418.0" y="139.04" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="14" fill="#0C0A09" font-weight="600" text-anchor="middle" letter-spacing="1.0">GO</text>
+  <rect x="16" y="162" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="26" y="181" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Hot Blobs</text>
+  <rect x="129" y="162" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="139" y="181" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Dot Relief</text>
+  <rect x="242" y="162" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="252" y="181" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">One Bit</text>
+  <rect x="355" y="162" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="365" y="181" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Corridor</text>
+  <rect x="16" y="196" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="26" y="215" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Fibers</text>
+  <rect x="129" y="196" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="139" y="215" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Terminal</text>
+  <rect x="242" y="196" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="252" y="215" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Ink</text>
+  <rect x="355" y="196" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="365" y="215" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Signal Fog</text>
+  <rect x="16" y="230" width="109" height="30" rx="2" fill="#1E1A17" stroke="#F0503F" stroke-width="1"/>
+  <rect x="16" y="230" width="3" height="30" rx="0" fill="#F0503F"/>
+  <text x="26" y="249" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="600">Mesh Body</text>
+  <text x="120" y="248.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="7.5" fill="#F0503F" font-weight="700" text-anchor="end">LIVE</text>
+  <rect x="129" y="230" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="139" y="249" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Morphogen</text>
+  <rect x="242" y="230" width="109" height="30" rx="2" fill="#151210" stroke="#E9A450" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="252" y="249" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="600">Halo Ring</text>
+  <rect x="318" y="239" width="28" height="12" rx="1" fill="#E9A450"/>
+  <text x="332" y="248" font-family="IBM Plex Mono, Consolas, monospace" font-size="7.5" fill="#0C0A09" font-weight="700" text-anchor="middle">NEXT</text>
+  <rect x="355" y="230" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="365" y="249" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Emergence</text>
+  <rect x="16" y="264" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="26" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Negative</text>
+  <rect x="129" y="264" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="139" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Media Negative</text>
+  <rect x="209" y="273" width="24" height="12" rx="1" fill="none" stroke="#A89E90" stroke-width="0.8"/>
+  <text x="221" y="282" font-family="IBM Plex Mono, Consolas, monospace" font-size="7.5" fill="#A89E90" font-weight="600" text-anchor="middle">IMG</text>
+  <rect x="242" y="264" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="252" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Media Lines</text>
+  <rect x="322" y="273" width="24" height="12" rx="1" fill="none" stroke="#A89E90" stroke-width="0.8"/>
+  <text x="334" y="282" font-family="IBM Plex Mono, Consolas, monospace" font-size="7.5" fill="#A89E90" font-weight="600" text-anchor="middle">IMG</text>
+  <rect x="355" y="264" width="109" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="365" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="400">Membrane</text>
+  <text x="16" y="47" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S0</text>
+  <text x="16" y="69" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S1</text>
+  <text x="56" y="62" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S2</text>
+  <text x="16" y="112" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S3</text>
+  <text x="16" y="160" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S4</text>
+  <text x="52" y="160" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S5</text>
+  <text x="332" y="160" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S6</text>
+  <text x="372" y="160" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S7</text>
+  <text x="16" y="302" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">S8</text>
+  <text x="480" y="57" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">REACT</text>
+  <text x="744" y="57" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="400" text-anchor="end">how the picture follows the music</text>
+  <rect x="480" y="64" width="264" height="28" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="513.0" y="81.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.9">STILL</text>
+  <line x1="546.0" y1="64" x2="546.0" y2="92" stroke="#3A322C" stroke-width="1"/>
+  <text x="579.0" y="81.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.9">BREATHE</text>
+  <line x1="612.0" y1="64" x2="612.0" y2="92" stroke="#3A322C" stroke-width="1"/>
+  <rect x="613.0" y="65" width="64.0" height="26" rx="1" fill="#ECE4D6"/>
+  <text x="645.0" y="81.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#0C0A09" font-weight="700" text-anchor="middle" letter-spacing="0.9">PULSE</text>
+  <line x1="678.0" y1="64" x2="678.0" y2="92" stroke="#3A322C" stroke-width="1"/>
+  <text x="711.0" y="81.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.9">PUNCH</text>
+  <circle cx="488" cy="104" r="6" fill="#F0503F"/>
+  <circle cx="488" cy="104" r="3.5" fill="#F0503F"/>
+  <text x="498" y="107.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#ECE4D6" font-weight="600" letter-spacing="0.8">KICK</text>
+  <circle cx="541" cy="104" r="3.5" fill="none" stroke="#8A7F73" stroke-width="1" stroke-dasharray="1.5 1.5"/>
+  <text x="551" y="107.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="600" letter-spacing="0.8">SNARE</text>
+  <line x1="551" y1="104" x2="578.0" y2="104" stroke="#8A7F73" stroke-width="0.8"/>
+  <circle cx="594" cy="104" r="3.5" fill="none" stroke="#8A7F73" stroke-width="1" stroke-dasharray="1.5 1.5"/>
+  <text x="604" y="107.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="600" letter-spacing="0.8">HAT</text>
+  <line x1="604" y1="104" x2="620.2" y2="104" stroke="#8A7F73" stroke-width="0.8"/>
+  <circle cx="647" cy="104" r="3.5" fill="#A89E90"/>
+  <text x="657" y="107.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="0.8">BASS</text>
+  <rect x="694" y="101" width="12" height="6" rx="1" fill="#0C0A09" stroke="#3A322C" stroke-width="1"/>
+  <rect x="694" y="101" width="7.199999999999999" height="6" rx="1" fill="#F2937F"/>
+  <text x="710" y="107.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="0.8">LEVEL</text>
+  <text x="480" y="135" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">STYLE</text>
+  <rect x="480" y="142" width="130" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="488" y="150.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="7.5" fill="#8A7F73" font-weight="600" letter-spacing="0.8">COLOUR</text>
+  <rect x="488.0" y="153" width="10.0" height="8" rx="0" fill="#050000"/>
+  <rect x="498.0" y="153" width="10.0" height="8" rx="0" fill="#E01008"/>
+  <rect x="508.0" y="153" width="10.0" height="8" rx="0" fill="#FF9A86"/>
+  <rect x="488" y="153" width="30" height="8" rx="1" fill="none" stroke="#3A322C" stroke-width="1"/>
+  <text x="526" y="161" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="600">Blood</text>
+  <text x="602" y="159" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="400" text-anchor="end">▾</text>
+  <rect x="614" y="142" width="130" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="622" y="150.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="7.5" fill="#8A7F73" font-weight="600" letter-spacing="0.8">LOOK</text>
+  <text x="622" y="162" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="600">Film</text>
+  <text x="736" y="159" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="400" text-anchor="end">▾</text>
+  <text x="480" y="186" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="8.5" fill="#A89E90" font-weight="600" letter-spacing="0.8">LOOK AMOUNT</text>
+  <rect x="548" y="181" width="156" height="3" rx="1.5" fill="#3A322C"/>
+  <rect x="548" y="181" width="156" height="3" rx="1.5" fill="#ECE4D6"/>
+  <rect x="700" y="175" width="6" height="14" rx="1" fill="#ECE4D6"/>
+  <text x="744" y="186" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="end">100 %</text>
+  <rect x="480" y="206" width="196" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <rect x="484" y="209" width="32" height="18" rx="1" fill="#2A1A15" stroke="#3A322C" stroke-width="1"/>
+  <path d="M486 225 L495 216 L501 221 L506 214 L514 225" stroke="#A89E90" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  <text x="522" y="216" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="7.5" fill="#8A7F73" font-weight="600" letter-spacing="0.8">IMAGE · SLOT 1</text>
+  <text x="522" y="226.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="400">field_02.jpg</text>
+  <text x="670" y="222" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="400" text-anchor="end">▸</text>
+  <rect x="680" y="206" width="64" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="712.0" y="221.42" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="1.0">LOAD…</text>
+  <text x="480" y="255" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">MOMENTS</text>
+  <text x="744" y="255" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="end">morph · 1 bar ▾</text>
+  <rect x="480" y="264" width="63" height="30" rx="2" fill="#151210" stroke="#ECE4D6" stroke-width="1"/>
+  <text x="487" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="700">A</text>
+  <text x="498" y="282.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="8.5" fill="#ECE4D6" font-weight="400">Film · Blood</text>
+  <rect x="547" y="264" width="63" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="554" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="700">B</text>
+  <text x="565" y="282.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="8.5" fill="#A89E90" font-weight="400">Worn · Ash</text>
+  <rect x="614" y="264" width="63" height="30" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <text x="621" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#ECE4D6" font-weight="700">C</text>
+  <text x="632" y="282.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="8.5" fill="#A89E90" font-weight="400">Print · Bone</text>
+  <rect x="615" y="291" width="36.6" height="2" rx="0" fill="#F2937F"/>
+  <rect x="681" y="264" width="63" height="30" rx="2" fill="none" stroke="#8A7F73" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="689" y="283" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="11" fill="#8A7F73" font-weight="700">D</text>
+  <text x="701" y="282.5" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="400">+ save</text>
+  <text x="480" y="47" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">R0</text>
+  <text x="480" y="63" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">R1</text>
+  <text x="480" y="121" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">R2</text>
+  <text x="512" y="135" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">C0</text>
+  <text x="480" y="174" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">C1</text>
+  <text x="614" y="174" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">C2</text>
+  <text x="480" y="199" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">C3</text>
+  <text x="480" y="239" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">M1</text>
+  <text x="680" y="239" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">M2</text>
+  <text x="538" y="255" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">N0</text>
+  <text x="700" y="245" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">N5</text>
+  <text x="480" y="302" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">N1-4</text>
+  <line x1="16" y1="306" x2="744" y2="306" stroke="#3A322C" stroke-width="1"/>
+  <text x="16" y="327" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">SHAPE  ·  THIS SCENE</text>
+  <text x="392" y="327" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">MOTION</text>
+  <rect x="456" y="314" width="80" height="24" rx="2" fill="#151210" stroke="#3A322C" stroke-width="1"/>
+  <rect x="466" y="321" width="2.5" height="10" rx="0" fill="#ECE4D6"/>
+  <rect x="471" y="321" width="2.5" height="10" rx="0" fill="#ECE4D6"/>
+  <text x="480" y="330" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#ECE4D6" font-weight="600" letter-spacing="1.0">FREEZE</text>
+  <text x="552" y="327" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#A89E90" font-weight="600" letter-spacing="1.1">REACT</text>
+  <path d="M34.32 387.68 A25.0 25.0 0 1 1 69.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M34.32 387.68 A25.0 25.0 0 0 1 52.00 345.00" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M52.00 341.50 A28.5 28.5 0 0 1 78.33 359.09" stroke="#F2937F" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="52.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="52.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">50%</text>
+  <text x="52.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">INTENSITY</text>
+  <text x="52.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">glow</text>
+  <text x="18" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K1</text>
+  <path d="M106.32 387.68 A25.0 25.0 0 1 1 141.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M106.32 387.68 A25.0 25.0 0 0 1 137.40 348.89" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="124.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="124.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">62%</text>
+  <circle cx="139.5" cy="396.8467875173176" r="2" fill="#6FC3D6"/>
+  <text x="124.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">FORM</text>
+  <text x="124.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">tension</text>
+  <text x="90" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K3</text>
+  <path d="M178.32 387.68 A25.0 25.0 0 1 1 213.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M178.32 387.68 A25.0 25.0 0 0 1 196.00 345.00" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M196.00 341.50 A28.5 28.5 0 0 1 217.38 351.15" stroke="#F2937F" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="196.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="196.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">50%</text>
+  <text x="196.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">SCALE</text>
+  <text x="196.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">body size</text>
+  <text x="162" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K4</text>
+  <path d="M250.32 387.68 A25.0 25.0 0 1 1 285.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M250.32 387.68 A25.0 25.0 0 0 1 247.77 355.31" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M244.94 353.25 A28.5 28.5 0 0 1 255.06 344.61" stroke="#F2937F" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="268.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="268.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">30%</text>
+  <text x="268.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">ERODE</text>
+  <text x="268.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">body → dust</text>
+  <text x="234" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K6</text>
+  <path d="M322.32 387.68 A25.0 25.0 0 1 1 357.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M322.32 387.68 A25.0 25.0 0 0 1 340.00 345.00" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="340.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="340.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">50%</text>
+  <text x="340.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">DETAIL</text>
+  <text x="340.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">line count</text>
+  <text x="306" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K8</text>
+  <path d="M410.32 387.68 A25.0 25.0 0 1 1 445.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M410.32 387.68 A25.0 25.0 0 0 1 428.00 345.00" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="428.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="428.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">x1.00</text>
+  <text x="428.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">SPEED</text>
+  <text x="428.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">live x1.12</text>
+  <text x="394" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K2</text>
+  <path d="M482.32 387.68 A25.0 25.0 0 1 1 517.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M482.32 387.68 A25.0 25.0 0 0 1 476.90 360.43" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="500.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="500.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">0.25</text>
+  <text x="500.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">GLIDE</text>
+  <text x="500.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#8A7F73" font-weight="400" text-anchor="middle">bars</text>
+  <text x="466" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K7</text>
+  <path d="M570.32 387.68 A25.0 25.0 0 1 1 605.68 387.68" stroke="#3A322C" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M570.32 387.68 A25.0 25.0 0 0 1 576.65 347.72" stroke="#ECE4D6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M575.06 344.61 A28.5 28.5 0 0 1 614.33 359.09" stroke="#F2937F" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="588.0" cy="370.0" r="18.0" fill="#151210"/>
+  <text x="588.0" y="373.5" font-family="IBM Plex Mono, Consolas, monospace" font-size="10" fill="#ECE4D6" font-weight="400" text-anchor="middle">40%</text>
+  <text x="588.0" y="413" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#ECE4D6" font-weight="600" text-anchor="middle" letter-spacing="0.8">IMPACT</text>
+  <text x="588.0" y="426" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9.5" fill="#A89E90" font-weight="400" text-anchor="middle">hits + flow</text>
+  <text x="554" y="348" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K5</text>
+  <rect x="640" y="342" width="104" height="86" rx="2" fill="#1E1A17" stroke="#ECE4D6" stroke-width="1"/>
+  <text x="692" y="390" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="20" fill="#ECE4D6" font-weight="700" text-anchor="middle" letter-spacing="3">HIT</text>
+  <text x="692" y="418" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="9" fill="#8A7F73" font-weight="400" text-anchor="middle">a manual kick</text>
+  <text x="392" y="312" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K0b</text>
+  <text x="16" y="312" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K0a</text>
+  <text x="552" y="312" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K0c</text>
+  <text x="456" y="312" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K9</text>
+  <text x="642" y="350" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">K10</text>
+  <line x1="16" y1="442" x2="744" y2="442" stroke="#3A322C" stroke-width="1"/>
+  <text x="16" y="461" font-family="IBM Plex Sans Condensed, Bahnschrift SemiCondensed, Arial Narrow, sans-serif" font-size="10" fill="#8A7F73" font-weight="400">IMPACT  40 %  —  How much the music moves the picture. 0 = ignores it, 40 % = as designed, 100 % = hits land double.   (Live: Impact)</text>
+  <text x="16" y="474" font-family="IBM Plex Mono, Consolas, monospace" font-size="7" fill="#6FC3D6" font-weight="400">I1  info line (hover help + state hints)</text>
+</svg>
