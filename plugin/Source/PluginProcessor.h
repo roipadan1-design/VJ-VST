@@ -140,6 +140,7 @@ private:
     void parameterChanged (const juce::String& id, float newValue) override; // momentary actions, any thread
     std::array<std::atomic<bool>, 9> actionPending {};
     juce::SharedResourcePointer<LeadRegistry> leads;
+    std::atomic<juce::uint32> lastProcessMs { 0 };
     juce::String trackName;
     void applyRoleFromName();
     void updateLookPreset();

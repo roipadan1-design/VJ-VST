@@ -2111,7 +2111,7 @@ void VJAnalyzerEditor::paintSource (juce::Graphics& g)
     g.setColour (vjui::ash);
     g.setFont (vjui::font (10.0f));
     auto leadTrack = processor.getLeadTrackName();
-    g.drawFittedText ("Feeds the picture. Knobs, look and scenes are played in the lead"
-                          + (leadTrack.isNotEmpty() ? " on '" + leadTrack + "'." : juce::String (".")),
+    g.drawFittedText ("Another VJ Analyzer leads the picture" + (leadTrack.isNotEmpty() ? " (on '" + leadTrack + "')" : juce::String())
+                          + ". MAKE LEAD = play it from here (full window).",
                       12, 204, 250, 30, juce::Justification::centredLeft, 2);
 }

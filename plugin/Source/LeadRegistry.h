@@ -9,6 +9,9 @@
 //   1. an instance pinned with MAKE LEAD (the most recent pin wins)
 //   2. otherwise, among instances allowed to lead (parameter "Send Controls"):
 //      role MIX first, then a track called Master / Main, then the oldest
+// Only instances that are really running count (audio processed in the last
+// 2 s): Live keeps deleted devices alive for undo, and those must never lead.
+// If none is running (audio engine off), everyone counts.
 // Instances that don't lead show the small SOURCE view.
 class LeadRegistry
 {
@@ -19,6 +22,7 @@ public:
         int role = 0;              // 0 = MIX
         juce::String trackName;
         double pinTime = 0.0;      // > 0: pinned with MAKE LEAD
+        bool running = true;       // processed audio recently
     };
 
     int add (const void* owner)
@@ -46,6 +50,12 @@ public:
     {
         const juce::SpinLock::ScopedLockType l (lock);
         const Entry* best = nullptr;
+        bool anyRunning = false, anyCanLead = false;
+        for (auto& e : entries)
+        {
+            anyRunning = anyRunning || (e.info.canLead && e.info.running);
+            anyCanLead = anyCanLead || e.info.canLead;
+        }
         auto score = [] (const Entry& e) {
             const auto name = e.info.trackName.toLowerCase();
             const bool master = name.contains ("master") || name.contains ("main");
@@ -53,7 +63,9 @@ public:
         };
         for (auto& e : entries)
         {
-            if (! e.info.canLead)
+            // There is always a lead: if no instance is allowed to (an old set with
+            // "Send macros" off everywhere), every instance is a candidate again.
+            if ((anyCanLead && ! e.info.canLead) || (anyRunning && ! e.info.running))
                 continue;
             if (best == nullptr)
             {

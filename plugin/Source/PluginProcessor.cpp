@@ -326,6 +326,8 @@ VJAnalyzerProcessor::VJAnalyzerProcessor()
 void VJAnalyzerProcessor::makeLead()
 {
     state.state.setProperty ("leadPin", (double) juce::Time::currentTimeMillis() * 0.001, nullptr); // wall clock: the latest pin wins
+    if (auto* p = state.getParameter ("sendControls"))   // and it may lead, whatever an old set said
+        p->setValueNotifyingHost (1.0f);
 }
 
 void VJAnalyzerProcessor::setRoleByHand (int role)
@@ -472,6 +474,7 @@ void VJAnalyzerProcessor::releaseResources()
 void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
+    lastProcessMs = juce::Time::getMillisecondCounter(); // this instance is really running (LeadRegistry)
 
     // Audio is untouched (unless Visual Lookahead delays it, below): this is an analyser.
     const auto numSamples = buffer.getNumSamples();
@@ -631,6 +634,7 @@ void VJAnalyzerProcessor::timerCallback()
         info.role = (int) state.getRawParameterValue ("role")->load();
         info.trackName = trackName;
         info.pinTime = (double) state.state.getProperty ("leadPin", 0.0);
+        info.running = juce::Time::getMillisecondCounter() - lastProcessMs.load() < 2000;
         leads->update (this, info);
     }
 
