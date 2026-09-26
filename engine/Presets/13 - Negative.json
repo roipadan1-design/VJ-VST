@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "negative",
   "name": "Negative",
-  "description": "A lattice pylon from the ground, split into two layers: the negative body in red, lit rims and wires in cyan. Kicks break it into per-channel 1-bit noise and (with Impact up) jump-cut the camera. Colours follow the palette as two layers (body = mid, detail = light); Scene Colors = red/cyan.",
+  "description": "A lattice pylon from the ground, split into two layers: the negative body in red, lit rims and wires in cyan. Accents break it into per-channel 1-bit noise and (with React up) jump-cut the camera; the drop turns it positive for a beat. Colours follow the palette as two layers (body = mid, detail = light); Scene Colors = red/cyan.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -219,10 +219,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
       "label": "hits + cuts",
-      "default": 0.4
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -245,39 +245,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -399,8 +394,8 @@
       "releaseMs": 60
     },
     {
-      "id": "macro-impact-cam-cuts",
-      "source": "macro.impact",
+      "id": "macro-react-cam-cuts",
+      "source": "macro.react",
       "destination": "stage.cam.cuts",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -412,18 +407,82 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-neg-storm",
-      "source": "env.kick",
+      "id": "react-energy-neg-threshold",
+      "source": "react.energy",
+      "destination": "stage.neg.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.35,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-neg-storm",
+      "source": "env.hit",
       "destination": "stage.neg.storm",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.8,
+      "amount": 0.9,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
+    },
+    {
+      "id": "react-body-cam-surge",
+      "source": "react.body",
+      "destination": "stage.cam.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-neg-dither",
+      "source": "react.tension",
+      "destination": "stage.neg.dither",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-neg-polarity",
+      "source": "env.drop",
+      "destination": "stage.neg.polarity",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": -1.0,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-air-neg-outline",
+      "source": "react.air",
+      "destination": "stage.neg.outline",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.3,
+      "amount": 0.3,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "env-snare-neg-flash",
@@ -436,48 +495,7 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "env-swell-cam-surge",
-      "source": "env.swell",
-      "destination": "stage.cam.surge",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.4,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "descriptor-build-neg-dither",
-      "source": "descriptor.build",
-      "destination": "stage.neg.dither",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.5,
-      "attackMs": 120,
-      "releaseMs": 400
-    },
-    {
-      "id": "audio-high-activity-neg-outline",
-      "source": "audio.high.activity",
-      "destination": "stage.neg.outline",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.3,
-      "attackMs": 12,
-      "releaseMs": 250
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-cam-tilt",
@@ -495,29 +513,39 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "drop",
+          "target": "pulse",
           "amount": 1
         },
         {
           "type": "reseed"
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -531,41 +559,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

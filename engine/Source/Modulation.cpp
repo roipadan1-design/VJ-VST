@@ -65,8 +65,15 @@ void ModulationRuntime::Envelope::advance (float dt, float decayScale) noexcept
         }
     }
 
-    // Exponential decay reaching ~1% of the peak at decaySeconds, then zero.
-    value = target * std::exp (-4.6f * elapsed / juce::jmax (1.0e-3f, decaySeconds * decayScale));
+    // Hold at the peak (so a hit is seen at full strength for a few frames),
+    // then an exponential decay reaching ~1% of the peak at decaySeconds.
+    const auto hold = holdSeconds * decayScale;
+    if (elapsed < hold)
+    {
+        value = target;
+        return;
+    }
+    value = target * std::exp (-4.6f * (elapsed - hold) / juce::jmax (1.0e-3f, decaySeconds * decayScale));
     if (value < 0.001f)
         value = 0.0f;
 }
@@ -97,7 +104,9 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
     {
         Envelope env;
         env.attackSeconds = m.attackMs * 0.001f;
+        env.holdSeconds = m.holdMs * 0.001f;
         env.decaySeconds = m.decayMs * 0.001f;
+        env.style = m.style;
         env.peak = m.peak;
         env.retriggerMax = m.retriggerMax;
         envelopes.add (env);
@@ -161,6 +170,13 @@ ModulationRuntime::ModulationRuntime (const PresetV2& p) : preset (p)
         else if (s == "descriptor.presence")    r.kind = SourceKind::presence;
         else if (s == "clock.beatPhase")        r.kind = SourceKind::beatPhase;
         else if (s == "clock.barPhase")         r.kind = SourceKind::barPhase;
+        else if (s == "react.body")             r.kind = SourceKind::reactBody;
+        else if (s == "react.energy")           r.kind = SourceKind::reactEnergy;
+        else if (s == "react.air")              r.kind = SourceKind::reactAir;
+        else if (s == "react.breath")           r.kind = SourceKind::reactBreath;
+        else if (s == "react.tension")          r.kind = SourceKind::reactTension;
+        else if (s == "react.rest")             r.kind = SourceKind::reactRest;
+        else if (s == "react.scar")             r.kind = SourceKind::reactScar;
         else
             warnings.add ("route '" + def.id + "': unknown source '" + s + "' reads as 0");
 
@@ -203,7 +219,14 @@ bool ModulationRuntime::isClosedByReact (const ResolvedRoute& r, const ReactMask
         case SourceKind::flux:
         case SourceKind::energyTrend:
         case SourceKind::build:
-        case SourceKind::presence:      return ! m.level;
+        case SourceKind::presence:
+        case SourceKind::reactEnergy:
+        case SourceKind::reactBreath:
+        case SourceKind::reactTension:
+        case SourceKind::reactRest:
+        case SourceKind::reactScar:     return ! m.level;
+        case SourceKind::reactBody:     return ! m.bass;
+        case SourceKind::reactAir:      return ! m.hat;
         default:                        return false; // macros, envelopes, LFOs, clock
     }
 }
@@ -259,6 +282,13 @@ float ModulationRuntime::readSource (const ResolvedRoute& r, const Signals& s, c
         }
         case SourceKind::envelope: return r.index >= 0 ? envelopes.getReference (r.index).value : 0.0f;
         case SourceKind::lfo:      return r.index >= 0 ? lfos.getReference (r.index).value : 0.5f;
+        case SourceKind::reactBody:    return s.reaction.body;
+        case SourceKind::reactEnergy:  return s.reaction.energy;
+        case SourceKind::reactAir:     return s.reaction.air;
+        case SourceKind::reactBreath:  return s.reaction.breath;
+        case SourceKind::reactTension: return s.reaction.tension;
+        case SourceKind::reactRest:    return s.reaction.rest;
+        case SourceKind::reactScar:    return s.reaction.scar;
         case SourceKind::zero:
         default:                   return 0.0f;
     }
@@ -266,6 +296,7 @@ float ModulationRuntime::readSource (const ResolvedRoute& r, const Signals& s, c
 
 void ModulationRuntime::fireTrigger (ResolvedTrigger& t, float strength)
 {
+    const auto& style = reactionStyle (currentStyle);
     for (int a = 0; a < t.def.actions.size(); ++a)
     {
         auto& action = t.def.actions.getReference (a);
@@ -274,7 +305,13 @@ void ModulationRuntime::fireTrigger (ResolvedTrigger& t, float strength)
         {
             case V2Action::Type::envelope:
                 if (auto target = t.envelopeTargets[a]; target >= 0)
-                    envelopes.getReference (target).trigger (action.amount * (0.4f + 0.6f * strength));
+                {
+                    auto amount = action.amount;
+                    if (action.scale == V2Action::Scale::tick)  amount *= style.tickLevel;
+                    if (action.scale == V2Action::Scale::snare) amount *= style.snareLevel;
+                    if (amount > 0.0f)
+                        envelopes.getReference (target).trigger (amount * (0.4f + 0.6f * strength));
+                }
                 break;
             case V2Action::Type::paletteAdvance:
                 paletteTarget += (float) action.steps;
@@ -289,6 +326,8 @@ void ModulationRuntime::fireTrigger (ResolvedTrigger& t, float strength)
 void ModulationRuntime::process (const Signals& signals, const Clock& clock, const MacroBank& macros, const MotionFrame& motion,
                                  double dt, double now)
 {
+    currentStyle = signals.reaction.style;
+
     // 1. Triggers.
     for (auto& t : triggers)
     {
@@ -326,7 +365,35 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
 
         if (def.type == V2Modulator::Type::ad)
         {
-            envelopes.getReference (i).advance ((float) dt, motion.decayScale);
+            auto& env = envelopes.getReference (i);
+            auto decayScale = motion.decayScale;
+            if (env.style != V2Modulator::Style::none)
+            {
+                // The character sets the shape, live; Softness trims it (x1 at its default).
+                const auto& st = reactionStyle (signals.reaction.style);
+                const auto beat = (float) (60.0 / juce::jlimit (20.0, 400.0, clock.bpm()));
+                const auto halfLifeToDecay = 6.64f;
+                if (env.style == V2Modulator::Style::hit)
+                {
+                    env.attackSeconds = st.hitAttackMs * 0.001f;
+                    env.holdSeconds = st.hitHoldMs * 0.001f;
+                    env.decaySeconds = st.hitHalfLifeMs * 0.001f * halfLifeToDecay;
+                }
+                else if (env.style == V2Modulator::Style::snare)
+                {
+                    env.attackSeconds = 0.002f;
+                    env.holdSeconds = 0.0f;
+                    env.decaySeconds = st.snareHalfLifeMs * 0.001f * halfLifeToDecay;
+                }
+                else
+                {
+                    env.attackSeconds = st.dropAttackMs * 0.001f;
+                    env.holdSeconds = st.dropHoldBeats * beat;
+                    env.decaySeconds = st.dropHalfLifeBeats * beat * halfLifeToDecay;
+                }
+                decayScale = motion.decayScale / 1.4142f;
+            }
+            env.advance ((float) dt, decayScale);
             continue;
         }
 
@@ -385,8 +452,12 @@ void ModulationRuntime::process (const Signals& signals, const Clock& clock, con
             auto& m = preset.macros.getReference (r.scaleMacro);
             gain = 2.0f * (macros.set[(size_t) m.slot] ? macros.values[(size_t) m.slot] : m.defaultValue);
         }
-        if (isAudioDriven (r.kind))
-            gain *= signals.react.amount; // Reactivity / Calm
+        // REACT: hits (envelopes) scale with hitAmount, everything continuous
+        // with contAmount (both already include the trim and CALM).
+        if (r.kind == SourceKind::envelope)
+            gain *= signals.reaction.hitAmount;
+        else if (isAudioDriven (r.kind))
+            gain *= signals.reaction.contAmount;
         const auto contribution = gain * r.def.amount * (r.smoothed - r.def.center);
         accumulators.getReference (r.stage).getReference (r.parameter) += contribution;
         if (isAudioDriven (r.kind))

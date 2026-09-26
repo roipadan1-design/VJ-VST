@@ -4,6 +4,7 @@
 #include "PresetV2.h"
 #include "Signals.h"
 #include "Motion.h"
+#include "Reaction.h"
 
 // Global performance state shared by every preset: the eight stable macro
 // slots. Host automation, MIDI and the plugin UI all set the *base* value
@@ -59,13 +60,15 @@ private:
         zero, levelRel, levelAbs, bassRel, midRel, highRel, bassAbs, midAbs, highAbs,
         kickActivity, snareActivity, hatActivity, band, build, presence,
         centroid, flatness, rolloff, flux, energyTrend,
-        beatPhase, barPhase, macro, envelope, lfo
+        beatPhase, barPhase, macro, envelope, lfo,
+        reactBody, reactEnergy, reactAir, reactBreath, reactTension, reactRest, reactScar
     };
 
     struct Envelope
     {
-        float attackSeconds = 0.005f, decaySeconds = 0.2f, peak = 1.0f;
+        float attackSeconds = 0.005f, holdSeconds = 0.0f, decaySeconds = 0.2f, peak = 1.0f;
         bool retriggerMax = true;
+        V2Modulator::Style style = V2Modulator::Style::none;
         float value = 0.0f, start = 0.0f, target = 0.0f, elapsed = 0.0f;
         bool attacking = false;
         bool fresh = false;   // triggered since the last advance()
@@ -120,4 +123,5 @@ private:
 
     float paletteTarget = 0.0f, paletteValue = 0.0f;
     int seed = 1;
+    int currentStyle = 1; // the character, for trigger "scale"
 };

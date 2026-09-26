@@ -3,6 +3,77 @@
 
 using namespace juce::gl;
 
+// ---- measurement frame dump (only when the VJ_FRAMEDUMP=<file> environment variable is set):
+// every rendered frame box-averaged to 160x90 RGB plus the signals and events it used.
+// Read by docs/product-design/research/forensics/analyze_capture.py.
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+namespace forensics
+{
+    static void dumpFrame (int w, int h, double now, const Signals& s)
+    {
+        static const char* path = std::getenv ("VJ_FRAMEDUMP");
+        static std::FILE* file = nullptr;
+        static std::vector<unsigned char> px;
+        static std::vector<unsigned int> acc;
+        static std::vector<unsigned char> small;
+        if (path == nullptr || w <= 0 || h <= 0)
+            return;
+        if (file == nullptr)
+        {
+            file = std::fopen (path, "wb");
+            if (file == nullptr) { path = nullptr; return; }
+        }
+        constexpr int OW = 160, OH = 90;
+        px.resize ((size_t) w * (size_t) h * 4);
+        glPixelStorei (GL_PACK_ALIGNMENT, 1);
+        glReadPixels (0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+        acc.assign ((size_t) OW * OH * 4, 0u);
+        for (int y = 0; y < h; y += 2)
+        {
+            const int oy = y * OH / h;
+            const unsigned char* row = px.data() + (size_t) y * (size_t) w * 4;
+            for (int x = 0; x < w; x += 2)
+            {
+                const int ox = x * OW / w;
+                auto* a = acc.data() + ((size_t) oy * OW + (size_t) ox) * 4;
+                a[0] += row[x * 4]; a[1] += row[x * 4 + 1]; a[2] += row[x * 4 + 2]; a[3] += 1;
+            }
+        }
+        small.resize ((size_t) OW * OH * 3);
+        for (size_t i = 0; i < (size_t) OW * OH; ++i)
+        {
+            const auto n = acc[i * 4 + 3] > 0 ? acc[i * 4 + 3] : 1u;
+            small[i * 3]     = (unsigned char) (acc[i * 4] / n);
+            small[i * 3 + 1] = (unsigned char) (acc[i * 4 + 1] / n);
+            small[i * 3 + 2] = (unsigned char) (acc[i * 4 + 2] / n);
+        }
+        struct Header
+        {
+            unsigned int magic; int w, h, nEvents;
+            double now;
+            float level, bass, mid, high, levelAbs, build, presence, pad;
+            int evType[8];
+            float evStrength[8];
+        } hd {};
+        hd.magic = 0x44464a56u; hd.w = OW; hd.h = OH; hd.now = now;
+        hd.level = s.levelRel; hd.bass = s.bassRel; hd.mid = s.midRel; hd.high = s.highRel;
+        hd.levelAbs = s.levelAbs; hd.build = s.build; hd.presence = s.presence; hd.pad = s.reaction.rest;
+        for (auto& e : s.events)
+            if (hd.nEvents < 8)
+            {
+                hd.evType[hd.nEvents] = (int) e.type;
+                hd.evStrength[hd.nEvents] = e.strength;
+                ++hd.nEvents;
+            }
+        std::fwrite (&hd, sizeof hd, 1, file);
+        std::fwrite (small.data(), 1, small.size(), file);
+        std::fflush (file);
+    }
+}
+// ---- end forensics ----
+
 MainComponent::MainComponent (int oscPortIn, bool startWithDemo)
     : oscPort (oscPortIn)
 {
@@ -178,19 +249,31 @@ void MainComponent::render()
     react.bass = reactValues[3];
     react.level = reactValues[4];
     {
-        // Calm ramps every reaction out (and back in) over one bar; the
-        // Reactivity knob itself only gets a short de-zipper.
+        // CALM ramps every reaction out (and back in) over one bar.
         const bool calm = look.get (LookSettings::calm) > 0.5f;
-        const auto target = calm ? 0.0f : look.get (LookSettings::reactivity);
         const auto barSeconds = clock.barBeats() * 60.0 / juce::jmax (20.0, clock.bpm());
-        const auto tau = std::abs (target - reactAmount) > 0.2f ? barSeconds / 3.0 : 0.08;
-        reactAmount += (target - reactAmount) * (float) (1.0 - std::exp (-dt / tau));
-        react.amount = reactAmount;
+        calmFade += ((calm ? 0.0f : 1.0f) - calmFade) * (float) (1.0 - std::exp (-dt / (barSeconds / 3.0)));
+        // The old Reactivity knob is now a trim (expert), with a short de-zipper.
+        reactTrim += (look.get (LookSettings::reactivity) - reactTrim) * (float) (1.0 - std::exp (-dt / 0.08));
     }
     applyReactMask (signals, react);
     clock.update (signals, now);
     clockBpm = (float) clock.bpm();
     clockFollowing = clock.isFollowingTransport();
+
+    // The reaction layer: REACT (macro slot 4) x the character (/v2/style).
+    // It adds accent / tick / drop events and fills signals.reaction.
+    {
+        ReactionShaper::Inputs in;
+        in.react = macroBank.set[4] ? macroBank.values[4] : 0.5f;
+        in.style = styleValue.load();
+        in.reactTrim = reactTrim;
+        in.calmFade = calmFade;
+        reactionShaper.update (signals, clock, in, dt, now);
+        signals.react.amount = signals.reaction.contAmount;
+        reactionStatus = signals.reaction;
+    }
+    const auto& style = reactionStyle (signals.reaction.style);
 
     // Scene clock: Speed (macro 2), Glide (macro 7), Push, Sync, Reverse,
     // Freeze. Push leans on the music's energy (already gated by REACT TO
@@ -199,15 +282,25 @@ void MainComponent::render()
         auto macro = [this] (int slot, float fallback) {
             return macroBank.set[(size_t) slot] ? macroBank.values[(size_t) slot] : fallback;
         };
-        const auto drive = (0.6f * signals.bassRel + 0.4f * signals.levelRel) * react.amount;
+        const auto& r = signals.reaction;
+        const auto drive = (0.6f * r.body + 0.4f * r.energy) * r.contAmount;
+        // Push: the character's lean x REACT, trimmed by the Push knob (0.3 = x1).
+        const auto push = juce::jlimit (0.0f, 1.0f, style.pushC * ReactCurves::pushFactor (macro (4, 0.5f))
+                                                      * move.get (MoveSettings::push) / 0.3f);
         const auto barSeconds = clock.barBeats() * 60.0 / juce::jmax (20.0, clock.bpm());
         const auto beatDelta = clock.beat() - lastClockBeat;
         lastClockBeat = clock.beat();
-        sceneClock.update (move, macro (1, 0.5f), macro (6, 0.25f), drive, clock.bpm(), barSeconds, beatDelta, dt);
+        sceneClock.kick (reactionShaper.getKickBeats(), reactionShaper.getKickTauSeconds(), clock.bpm());
+        sceneClock.update (move, macro (1, 0.5f), macro (6, 0.25f), drive, push, clock.bpm(), barSeconds, beatDelta, dt);
         currentSpeed = (float) sceneClock.getFrame().speed;
 
         look.drift = move.get (MoveSettings::drift);
         look.driftTime = (float) sceneClock.getFrame().sceneTime;
+        look.exposure = r.exposure;
+        // The breath is motion too: it stops with Speed 0 / Freeze.
+        look.breathZoom = style.breathZoom * 1.5f * r.breath * r.contAmount
+                        * (float) juce::jmin (1.0, std::abs (sceneClock.getFrame().speed));
+        look.scar = r.scar;
     }
 
     videoPlayer.updateGLTexture();
@@ -236,6 +329,7 @@ void MainComponent::render()
 
     updateAdaptiveQuality (now);
     presetManager.render (frame, 0);
+    forensics::dumpFrame (physicalWidth, physicalHeight, now, signals);
 
     // presetManager.render() leaves the default framebuffer (0) holding this
     // frame's final image - share it as-is, no extra copy/blit needed.
@@ -375,6 +469,16 @@ void MainComponent::timerCallback()
     status.addInt32 (featureBus.isDemoEnabled() ? 1 : 0);
     status.addFloat32 (presetManager.getRenderScale());
     status.addFloat32 (currentSpeed.load());
+    {
+        // Reaction layer (appended, so older plug-ins ignore it): rest, tension,
+        // accent envelope, accents and drops so far.
+        const auto r = reactionStatus.load();
+        status.addFloat32 (r.rest);
+        status.addFloat32 (r.tension);
+        status.addFloat32 (r.accentEnv);
+        status.addInt32 (r.accents);
+        status.addInt32 (r.drops);
+    }
 
     juce::OSCMessage activity ("/v2/macroActivity");
     for (int i = 0; i < 8; ++i)
@@ -741,7 +845,17 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
 
     if (address == "/v2/trigger")
     {
-        featureBus.pushUserTrigger (nowSeconds());
+        // "/v2/trigger drop" = the performer's DROP; no argument = a manual hit.
+        if (message.size() > 0 && message[0].isString() && message[0].getString() == "drop")
+            reactionShaper.requestDrop();
+        else
+            featureBus.pushUserTrigger (nowSeconds());
+        return;
+    }
+
+    if (address == "/v2/style")
+    {
+        styleValue = juce::jlimit (0, 2, (int) numberArg (0, 1.0f));
         return;
     }
 

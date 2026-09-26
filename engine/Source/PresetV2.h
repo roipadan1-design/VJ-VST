@@ -15,6 +15,7 @@
 //   audio.band0..band5.activity
 //   descriptor.centroid|flatness|rolloff|flux|energyTrend
 //   clock.beatPhase|barPhase
+//   react.body|energy|air|breath|tension|rest|scar   (the ReactionShaper, Reaction.h)
 //   macro.<id>   env.<id>   lfo.<id>
 // Destinations: stage.<stageId>.<parameterName>
 
@@ -79,7 +80,12 @@ struct V2Modulator
     Type type = Type::ad;
 
     float attackMs = 5.0f, decayMs = 200.0f, peak = 1.0f;
+    float holdMs = 0.0f;           // at the peak before the decay starts
     bool retriggerMax = true;      // "max": a new hit can only raise the envelope
+    // "style": "hit" | "snare" | "drop" - attack / hold / decay come from the
+    // performer's character (BREATHE / PULSE / PUNCH) every frame instead.
+    enum class Style { none, hit, snare, drop };
+    Style style = Style::none;
 
     Shape shape = Shape::sine;
     double periodBeats = 4.0, phaseOffset = 0.0;
@@ -107,6 +113,10 @@ struct V2Action
     Type type = Type::envelope;
     juce::String target;
     float amount = 1.0f;
+    // "scale": "tick" | "snare" - the amount is multiplied by the character's
+    // tick / snare level (so ticks are small echoes of an accent).
+    enum class Scale { none, tick, snare };
+    Scale scale = Scale::none;
     int steps = 1;
 };
 

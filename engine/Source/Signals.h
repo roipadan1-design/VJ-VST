@@ -15,6 +15,11 @@ enum class EventType
     kick, snare, hat,                           // role-resolved (MIDI wins over audio)
     bassTransient, midTransient, highTransient, // raw full-mix detector output
     midiNote, userTrigger,
+    // Written by the engine's ReactionShaper (Reaction.h), appended so the
+    // indices above never move:
+    accent,   // a hit selected as meaningful: the full event
+    tick,     // a candidate hit that was not selected: a small echo
+    drop,     // the section release (detected, or the performer's DROP)
     count
 };
 
@@ -52,6 +57,26 @@ struct ReactMask
     float amount = 1.0f;
 };
 
+// The ReactionShaper's per-frame state (Reaction.h). 0-1 unless noted.
+//   body     the bass, auto-ranged against this song (pulses read high)
+//   energy   loudness around a neutral 0.5 (silence -> 0, full -> 1)
+//   air      highs / flux, auto-ranged (surface texture)
+//   breath   tempo-locked inhale toward each downbeat, x energy
+//   tension  build-up (rises into a drop, reset by it)
+//   rest     silence as an instrument: 1 = resting (darker, sparser)
+//   scar     memory of accents through a section (healed by rest, wiped by a drop)
+struct ReactionState
+{
+    float body = 0.0f, energy = 0.5f, air = 0.0f, breath = 0.5f;
+    float tension = 0.0f, rest = 0.0f, scar = 0.0f;
+    float dropEnv = 0.0f;                      // global drop envelope (look pass)
+    float contAmount = 1.0f, hitAmount = 1.0f; // REACT curves x trim x CALM fade
+    float exposure = 1.0f;                     // rest floor x drop bloom (look pass)
+    float accentEnv = 0.0f;                    // decays after each accent (UI ring, lamps)
+    int style = 1;                             // 0 BREATHE, 1 PULSE, 2 PUNCH
+    int accents = 0, drops = 0;                // running counts (status)
+};
+
 struct Signals
 {
     // Mix source (or the first live source if none declared "mix").
@@ -83,6 +108,7 @@ struct Signals
     juce::Array<SignalEvent> events;
 
     ReactMask react; // which channels may drive the visuals this frame
+    ReactionState reaction; // filled by the ReactionShaper after the mask
 
     // Seconds since the last kick-like hit (kick / bassTransient), for the
     // legacy "onset" uniform.
@@ -99,7 +125,7 @@ public:
 
 private:
     double fast = 0.0, slow = 0.0, build = 0.0, presence = 0.0;
-    bool primed = false;
+    bool primed = false, wasSilent = true;
 };
 
 // Stores the mask in the frame and drops the hits of closed channels.

@@ -20,6 +20,7 @@
 //               /v2/blackout <0|1>, /v2/trigger, /v2/transition <ms>, /v2/demo <0|1>,
 //               /v2/look <slot 0-6> <0-1>, /v2/palette <9 floats rgb x3> [mix],
 //               /v2/react <kick> <snare> <hat> <bass> <level> (0/1),
+//               /v2/style <0 breathe|1 pulse|2 punch>, /v2/trigger drop,
 //               /v2/move <slot 0-5> <0-1> (drift, push, softness, sync, reverse, freeze),
 //               /v2/media/load <slot> <path>, /v2/media/select <slot>, /v2/media/clear <slot>,
 //               /v2/media/use <0|1>  (PNG / JPEG; also by dropping an image on the window)
@@ -127,7 +128,25 @@ private:
 
     // REACT TO gate (/v2/react <kick> <snare> <hat> <bass> <level>, 0/1 each).
     std::array<std::atomic<bool>, 5> reactValues {};
-    float reactAmount = 1.0f; // GL thread: smoothed Reactivity x Calm
+    float calmFade = 1.0f, reactTrim = 1.0f; // GL thread: CALM ramp, Reactivity trim
+
+    // The reaction layer (Reaction.h): REACT = macro slot 4, the character
+    // from /v2/style (0 BREATHE, 1 PULSE, 2 PUNCH), DROP via /v2/trigger drop.
+    ReactionShaper reactionShaper;
+    std::atomic<int> styleValue { 1 };
+    struct ReactionSnapshot { float rest = 0, tension = 0, accentEnv = 0; int accents = 0, drops = 0; };
+    struct AtomicReaction
+    {
+        void operator= (const ReactionState& r) noexcept
+        {
+            const juce::SpinLock::ScopedLockType l (lock);
+            value = { r.rest, r.tension, r.accentEnv, r.accents, r.drops };
+        }
+        ReactionSnapshot load() const noexcept { const juce::SpinLock::ScopedLockType l (lock); return value; }
+        mutable juce::SpinLock lock;
+        ReactionSnapshot value;
+    };
+    AtomicReaction reactionStatus;
     SectionTracker sectionTracker;
     double lastFrameSeconds = -1.0;
     static constexpr double onsetPulseDurationSeconds = 0.15;

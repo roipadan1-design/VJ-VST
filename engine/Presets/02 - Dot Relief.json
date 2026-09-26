@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "dot-relief",
   "name": "Dot Relief",
-  "description": "Abstract 3D forms rebuilt as a tilted relief of dots; kicks lift the relief, a new form every 2 bars.",
+  "description": "Abstract 3D forms rebuilt as a tilted relief of dots; accents lift the relief, a new form every 2 bars. In silence it flattens to a quiet dot grid.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -85,7 +85,7 @@
           "name": "surge",
           "label": "Surge",
           "min": 0,
-          "max": 1,
+          "max": 2,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
@@ -155,10 +155,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -181,39 +181,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -296,8 +291,21 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-dots-surge",
-      "source": "env.kick",
+      "id": "react-energy-dots-depth",
+      "source": "react.energy",
+      "destination": "stage.dots.depth",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-dots-surge",
+      "source": "env.hit",
       "destination": "stage.dots.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -306,47 +314,59 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "audio-bass-activity-dots-depth",
-      "source": "audio.bass.activity",
-      "destination": "stage.dots.depth",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.25,
-      "attackMs": 12,
-      "releaseMs": 250
-    },
-    {
-      "id": "audio-high-activity-dots-noise_floor",
-      "source": "audio.high.activity",
-      "destination": "stage.dots.noise_floor",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.25,
-      "attackMs": 12,
-      "releaseMs": 250
-    },
-    {
-      "id": "descriptor-build-dots-dot_size",
-      "source": "descriptor.build",
+      "id": "react-body-dots-dot_size",
+      "source": "react.body",
       "destination": "stage.dots.dot_size",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.3,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-dots-tilt",
+      "source": "react.tension",
+      "destination": "stage.dots.tilt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.2,
-      "attackMs": 120,
-      "releaseMs": 400
+      "amount": 0.35,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-dots-zoom",
+      "source": "env.drop",
+      "destination": "stage.dots.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": -0.25,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-air-dots-noise_floor",
+      "source": "react.air",
+      "destination": "stage.dots.noise_floor",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.3,
+      "amount": 0.25,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-dots-tilt",
@@ -364,26 +384,36 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -397,41 +427,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

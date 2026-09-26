@@ -49,6 +49,12 @@ struct LookSettings
     // Set per frame from MOVE (not look slots): Drift amount and the scene
     // clock it runs on (so Freeze / Speed 0 stop the drift too).
     float drift = 0.0f, driftTime = 0.0f;
+    // Set per frame from the reaction layer (Reaction.h), not performer slots:
+    //   exposure    rest floor (silence darkens) x drop bloom, applied right
+    //               after the fetch so grain, dust and the film base stay alive
+    //   breathZoom  signed zoom offset of the whole picture (tempo-locked inhale)
+    //   scar        0-1 memory of accents: the film gets dirtier through a section
+    float exposure = 1.0f, breathZoom = 0.0f, scar = 0.0f;
 
     float get (Slot s) const noexcept { return values[(size_t) s]; }
 };
@@ -91,7 +97,7 @@ private:
     bool trailsCleared = false;
 
     juce::Random random;
-    float reactAmount = 1.0f;
+    float reactAmount = 1.0f; // hitAmount of the reaction layer, capped at 1
     float kickEnv = 0.0f, snareEnv = 0.0f, hatEnv = 0.0f;
     float flashTimer = 0.0f, flashType = 0.0f; // type 0 black, 1 mid colour, 2 light colour
     double lastFlashTime = -10.0;

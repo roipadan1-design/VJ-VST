@@ -32,6 +32,7 @@ target_sources(VJEngine PRIVATE
     Source/FeatureBus.cpp
     Source/PresetV2.cpp
     Source/Modulation.cpp
+    Source/Reaction.cpp
     Source/GLHelpers.cpp
     Source/FinishPass.cpp
     Source/LookPass.cpp

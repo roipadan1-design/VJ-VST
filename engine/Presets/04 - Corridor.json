@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "corridor",
   "name": "Corridor",
-  "description": "Moving forward through an endless service corridor; kicks surge the camera and blow the lights, hats flicker them.",
+  "description": "Moving forward through an endless service corridor; accents flare the lights and lurch the camera forward, snares punch the lens. In silence the hall dissolves into fog.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -147,10 +147,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -173,39 +173,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -288,58 +283,82 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-hall-surge",
-      "source": "env.kick",
-      "destination": "stage.hall.surge",
+      "id": "react-energy-hall-fog",
+      "source": "react.energy",
+      "destination": "stage.hall.fog",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.0,
-      "amount": 1.0,
+      "center": 0.5,
+      "amount": -0.5,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "env-hat-hall-flicker",
-      "source": "env.hat",
-      "destination": "stage.hall.flicker",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.8,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "audio-bass-activity-hall-emission",
-      "source": "audio.bass.activity",
+      "id": "env-hit-hall-emission",
+      "source": "env.hit",
       "destination": "stage.hall.emission",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.15,
-      "attackMs": 12,
-      "releaseMs": 250
+      "amount": 0.35,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
-      "id": "descriptor-build-hall-fog",
-      "source": "descriptor.build",
-      "destination": "stage.hall.fog",
+      "id": "react-body-hall-width",
+      "source": "react.body",
+      "destination": "stage.hall.width",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": -0.12,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-hall-flicker",
+      "source": "react.tension",
+      "destination": "stage.hall.flicker",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": -0.4,
-      "attackMs": 120,
-      "releaseMs": 400
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-hall-sway_amt",
+      "source": "env.drop",
+      "destination": "stage.hall.sway_amt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-snare-hall-surge",
+      "source": "env.snare",
+      "destination": "stage.hall.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-hall-sway_amt",
@@ -357,26 +376,36 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -390,41 +419,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "halo-ring",
   "name": "Halo Ring",
-  "description": "After The Noise Diary: a thin ring on black whose edge the sound pushes - bass swells slow lobes, highs grow radial hairs, mids thicken grey fur.",
+  "description": "After The Noise Diary: a thin ring on black whose edge the sound pushes - bass swells slow lobes, highs grow radial hairs, accents flare it, build-ups fray it. In silence one clean ring remains.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -60,7 +60,7 @@
           "label": "Low",
           "min": 0,
           "max": 1,
-          "default": 0.3,
+          "default": 0.05,
           "unit": "normalized",
           "cyclic": false
         },
@@ -69,7 +69,7 @@
           "label": "Hair",
           "min": 0,
           "max": 1,
-          "default": 0.4,
+          "default": 0.15,
           "unit": "normalized",
           "cyclic": false
         },
@@ -86,7 +86,7 @@
           "name": "surge",
           "label": "Surge",
           "min": 0,
-          "max": 1,
+          "max": 3.0,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
@@ -138,10 +138,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -164,39 +164,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -279,57 +274,82 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-ring-surge",
-      "source": "env.kick",
+      "id": "react-energy-ring-fur",
+      "source": "react.energy",
+      "destination": "stage.ring.fur",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-ring-surge",
+      "source": "env.hit",
       "destination": "stage.ring.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.7,
+      "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "audio-bass-activity-ring-low",
-      "source": "audio.bass.activity",
+      "id": "react-body-ring-low",
+      "source": "react.body",
       "destination": "stage.ring.low",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.6,
-      "attackMs": 12,
-      "releaseMs": 250
+      "amount": 0.8,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
-      "id": "audio-high-activity-ring-hair",
-      "source": "audio.high.activity",
-      "destination": "stage.ring.hair",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.6,
-      "attackMs": 12,
-      "releaseMs": 250
-    },
-    {
-      "id": "audio-mid-activity-ring-fur",
-      "source": "audio.mid.activity",
-      "destination": "stage.ring.fur",
+      "id": "react-tension-ring-fray",
+      "source": "react.tension",
+      "destination": "stage.ring.fray",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.5,
-      "attackMs": 12,
-      "releaseMs": 250
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-ring-radius",
+      "source": "env.drop",
+      "destination": "stage.ring.radius",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.25,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-air-ring-hair",
+      "source": "react.air",
+      "destination": "stage.ring.hair",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.3,
+      "amount": 0.7,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-ring-radius",
@@ -347,26 +367,36 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -380,41 +410,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

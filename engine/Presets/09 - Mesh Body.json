@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "mesh-body",
   "name": "Mesh Body",
-  "description": "After The Noise Diary: a breathing body woven from fine plexus lines with drifting openings; build-ups erode it into dust, breakdowns re-knit it.",
+  "description": "After The Noise Diary: a breathing body woven from fine plexus lines with drifting openings; accents swell it, build-ups erode it into dust, the drop re-knits it.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -86,7 +86,7 @@
           "name": "surge",
           "label": "Surge",
           "min": 0,
-          "max": 1,
+          "max": 3.0,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
@@ -129,10 +129,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -155,39 +155,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -270,22 +265,47 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-mesh-surge",
-      "source": "env.kick",
+      "id": "react-energy-mesh-emission",
+      "source": "react.energy",
+      "destination": "stage.mesh.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.25,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-mesh-surge",
+      "source": "env.hit",
       "destination": "stage.mesh.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.6,
+      "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "descriptor-build-mesh-erosion",
-      "source": "descriptor.build",
+      "id": "react-body-mesh-size",
+      "source": "react.body",
+      "destination": "stage.mesh.size",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.12,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-mesh-erosion",
+      "source": "react.tension",
       "destination": "stage.mesh.erosion",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -293,8 +313,8 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.7,
-      "attackMs": 120,
-      "releaseMs": 400
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-mesh-size",
@@ -312,26 +332,36 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -345,41 +375,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

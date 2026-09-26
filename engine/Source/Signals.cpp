@@ -3,8 +3,10 @@
 namespace
 {
     const char* const eventNames[] = {
-        "kick", "snare", "hat", "bassTransient", "midTransient", "highTransient", "midiNote", "userTrigger"
+        "kick", "snare", "hat", "bassTransient", "midTransient", "highTransient", "midiNote", "userTrigger",
+        "accent", "tick", "drop"
     };
+    static_assert (sizeof (eventNames) / sizeof (eventNames[0]) == (size_t) EventType::count, "one name per event");
 }
 
 const char* eventTypeName (EventType t) noexcept
@@ -35,6 +37,16 @@ void SectionTracker::update (Signals& s, double dt) noexcept
     {
         fast = slow = level;
         primed = true;
+    }
+    // Music starting after silence is not a build-up: re-prime both averages
+    // on the first sounding frame, so only a real rise inside the music counts.
+    const bool silent = ! s.anyLive || level < 0.05;
+    if (silent)
+        wasSilent = true;
+    else if (wasSilent)
+    {
+        fast = slow = level;
+        wasSilent = false;
     }
     auto follow = [dt] (double& state, double target, double tau) { state += (target - state) * (1.0 - std::exp (-dt / tau)); };
     follow (fast, level, 4.0);

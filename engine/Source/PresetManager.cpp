@@ -428,8 +428,8 @@ void PresetManager::updateAutoCut (const FrameContext& frame, const LookSettings
     {
         // Top of the range: every kick is a cut (with a short guard).
         for (auto& e : frame.signals.events)
-            if ((e.type == EventType::kick || e.type == EventType::userTrigger) && frame.now - lastKickCut > 0.34
-                && (e.type == EventType::userTrigger || frame.signals.react.amount > 0.5f)) // max 3 cuts/s; none while calm
+            if ((e.type == EventType::accent || e.type == EventType::drop) && frame.now - lastKickCut > 0.34
+                && frame.signals.reaction.hitAmount > 0.3f) // accents only; max 3 cuts/s; none while calm
                 cut = true;
         if (cut)
             lastKickCut = frame.now;

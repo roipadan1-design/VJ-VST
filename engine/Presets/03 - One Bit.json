@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "one-bit",
   "name": "One Bit",
-  "description": "Hard 1-bit threshold of abstract 3D forms with halftone edges and speckle; forms swap on every second snare, snares flip polarity.",
+  "description": "Hard 1-bit threshold of abstract 3D forms with halftone edges and speckle; forms swap on every second accent, build-ups close a letterbox, the drop flips it negative.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -103,7 +103,7 @@
           "name": "surge",
           "label": "Surge",
           "min": 0,
-          "max": 1,
+          "max": 1.8,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
@@ -122,7 +122,7 @@
         "source": {
           "type": "images",
           "folder": "Images/Forms",
-          "advance": "event.snare",
+          "advance": "event.accent",
           "every": 2,
           "order": "random"
         }
@@ -155,10 +155,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -181,39 +181,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -309,8 +304,21 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-bits-surge",
-      "source": "env.kick",
+      "id": "react-energy-bits-threshold",
+      "source": "react.energy",
+      "destination": "stage.bits.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.35,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-bits-surge",
+      "source": "env.hit",
       "destination": "stage.bits.surge",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -319,12 +327,50 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "env-snare-bits-invert",
-      "source": "env.snare",
+      "id": "react-body-bits-zoom",
+      "source": "react.body",
+      "destination": "stage.bits.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": -0.05,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-bits-dither",
+      "source": "react.tension",
+      "destination": "stage.bits.dither",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-bits-frame",
+      "source": "react.tension",
+      "destination": "stage.bits.frame",
+      "inputMin": 0.55,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 400
+    },
+    {
+      "id": "env-drop-bits-invert",
+      "source": "env.drop",
       "destination": "stage.bits.invert",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -333,38 +379,24 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "audio-high-activity-bits-speckle",
-      "source": "audio.high.activity",
+      "id": "react-air-bits-speckle",
+      "source": "react.air",
       "destination": "stage.bits.speckle",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.0,
+      "center": 0.3,
       "amount": 0.3,
-      "attackMs": 12,
-      "releaseMs": 250
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
-      "id": "descriptor-centroid-bits-threshold",
-      "source": "descriptor.centroid",
-      "destination": "stage.bits.threshold",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.5,
-      "amount": -0.2,
-      "attackMs": 120,
-      "releaseMs": 400
-    },
-    {
-      "id": "descriptor-build-bits-texture_amt",
-      "source": "descriptor.build",
+      "id": "env-snare-bits-texture_amt",
+      "source": "env.snare",
       "destination": "stage.bits.texture_amt",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -372,32 +404,42 @@
       "exponent": 1.0,
       "center": 0.0,
       "amount": 0.3,
-      "attackMs": 120,
-      "releaseMs": 400
+      "attackMs": 0,
+      "releaseMs": 0
     }
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -411,41 +453,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

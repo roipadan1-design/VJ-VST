@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "media-lines",
   "name": "Media Lines",
-  "description": "Your loaded image redrawn as fine light linework on black with a sparse stipple, drifting slowly; kicks push in, snares brighten the lines. Shows the built-in forms until an image is loaded.",
+  "description": "Your loaded image redrawn as fine light linework on black with a sparse stipple, drifting slowly; accents burn the lines, the drop floods the image in. Shows the built-in forms until an image is loaded.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -67,7 +67,7 @@
           "name": "surge",
           "label": "Surge",
           "min": 0,
-          "max": 1,
+          "max": 2.5,
           "default": 0,
           "unit": "normalized",
           "cyclic": false
@@ -103,7 +103,7 @@
           "label": "Threshold",
           "min": 0.005,
           "max": 0.2,
-          "default": 0.022,
+          "default": 0.04,
           "unit": "normalized",
           "cyclic": false
         },
@@ -172,10 +172,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
-      "label": "Impact",
-      "default": 0.4
+      "label": "React",
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -198,39 +198,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -326,9 +321,61 @@
       "releaseMs": 60
     },
     {
-      "id": "env-kick-frame-surge",
-      "source": "env.kick",
+      "id": "react-energy-lines-threshold",
+      "source": "react.energy",
+      "destination": "stage.lines.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.3,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-lines-flash",
+      "source": "env.hit",
+      "destination": "stage.lines.flash",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-body-frame-surge",
+      "source": "react.body",
       "destination": "stage.frame.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-lines-radius",
+      "source": "react.tension",
+      "destination": "stage.lines.radius",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.3,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-lines-fill",
+      "source": "env.drop",
+      "destination": "stage.lines.fill",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
@@ -336,72 +383,54 @@
       "center": 0.0,
       "amount": 0.6,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
     },
     {
-      "id": "env-snare-lines-flash",
-      "source": "env.snare",
-      "destination": "stage.lines.flash",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.8,
-      "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "audio-high-activity-lines-dots",
-      "source": "audio.high.activity",
+      "id": "react-air-lines-dots",
+      "source": "react.air",
       "destination": "stage.lines.dots",
       "inputMin": 0.0,
       "inputMax": 1.0,
       "curve": "linear",
       "exponent": 1.0,
-      "center": 0.0,
+      "center": 0.3,
       "amount": 0.3,
-      "attackMs": 12,
-      "releaseMs": 250
-    },
-    {
-      "id": "descriptor-build-lines-fill",
-      "source": "descriptor.build",
-      "destination": "stage.lines.fill",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.3,
-      "attackMs": 120,
-      "releaseMs": 400
+      "attackMs": 0,
+      "releaseMs": 0
     }
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -415,41 +444,18 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",

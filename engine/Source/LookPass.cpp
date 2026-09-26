@@ -92,6 +92,8 @@ namespace
         uniform float hud, hudSeed;
         uniform float drift;          // MOVE Drift: slow camera over the whole picture
         uniform float driftTime;      // scene clock (stops with Speed 0 / Freeze)
+        uniform float exposure;       // reaction: rest floor x drop bloom
+        uniform float breathZoom;     // reaction: tempo-locked inhale (signed zoom offset)
 
         float hash (vec2 p)
         {
@@ -222,11 +224,12 @@ namespace
             // --- MOVE drift: a slow push-in, turn and pan of the whole picture,
             // always zoomed in enough that no edge shows. Periods ~30-60 s.
             vec2 pd = uv;
-            if (drift > 0.001)
+            if (drift > 0.001 || abs (breathZoom) > 0.0001)
             {
                 float t = driftTime;
                 float aspect = resolution.x / resolution.y;
-                float z = 1.0 + drift * (0.07 + 0.05 * (0.5 + 0.5 * sin (t * 0.21)));
+                // The breath only ever zooms in, so no edge can show.
+                float z = (1.0 + drift * (0.07 + 0.05 * (0.5 + 0.5 * sin (t * 0.21)))) * (1.0 + max (breathZoom, 0.0));
                 float a = drift * 0.02 * sin (t * 0.17 + 1.3);
                 vec2 off = drift * 0.02 * vec2 (sin (t * 0.13 + 0.4), sin (t * 0.11 + 2.1));
                 vec2 c = (uv - 0.5) * vec2 (aspect, 1.0);
@@ -273,6 +276,7 @@ namespace
             vec3 soft = (texture2D (image, p + vec2 (o.x, 0.0)).rgb + texture2D (image, p - vec2 (o.x, 0.0)).rgb
                        + texture2D (image, p + vec2 (0.0, o.y)).rgb + texture2D (image, p - vec2 (0.0, o.y)).rgb) * 0.25;
             col = max (col + (col - soft) * (0.12 + 0.3 * grain), 0.0);
+            col *= exposure; // silence darkens (the grain below stays alive), a drop blooms
 
             // --- grain on luminance, before the threshold (dithers the Crush edge)
             float lum = clamp (luma (col), 0.0, 1.0);
@@ -512,7 +516,7 @@ namespace
 void LookPass::update (const Signals& signals, const LookSettings& look, double dt, double timeSeconds)
 {
     lastDt = dt;
-    reactAmount = signals.react.amount;
+    reactAmount = juce::jmin (1.0f, signals.reaction.hitAmount);
     const auto decay = [dt] (float v, double seconds) { return v * (float) std::exp (-dt / seconds); };
     kickEnv = decay (kickEnv, 0.18);
     snareEnv = decay (snareEnv, 0.22);
@@ -533,21 +537,24 @@ void LookPass::update (const Signals& signals, const LookSettings& look, double 
         switch (e.type)
         {
             case EventType::kick:
-            case EventType::userTrigger:
+                kickEnv = 1.0f;
+                break;
+            case EventType::accent:
+            case EventType::drop:
             {
                 kickEnv = 1.0f;
-                // SHOTS: only some hits cut - more with the knob and with
-                // stronger hits; never more than 3 a second.
+                // SHOTS: only some accents cut - more with the knob and with
+                // stronger hits; never more than 3 a second. A drop always cuts.
                 {
-                    const auto s = shots * (e.type == EventType::userTrigger ? 1.0f : reactAmount);
-                    const auto strong = e.type == EventType::userTrigger || e.strength > 0.3f;
+                    const auto s = shots * (e.type == EventType::drop ? 1.0f : reactAmount);
+                    const auto strong = e.type == EventType::drop || e.strength > 0.3f;
                     if (s > 0.001f && strong && timeSeconds - lastShotTime > 0.34
-                        && random.nextFloat() < s * (0.3f + 0.7f * juce::jlimit (0.0f, 1.0f, e.strength)))
+                        && (e.type == EventType::drop || random.nextFloat() < s * (0.3f + 0.7f * juce::jlimit (0.0f, 1.0f, e.strength))))
                         fireShot (s, timeSeconds);
                 }
                 // Flash: scaled by Reactivity/Calm and limited to 3 per second
                 // (photosensitivity guideline) whatever the tempo.
-                auto flash = look.get (LookSettings::flash) * (e.type == EventType::userTrigger ? 1.0f : reactAmount);
+                auto flash = look.get (LookSettings::flash) * (e.type == EventType::drop ? 1.0f : reactAmount);
                 if (flash > 0.001f && timeSeconds - lastFlashTime > 0.34 && random.nextFloat() < flash * 0.75f)
                 {
                     lastFlashTime = timeSeconds;
@@ -790,7 +797,7 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     finalProgram->setUniform ("smear", look.get (LookSettings::smear));
     finalProgram->setUniform ("halation", halation);
     finalProgram->setUniform ("weave", look.get (LookSettings::weave));
-    finalProgram->setUniform ("dust", look.get (LookSettings::dust));
+    finalProgram->setUniform ("dust", juce::jmin (1.0f, look.get (LookSettings::dust) * (1.0f + 0.8f * look.scar)));
     finalProgram->setUniform ("blacks", look.get (LookSettings::blacks));
     finalProgram->setUniform ("filmFrame", (float) (filmFrame % 100000));
 
@@ -840,6 +847,8 @@ bool LookPass::render (juce::OpenGLContext& context, unsigned int sceneTexture, 
     finalProgram->setUniform ("hud", look.get (LookSettings::hud));
     finalProgram->setUniform ("hudSeed", hudSeed);
     finalProgram->setUniform ("driftTime", look.driftTime);
+    finalProgram->setUniform ("exposure", look.exposure);
+    finalProgram->setUniform ("breathZoom", look.breathZoom);
     quad.draw (*finalProgram);
 
     for (int unit = 3; unit >= 0; --unit)

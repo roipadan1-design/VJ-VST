@@ -183,6 +183,12 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
                 mod.decayMs = juce::jmax (1.0f, num (m, "decayMs", 200.0f));
                 mod.peak = juce::jlimit (0.0f, 1.0f, num (m, "peak", 1.0f));
                 mod.retriggerMax = str (m, "retrigger", "max") == "max";
+                mod.holdMs = juce::jmax (0.0f, num (m, "holdMs", 0.0f));
+                auto style = str (m, "style");
+                mod.style = style == "hit" ? V2Modulator::Style::hit
+                          : style == "snare" ? V2Modulator::Style::snare
+                          : style == "drop" ? V2Modulator::Style::drop
+                          : V2Modulator::Style::none;
             }
             else if (type == "lfo")
             {
@@ -267,6 +273,10 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
                     action.target = str (a, "target");
                     action.amount = juce::jlimit (0.0f, 1.0f, num (a, "amount", 1.0f));
                     action.steps = (int) num (a, "steps", 1.0f);
+                    auto scale = str (a, "scale");
+                    action.scale = scale == "tick" ? V2Action::Scale::tick
+                                 : scale == "snare" ? V2Action::Scale::snare
+                                 : V2Action::Scale::none;
                     trig.actions.add (action);
                 }
             }
@@ -324,7 +334,7 @@ bool PresetV2::parse (const juce::var& json, PresetV2& p, juce::String& error)
         auto rest = route.source.fromFirstOccurrenceOf (".", false, false);
         auto hasId = [&] (auto& items) { for (auto& i : items) if (i.id == rest) return true; return false; };
 
-        bool sourceOk = prefix == "audio" || prefix == "descriptor" || prefix == "clock"
+        bool sourceOk = prefix == "audio" || prefix == "descriptor" || prefix == "clock" || prefix == "react"
                      || (prefix == "macro" && hasId (p.macros))
                      || ((prefix == "env" || prefix == "lfo") && hasId (p.modulators));
         if (! sourceOk)

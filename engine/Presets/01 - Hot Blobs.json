@@ -2,7 +2,7 @@
   "schemaVersion": "2.0",
   "id": "hot-blobs",
   "name": "Hot Blobs",
-  "description": "A liquid mass hit by sound: each kick throws it and drops a stone into a ripple tank, gravity pulls it back.",
+  "description": "A liquid mass hit by sound: each accent throws it and drops a stone into a ripple tank, gravity pulls it back. In silence only a few dim islands remain.",
   "author": "VJ VST",
   "license": "project-internal",
   "engine": {
@@ -155,10 +155,10 @@
       "default": 0.5
     },
     {
-      "id": "impact",
+      "id": "react",
       "slot": 4,
       "label": "throw",
-      "default": 0.4
+      "default": 0.5
     },
     {
       "id": "erode",
@@ -181,39 +181,34 @@
   ],
   "modulators": [
     {
-      "id": "kick",
+      "id": "hit",
       "type": "ad",
-      "attackMs": 3,
-      "decayMs": 250,
+      "attackMs": 0,
+      "decayMs": 1300,
       "peak": 1,
-      "retrigger": "max"
+      "retrigger": "max",
+      "style": "hit"
     },
     {
       "id": "snare",
       "type": "ad",
       "attackMs": 2,
-      "decayMs": 200,
+      "decayMs": 800,
       "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "hat",
-      "type": "ad",
-      "attackMs": 1,
-      "decayMs": 110,
-      "peak": 1,
-      "retrigger": "restart"
-    },
-    {
-      "id": "swell",
-      "type": "ad",
-      "attackMs": 5,
-      "decayMs": 900,
-      "peak": 1,
-      "retrigger": "max"
+      "retrigger": "restart",
+      "style": "snare"
     },
     {
       "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
       "type": "ad",
       "attackMs": 1,
       "decayMs": 80,
@@ -309,8 +304,8 @@
       "releaseMs": 60
     },
     {
-      "id": "macro-impact-blobs-impact",
-      "source": "macro.impact",
+      "id": "macro-react-blobs-impact",
+      "source": "macro.react",
       "destination": "stage.blobs.impact",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -322,8 +317,21 @@
       "releaseMs": 60
     },
     {
-      "id": "env-drop-blobs-drop",
-      "source": "env.drop",
+      "id": "react-energy-blobs-threshold",
+      "source": "react.energy",
+      "destination": "stage.blobs.threshold",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-pulse-blobs-drop",
+      "source": "env.pulse",
       "destination": "stage.blobs.drop",
       "inputMin": 0.0,
       "inputMax": 1.0,
@@ -332,8 +340,46 @@
       "center": 0.0,
       "amount": 1.0,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
+      "releaseMs": 0
+    },
+    {
+      "id": "react-body-blobs-emission",
+      "source": "react.body",
+      "destination": "stage.blobs.emission",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.3,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-blobs-ripple",
+      "source": "react.tension",
+      "destination": "stage.blobs.ripple",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-drop-blobs-impact",
+      "source": "env.drop",
+      "destination": "stage.blobs.impact",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.4,
+      "attackMs": 0,
+      "releaseMs": 0
     },
     {
       "id": "env-snare-blobs-rim",
@@ -344,36 +390,9 @@
       "curve": "linear",
       "exponent": 1.0,
       "center": 0.0,
-      "amount": 0.3,
+      "amount": 0.35,
       "attackMs": 0,
-      "releaseMs": 0,
-      "scaleBy": "macro.impact"
-    },
-    {
-      "id": "audio-level-activity-blobs-threshold",
-      "source": "audio.level.activity",
-      "destination": "stage.blobs.threshold",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "power",
-      "exponent": 1.4,
-      "center": 0.0,
-      "amount": -0.2,
-      "attackMs": 12,
-      "releaseMs": 250
-    },
-    {
-      "id": "descriptor-build-blobs-ripple",
-      "source": "descriptor.build",
-      "destination": "stage.blobs.ripple",
-      "inputMin": 0.0,
-      "inputMax": 1.0,
-      "curve": "linear",
-      "exponent": 1.0,
-      "center": 0.0,
-      "amount": 0.4,
-      "attackMs": 120,
-      "releaseMs": 400
+      "releaseMs": 0
     },
     {
       "id": "lfo-phrase-blobs-scale",
@@ -391,26 +410,36 @@
   ],
   "triggers": [
     {
-      "id": "kick",
-      "on": "event.kick",
-      "minStrength": 0.1,
-      "refractoryMs": 90,
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
         {
           "type": "envelope",
-          "target": "kick",
+          "target": "hit",
           "amount": 1
         },
         {
           "type": "envelope",
-          "target": "swell",
+          "target": "pulse",
           "amount": 1
-        },
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
         {
           "type": "envelope",
-          "target": "drop",
-          "amount": 1
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
         }
       ]
     },
@@ -424,44 +453,26 @@
         {
           "type": "envelope",
           "target": "snare",
-          "amount": 1
+          "amount": 1,
+          "scale": "snare"
         }
       ]
     },
     {
-      "id": "hat",
-      "on": "event.hat",
-      "minStrength": 0.1,
-      "refractoryMs": 45,
-      "quantize": "none",
-      "actions": [
-        {
-          "type": "envelope",
-          "target": "hat",
-          "amount": 1
-        }
-      ]
-    },
-    {
-      "id": "user",
-      "on": "event.userTrigger",
+      "id": "drop",
+      "on": "event.drop",
       "minStrength": 0,
-      "refractoryMs": 50,
+      "refractoryMs": 0,
       "quantize": "none",
       "actions": [
-        {
-          "type": "envelope",
-          "target": "kick",
-          "amount": 1
-        },
-        {
-          "type": "envelope",
-          "target": "swell",
-          "amount": 1
-        },
         {
           "type": "envelope",
           "target": "drop",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "pulse",
           "amount": 1
         }
       ]

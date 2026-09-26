@@ -66,10 +66,25 @@ public:
         return 0.5f * std::pow (8.0f, juce::jlimit (0.0f, 1.0f, knob));
     }
 
+    // Time kick (REACTION-DESIGN 3.8): an accent advances the scene by a fixed
+    // amount of *designed* motion, eased in over `tauSeconds` - motion, not a
+    // jump, and it never snaps back. At most one beat can be pending, so hits
+    // never pile up into speed; Speed 0 / Freeze means no lurch at all.
+    void kick (double beats, double tauSeconds, double bpm) noexcept
+    {
+        if (beats <= 0.0)
+            return;
+        if (kickGovernor)
+            beats *= 0.5; // the combined speed already runs hot: lean less
+        const auto beatSeconds = 60.0 / juce::jlimit (20.0, 400.0, bpm);
+        pendingKick = juce::jmin (pendingKick + beats * beatSeconds, beatSeconds);
+        kickTau = juce::jmax (0.01, tauSeconds);
+    }
+
     // speedKnob / glideKnob: macro slots 1 and 6. drive: 0-1 musical energy
-    // (already gated by REACT TO and Reactivity). beatDelta: host beats since
-    // the last frame.
-    void update (const MoveSettings& move, float speedKnob, float glideKnob, float drive,
+    // (already gated by REACT TO and REACT). push: 0-1, how hard it leans on
+    // the speed. beatDelta: host beats since the last frame.
+    void update (const MoveSettings& move, float speedKnob, float glideKnob, float drive, float pushAmount,
                  double bpm, double barSeconds, double beatDelta, double dt) noexcept
     {
         auto target = (double) speedCurve (speedKnob);
@@ -90,11 +105,28 @@ public:
         const auto d = (double) juce::jlimit (0.0f, 1.0f, drive);
         const auto driveTau = d > smoothedDrive ? 0.06 : 0.4;
         smoothedDrive += (d - smoothedDrive) * (1.0 - std::exp (-dt / driveTau));
-        const auto push = (double) juce::jlimit (0.0f, 1.0f, move.get (MoveSettings::push));
+        const auto push = (double) juce::jlimit (0.0f, 1.0f, pushAmount);
 
         frame.speed = base * (1.0 + push * smoothedDrive);
-        frame.sceneDt = frame.speed * dt;
-        frame.sceneTime += frame.sceneDt;
+
+        // Frozen (Speed 0 / Freeze): no lurch now, and none saved up for later.
+        if (std::abs (base) < 1.0e-4)
+            pendingKick = 0.0;
+
+        // The eased share of the pending kick, in the knob's direction and size.
+        const auto step = pendingKick * (1.0 - std::exp (-dt / kickTau));
+        pendingKick -= step;
+        frame.sceneDt = frame.speed * dt + step * base;
+        frame.sceneTime += frame.sceneDt; // sceneBeat stays on the knob speed: LFOs keep their phase
+
+        // Governor: if the 4 s average motion runs over x2.5 the knob's speed,
+        // later kicks are halved until it settles.
+        if (dt > 0.0)
+        {
+            const auto rate = std::abs (frame.sceneDt / dt);
+            averageRate += (rate - averageRate) * (1.0 - std::exp (-dt / 4.0));
+            kickGovernor = std::abs (base) > 1.0e-3 && averageRate > 2.5 * std::abs (base);
+        }
         frame.sceneBeat += juce::jlimit (0.0, 1.0, beatDelta) * frame.speed;
         frame.decayScale = decayScale (move.get (MoveSettings::softness));
     }
@@ -104,4 +136,6 @@ public:
 private:
     MotionFrame frame;
     double base = 1.0, smoothedDrive = 0.0;
+    double pendingKick = 0.0, kickTau = 0.1, averageRate = 1.0;
+    bool kickGovernor = false;
 };
