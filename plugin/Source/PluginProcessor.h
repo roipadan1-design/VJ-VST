@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "AnalysisWorker.h"
+#include "LeadRegistry.h"
 
 // VJ Analyzer: drop on any track in Live 10.1+ (audio effect). Audio passes
 // through bit-for-bit; a copy feeds the AnalysisWorker. Every control is a
@@ -44,7 +45,8 @@ public:
     static const juce::StringArray roleNames;
     // Macro slots (IDs macro1..macro8 never change): SHAPE = Intensity, Form,
     // Scale, Erode, Detail (each scene names what they do); Speed and Glide
-    // drive the engine's scene clock; Impact scales every hit reaction.
+    // drive the engine's scene clock; React (slot 4, ID macro5 - it was Impact)
+    // is how much the music moves the picture: 0 still, 50 as designed, 100 wild.
     static const juce::StringArray macroNames;
 
     // MOVE / REACT globals (engine /v2/move slots, same order): Drift, Push,
@@ -52,7 +54,7 @@ public:
     static const juce::StringArray moveIds, moveNames;
 
     // Momentary actions as host parameters, so a MIDI controller can press
-    // them (Live's MIDI Map): HIT, recall snapshot A-D, previous / next scene, GO.
+    // them (Live's MIDI Map): HIT, recall snapshot A-D, previous / next scene, GO, DROP.
     // They fire on the rising edge and reset themselves.
     static const juce::StringArray actionIds;
 
@@ -61,6 +63,17 @@ public:
 
     // Global look (engine /v2/look slots 0-6, same order).
     static const juce::StringArray lookIds, lookNames;
+
+    // Reaction character (choice "reactStyle", engine /v2/style).
+    static const juce::StringArray styleNames;
+
+    // LOOK presets (choice "lookPreset"): a named look writes the look knobs
+    // (one beat morph); editing any of them shows "Custom". "lookAmount" scales
+    // the whole look on the way to the engine (the knobs keep their values).
+    static const juce::StringArray lookPresetNames;
+    static const juce::StringArray lookVectorIds;
+    static constexpr int customLook = 0;
+    static const std::array<float, 13>& lookVector (int preset);
 
     // Palette presets (choice parameter "palette"); the last two entries are
     // "Custom" (the three colours stored in the state) and "Scene Colors"
@@ -80,6 +93,9 @@ public:
     bool hasSnapshot (int slot) const;
     int getActiveSnapshot() const noexcept { return activeSnapshot; }
     bool isMorphing() const noexcept { return morph.active; }
+    void clearSnapshot (int slot);
+    float getMorphProgress() const;                      // 0-1 while a recall morphs, else -1
+    bool getSnapshotRecipe (int slot, int& palette, int& look) const; // what a stored moment holds
 
     // Scene cue, theatre style: clicking a scene or Previous / Next Scene only
     // marks it NEXT; GO (parameter "Go") fires it, on the scene's beat grid.
@@ -87,6 +103,19 @@ public:
     void cueScene (int engineIndex);
     void fireScene (int engineIndex);
     int getCuedScene() const noexcept { return cuedScene.load(); }
+
+    // Lead: the one instance that sends knobs, look, scene and blackout
+    // (LeadRegistry). MAKE LEAD pins this instance.
+    bool isLead() const { return leads->isLead (this); }
+    void makeLead();
+    juce::String getLeadTrackName() const { return leads->leadTrackName(); }
+    juce::String getTrackName() const { return trackName; }
+
+    // Role follows the track name ("Kick 808" -> KICK) until picked by hand.
+    bool isRoleAuto() const { return (bool) state.state.getProperty ("roleAuto", true); }
+    void setRoleByHand (int role);
+    void setRoleAuto();
+    void updateTrackProperties (const TrackProperties&) override;
     int getFiredScene() const noexcept { return firedScene.load(); }
 
     // The performer's stills / clips (media slots 0-7), saved with the Live set.
@@ -109,7 +138,19 @@ private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void timerCallback() override; // pushes parameter values to the worker (message thread)
     void parameterChanged (const juce::String& id, float newValue) override; // momentary actions, any thread
-    std::array<std::atomic<bool>, 8> actionPending {};
+    std::array<std::atomic<bool>, 9> actionPending {};
+    juce::SharedResourcePointer<LeadRegistry> leads;
+    juce::String trackName;
+    void applyRoleFromName();
+    void updateLookPreset();
+    int lastLookPreset = 2; // Film
+    struct LookMorph
+    {
+        bool active = false;
+        double start = 0.0, seconds = 0.0;
+        std::array<float, 13> from {}, to {};
+    };
+    LookMorph lookMorph;
     void stepCue (int direction);
     void goCue();
     void updateCue();
@@ -124,7 +165,7 @@ private:
         double start = 0.0, seconds = 0.0;
         bool switchedDiscrete = false;
         juce::Array<float> from, to;       // plain values, parallel to snapshotParamIds()
-        int toPalette = 0;
+        int toPalette = 0, toLookPreset = -1, toStyle = -1;
         juce::StringArray toColours;
     };
     Morph morph;

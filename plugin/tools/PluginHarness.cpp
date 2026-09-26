@@ -11,6 +11,7 @@
 
 #include <JuceHeader.h>
 #include "../Source/PluginProcessor.h"
+#include "../Source/PluginEditor.h"
 
 namespace
 {
@@ -124,6 +125,43 @@ static int runSelfTest()
     pump (0.1);
     check ((int) get ("preset") == 4, "GO with nothing cued does nothing");
 
+    // LOOK presets: a named look writes the knobs (one-beat morph); editing one makes it Custom.
+    set ("lookPreset", 3.0f); // Worn
+    pump (0.9);
+    check (std::abs (get ("grain") - 0.5f) < 0.01f && std::abs (get ("dust") - 0.65f) < 0.01f, "look Worn writes its knobs");
+    check ((int) get ("lookPreset") == 3, "look stays Worn while untouched");
+    set ("grain", 0.9f);
+    pump (0.1);
+    check ((int) get ("lookPreset") == 0, "editing a look knob makes the look Custom");
+
+    // Lead election: the first instance leads; a pinned one takes over.
+    check (processor.isLead(), "a single instance leads");
+    {
+        VJAnalyzerProcessor second;
+        pump (0.1);
+        check (processor.isLead() && ! second.isLead(), "a second instance does not lead");
+        second.makeLead();
+        pump (0.1);
+        check (second.isLead() && ! processor.isLead(), "MAKE LEAD moves the lead");
+    }
+    pump (0.1);
+    check (processor.isLead(), "the lead returns when the other instance is removed");
+
+    // Role from the track name, until picked by hand.
+    {
+        juce::AudioProcessor::TrackProperties props;
+        props.name = juce::String ("Kick 808");
+        processor.updateTrackProperties (props);
+        check ((int) get ("role") == 1, "track 'Kick 808' -> KICK");
+        processor.setRoleByHand (2);
+        props.name = juce::String ("Hats");
+        processor.updateTrackProperties (props);
+        check ((int) get ("role") == 2 && ! processor.isRoleAuto(), "a role picked by hand stays");
+        processor.setRoleAuto();
+        check ((int) get ("role") == 3, "AUTO follows the name again ('Hats' -> HAT)");
+        processor.setRoleByHand (0);
+    }
+
     juce::MemoryBlock saved;
     processor.getStateInformation (saved);
     VJAnalyzerProcessor restored;
@@ -146,6 +184,12 @@ int main (int argc, char** argv)
     // took to switch (should be at most one beat at the fake 120 BPM).
     const bool cueTest = argc > 1 && juce::String (argv[1]) == "--cuetest";
     if (cueTest) { --argc; ++argv; }
+    // --tab N: open the EDIT drawer on tab N (0 LOOK .. 5 SETUP) before the snapshot.
+    int drawerTab = -1;
+    if (argc > 2 && juce::String (argv[1]) == "--tab") { drawerTab = juce::String (argv[2]).getIntValue(); argc -= 2; argv += 2; }
+    // --source: another instance leads, so this one shows the SOURCE view.
+    std::unique_ptr<VJAnalyzerProcessor> otherLead;
+    if (argc > 1 && juce::String (argv[1]) == "--source") { otherLead = std::make_unique<VJAnalyzerProcessor>(); --argc; ++argv; }
     int cueTarget = -1;
     double goAt = 0.0, switchedAt = 0.0;
 
@@ -161,6 +205,16 @@ int main (int argc, char** argv)
     processor.setPlayConfigDetails (2, 2, rate, block);
     processor.prepareToPlay (rate, block);
 
+    if (drawerTab >= 0)
+    {
+        processor.getState().state.setProperty ("drawerOpen", true, nullptr);
+        processor.getState().state.setProperty ("drawerTab", drawerTab, nullptr);
+    }
+    {
+        juce::AudioProcessor::TrackProperties props;
+        props.name = juce::String (otherLead != nullptr ? "Kick 808" : "Master");
+        processor.updateTrackProperties (props);
+    }
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     editor->setVisible (true);
 
@@ -198,16 +252,14 @@ int main (int argc, char** argv)
             if (cueTarget < 0 && t > 3.0 && status.connected && status.numPresets > 2)
             {
                 cueTarget = (status.presetIndex + 2) % status.numPresets;
-                auto* list = dynamic_cast<juce::ListBox*> (editor->findChildWithID ("sceneList"));
-                if (list != nullptr)
-                    if (auto* row = list->getComponentAt (list->getRowPosition (cueTarget, true).getCentre()))
-                    {
-                        auto centre = row->getLocalBounds().getCentre().toFloat();
-                        juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), centre, {}, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                                            row, row, juce::Time::getCurrentTime(), centre, juce::Time::getCurrentTime(), 1, false);
-                        row->mouseDown (e);
-                        row->mouseUp (e);
-                    }
+                if (auto* grid = dynamic_cast<SceneGrid*> (editor->findChildWithID ("sceneList")))
+                {
+                    // Click the tile as a user would (mouse down on the grid at the tile's centre).
+                    auto centre = grid->tileBounds (cueTarget).getCentre().toFloat();
+                    juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), centre, {}, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                        grid, grid, juce::Time::getCurrentTime(), centre, juce::Time::getCurrentTime(), 1, false);
+                    grid->mouseDown (e);
+                }
                 std::printf ("clicked scene %d, cued = %d, live = %d\n", cueTarget, processor.getCuedScene(), status.presetIndex);
             }
             else if (cueTarget >= 0 && goAt == 0.0 && t > 4.0)

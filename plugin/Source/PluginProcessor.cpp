@@ -4,11 +4,30 @@
 
 const juce::StringArray VJAnalyzerProcessor::roleNames { "Mix", "Kick", "Snare", "Hat", "Bass", "Texture" };
 const juce::StringArray VJAnalyzerProcessor::macroNames { "Intensity", "Speed", "Form", "Scale",
-                                                          "Impact", "Erode", "Glide", "Detail" };
+                                                          "React", "Erode", "Glide", "Detail" };
+const juce::StringArray VJAnalyzerProcessor::styleNames { "Breathe", "Pulse", "Punch" };
+const juce::StringArray VJAnalyzerProcessor::lookPresetNames { "Custom", "Clean", "Film", "Worn", "Broken", "Print", "Data" };
+const juce::StringArray VJAnalyzerProcessor::lookVectorIds { "grain", "crush", "flash", "glitch", "trails", "symbols", "smear",
+                                                             "halation", "weave", "dust", "blacks", "shots", "hud" };
+
+const std::array<float, 13>& VJAnalyzerProcessor::lookVector (int preset)
+{
+    // docs/product-design/CONTROL-MAP.md 5.4. Order = lookVectorIds.
+    static const std::array<std::array<float, 13>, 7> vectors { {
+        {},                                                                          // Custom (unused)
+        { 0.05f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.10f, 0.0f, 0.0f, 0.20f, 0.0f, 0.0f },       // Clean
+        { 0.30f, 0.35f, 0.0f, 0.0f, 0.10f, 0.0f, 0.0f, 0.35f, 0.30f, 0.30f, 0.35f, 0.0f, 0.0f },    // Film (the defaults)
+        { 0.50f, 0.40f, 0.0f, 0.05f, 0.20f, 0.0f, 0.15f, 0.45f, 0.55f, 0.65f, 0.50f, 0.0f, 0.0f },  // Worn
+        { 0.40f, 0.55f, 0.30f, 0.50f, 0.30f, 0.0f, 0.45f, 0.30f, 0.40f, 0.30f, 0.30f, 0.35f, 0.0f },// Broken
+        { 0.55f, 0.85f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.15f, 0.20f, 0.50f, 0.60f, 0.15f, 0.0f },    // Print
+        { 0.20f, 0.50f, 0.15f, 0.15f, 0.10f, 0.50f, 0.10f, 0.20f, 0.10f, 0.10f, 0.30f, 0.40f, 0.60f } // Data
+    } };
+    return vectors[(size_t) juce::jlimit (0, 6, preset)];
+}
 const juce::StringArray VJAnalyzerProcessor::moveIds { "drift", "push", "softness", "sync", "reverse", "freeze" };
 const juce::StringArray VJAnalyzerProcessor::moveNames { "Drift", "Push", "Softness", "Sync", "Reverse", "Freeze" };
 const juce::StringArray VJAnalyzerProcessor::clipSyncNames { "Free", "1 Beat", "1 Bar", "2 Bars", "4 Bars", "8 Bars" };
-const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext", "sceneGo" };
+const juce::StringArray VJAnalyzerProcessor::actionIds { "hit", "snap1", "snap2", "snap3", "snap4", "scenePrev", "sceneNext", "sceneGo", "drop" };
 const juce::StringArray VJAnalyzerProcessor::reactIds { "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" };
 const juce::StringArray VJAnalyzerProcessor::reactNames { "Kick", "Snare", "Hat", "Bass", "Level" };
 // Index = engine /v2/look slot. Slot 13 (Calm) is the separate bool parameter "calm".
@@ -80,6 +99,7 @@ juce::StringArray VJAnalyzerProcessor::snapshotParamIds()
         ids.add ("macro" + juce::String (i + 1));
     ids.addArray (lookIds);
     ids.addArray ({ "drift", "push", "softness", "shots", "hud" }); // older snapshots simply keep the current values
+    ids.addArray ({ "lookAmount", "reactKick", "reactSnare", "reactHat", "reactBass", "reactLevel" });
     return ids;
 }
 
@@ -99,10 +119,40 @@ void VJAnalyzerProcessor::storeSnapshot (int slot)
     for (auto& id : snapshotParamIds())
         s.setProperty (id, state.getRawParameterValue (id)->load(), nullptr);
     s.setProperty ("palette", (int) state.getRawParameterValue ("palette")->load(), nullptr);
+    s.setProperty ("lookPreset", (int) state.getRawParameterValue ("lookPreset")->load(), nullptr);
+    s.setProperty ("reactStyle", (int) state.getRawParameterValue ("reactStyle")->load(), nullptr);
     for (int i = 0; i < 3; ++i)
         s.setProperty ("colour" + juce::String (i), getCustomColour (i).toString(), nullptr);
     snapshots.addChild (s, -1, nullptr);
     activeSnapshot = slot;
+}
+
+void VJAnalyzerProcessor::clearSnapshot (int slot)
+{
+    auto snapshots = state.state.getChildWithName ("Snapshots");
+    auto s = snapshots.getChildWithName ("S" + juce::String (slot));
+    if (s.isValid())
+        snapshots.removeChild (s, nullptr);
+    if (activeSnapshot == slot)
+        activeSnapshot = -1;
+}
+
+float VJAnalyzerProcessor::getMorphProgress() const
+{
+    if (! morph.active)
+        return -1.0f;
+    const auto now = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    return morph.seconds <= 0.0 ? 1.0f : (float) juce::jlimit (0.0, 1.0, (now - morph.start) / morph.seconds);
+}
+
+bool VJAnalyzerProcessor::getSnapshotRecipe (int slot, int& palette, int& look) const
+{
+    auto s = state.state.getChildWithName ("Snapshots").getChildWithName ("S" + juce::String (slot));
+    if (! s.isValid())
+        return false;
+    palette = (int) s.getProperty ("palette", 0);
+    look = (int) s.getProperty ("lookPreset", customLook);
+    return true;
 }
 
 void VJAnalyzerProcessor::recallSnapshot (int slot)
@@ -118,6 +168,9 @@ void VJAnalyzerProcessor::recallSnapshot (int slot)
         morph.to.add ((float) s.getProperty (id, state.getRawParameterValue (id)->load()));
     }
     morph.toPalette = (int) s.getProperty ("palette", 0);
+    morph.toLookPreset = (int) s.getProperty ("lookPreset", -1);
+    morph.toStyle = (int) s.getProperty ("reactStyle", -1);
+    lookMorph.active = false; // the moment owns the look knobs now
     for (int i = 0; i < 3; ++i)
         morph.toColours.add (s.getProperty ("colour" + juce::String (i)).toString());
 
@@ -152,6 +205,15 @@ void VJAnalyzerProcessor::advanceMorph()
                 state.state.setProperty ("colour" + juce::String (i), morph.toColours[i], nullptr);
         if (auto* p = state.getParameter ("palette"))
             p->setValueNotifyingHost (p->convertTo0to1 ((float) morph.toPalette));
+        if (morph.toLookPreset >= 0)
+            if (auto* p = state.getParameter ("lookPreset"))
+            {
+                lastLookPreset = morph.toLookPreset; // the knobs are morphing there already: no second write
+                p->setValueNotifyingHost (p->convertTo0to1 ((float) morph.toLookPreset));
+            }
+        if (morph.toStyle >= 0)
+            if (auto* p = state.getParameter ("reactStyle"))
+                p->setValueNotifyingHost (p->convertTo0to1 ((float) morph.toStyle));
         morph.switchedDiscrete = true;
     }
 
@@ -179,7 +241,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
     // Stable automation IDs macro1..macro8 (ENGINEERING_SPEC 6.3): labels may
     // change per preset, the IDs never do, so saved automation stays valid.
     // Values read as what they do (Speed "x1.00" / "Frozen", Glide in bars).
-    const float macroDefaults[] = { 0.5f, 0.5f, 0.5f, 0.5f, 0.4f, 0.5f, 0.25f, 0.5f };
+    const float macroDefaults[] = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.25f, 0.5f };
     std::function<String (float, int)> percent = [] (float v, int) { return String (roundToInt (v * 100.0f)) + " %"; };
     std::function<String (float, int)> speedText = [] (float v, int) {
         auto s = v <= 0.5f ? (2.0f * v) * (2.0f * v) : std::pow (4.0f, 2.0f * v - 1.0f); // = engine SceneClock::speedCurve
@@ -233,9 +295,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout VJAnalyzerProcessor::createL
                                                        NormalisableRange<float> (0.0f, 150.0f, 1.0f), 0.0f,
                                                        AudioParameterFloatAttributes().withStringFromValueFunction (
                                                            [] (float v, int) { return v < 0.5f ? String ("Off") : String (roundToInt (v)) + " ms"; })));
-    const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene", "Go" };
-    for (int i = 0; i < actionIds.size(); ++i)
+    const char* actionNames[] = { "Hit", "Snapshot A", "Snapshot B", "Snapshot C", "Snapshot D", "Previous Scene", "Next Scene", "Go", "Drop" };
+    for (int i = 0; i < 8; ++i)
         layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[i], 1 }, actionNames[i], false));
+
+    // --- added 2026-09-26 (appended; nothing above moves)
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "reactStyle", 1 }, "React Style", styleNames, 1));
+    layout.add (std::make_unique<AudioParameterChoice> (ParameterID { "lookPreset", 1 }, "Look", lookPresetNames, 2));
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { "lookAmount", 1 }, "Look Amount", NormalisableRange<float> (0.0f, 1.0f), 1.0f,
+                                                       AudioParameterFloatAttributes().withStringFromValueFunction (percent)));
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { actionIds[8], 1 }, actionNames[8], false));
     return layout;
 }
 
@@ -250,7 +319,113 @@ VJAnalyzerProcessor::VJAnalyzerProcessor()
     state.state.setProperty ("enginePath", VJ_DEFAULT_ENGINE_PATH, nullptr);
     for (auto& id : actionIds)
         state.addParameterListener (id, this);
+    leads->add (this);
     startTimerHz (30);
+}
+
+void VJAnalyzerProcessor::makeLead()
+{
+    state.state.setProperty ("leadPin", (double) juce::Time::currentTimeMillis() * 0.001, nullptr); // wall clock: the latest pin wins
+}
+
+void VJAnalyzerProcessor::setRoleByHand (int role)
+{
+    state.state.setProperty ("roleAuto", false, nullptr);
+    if (auto* p = state.getParameter ("role"))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) role));
+        p->endChangeGesture();
+    }
+}
+
+void VJAnalyzerProcessor::setRoleAuto()
+{
+    state.state.setProperty ("roleAuto", true, nullptr);
+    applyRoleFromName();
+}
+
+void VJAnalyzerProcessor::updateTrackProperties (const TrackProperties& properties)
+{
+    if (properties.name.has_value())
+    {
+        trackName = *properties.name;
+        applyRoleFromName();
+    }
+}
+
+void VJAnalyzerProcessor::applyRoleFromName()
+{
+    if (! isRoleAuto() || trackName.isEmpty())
+        return;
+    // Whole words, first match wins (CONTROL-MAP 4.3); anything else keeps the role.
+    auto words = juce::StringArray::fromTokens (trackName.toLowerCase().replaceCharacters ("-_.()[]0123456789", "                  "), " ", "");
+    words.removeEmptyStrings();
+    auto has = [&words] (std::initializer_list<const char*> list) {
+        for (auto* w : list)
+            if (words.contains (w))
+                return true;
+        return false;
+    };
+    const auto lower = trackName.toLowerCase();
+    int role = -1;
+    if (has ({ "kick", "bd", "kik" }) || lower.contains ("bass drum")) role = 1;
+    else if (has ({ "snare", "sd", "clap", "rim" }))                     role = 2;
+    else if (has ({ "hat", "hh", "hihat", "hats", "cymbal", "ride", "shaker" }) || lower.contains ("hi-hat") || lower.contains ("hi hat")) role = 3;
+    else if (has ({ "bass", "sub" }) || lower.contains ("808"))          role = 4;
+    else if (has ({ "master", "main", "mix", "bus" }))                  role = 0;
+    if (role >= 0)
+        if (auto* p = state.getParameter ("role"); p != nullptr && (int) state.getRawParameterValue ("role")->load() != role)
+            p->setValueNotifyingHost (p->convertTo0to1 ((float) role));
+}
+
+void VJAnalyzerProcessor::updateLookPreset()
+{
+    // A running look morph (a named look was picked): advance it.
+    if (lookMorph.active)
+    {
+        const auto now = juce::Time::getMillisecondCounterHiRes() * 0.001;
+        auto t = lookMorph.seconds <= 0.0 ? 1.0 : juce::jlimit (0.0, 1.0, (now - lookMorph.start) / lookMorph.seconds);
+        const auto eased = (float) (t * t * (3.0 - 2.0 * t));
+        for (int i = 0; i < lookVectorIds.size(); ++i)
+            if (auto* p = state.getParameter (lookVectorIds[i]))
+                p->setValueNotifyingHost (p->convertTo0to1 (lookMorph.from[(size_t) i] + (lookMorph.to[(size_t) i] - lookMorph.from[(size_t) i]) * eased));
+        if (t >= 1.0)
+            lookMorph.active = false;
+        return;
+    }
+
+    const auto preset = (int) state.getRawParameterValue ("lookPreset")->load();
+    if (preset != lastLookPreset)
+    {
+        lastLookPreset = preset;
+        if (preset != customLook && ! morph.active)
+        {
+            // A named look: morph the knobs there over one beat (never pops, even from the Korg).
+            lookMorph.from = {};
+            for (int i = 0; i < lookVectorIds.size(); ++i)
+                lookMorph.from[(size_t) i] = state.getRawParameterValue (lookVectorIds[i])->load();
+            lookMorph.to = lookVector (preset);
+            lookMorph.seconds = 60.0 / juce::jlimit (20.0, 400.0, hostBpm.load());
+            lookMorph.start = juce::Time::getMillisecondCounterHiRes() * 0.001;
+            lookMorph.active = true;
+        }
+        return;
+    }
+
+    // Any knob edited away from the named look: it is Custom now.
+    if (preset != customLook && ! morph.active)
+    {
+        const auto& v = lookVector (preset);
+        for (int i = 0; i < lookVectorIds.size(); ++i)
+            if (std::abs (state.getRawParameterValue (lookVectorIds[i])->load() - v[(size_t) i]) > 0.005f)
+            {
+                lastLookPreset = customLook;
+                if (auto* p = state.getParameter ("lookPreset"))
+                    p->setValueNotifyingHost (p->convertTo0to1 ((float) customLook));
+                break;
+            }
+    }
 }
 
 VJAnalyzerProcessor::~VJAnalyzerProcessor()
@@ -258,6 +433,7 @@ VJAnalyzerProcessor::~VJAnalyzerProcessor()
     stopTimer();
     for (auto& id : actionIds)
         state.removeParameterListener (id, this);
+    leads->remove (this);
     worker.release();
 }
 
@@ -364,6 +540,8 @@ void VJAnalyzerProcessor::parameterChanged (const juce::String& id, float newVal
         return;
     if (index == 0)
         worker.sendUserTrigger();
+    if (index == 8)
+        worker.sendDrop();
     actionPending[(size_t) index] = true;
 }
 
@@ -444,23 +622,37 @@ void VJAnalyzerProcessor::timerCallback()
     }
 
     advanceMorph();
+    updateLookPreset();
     updateCue();
+
+    {
+        LeadRegistry::Info info;
+        info.canLead = state.getRawParameterValue ("sendControls")->load() > 0.5f;
+        info.role = (int) state.getRawParameterValue ("role")->load();
+        info.trackName = trackName;
+        info.pinTime = (double) state.state.getProperty ("leadPin", 0.0);
+        leads->update (this, info);
+    }
 
     AnalysisWorker::Controls c;
     c.role = (int) state.getRawParameterValue ("role")->load();
     c.sensitivity = state.getRawParameterValue ("sensitivity")->load();
     c.trimDb = state.getRawParameterValue ("trim")->load();
     c.lockedNormalizer = state.getRawParameterValue ("normalizer")->load() > 0.5f;
-    c.sendControls = state.getRawParameterValue ("sendControls")->load() > 0.5f;
+    c.sendControls = leads->isLead (this); // exactly one instance sends the controls
     for (int i = 0; i < 8; ++i)
         c.macros[(size_t) i] = state.getRawParameterValue ("macro" + juce::String (i + 1))->load();
     c.preset = (int) state.getRawParameterValue ("preset")->load();
     c.blackout = state.getRawParameterValue ("blackout")->load() > 0.5f;
+    // Look Amount scales the look on the way out; Cut Rate (it switches
+    // scenes) and the Reactivity trim are not part of the look.
+    const auto lookAmount = state.getRawParameterValue ("lookAmount")->load();
     for (int i = 0; i < lookIds.size(); ++i)
-        c.look[(size_t) i] = state.getRawParameterValue (lookIds[i])->load();
+        c.look[(size_t) i] = state.getRawParameterValue (lookIds[i])->load() * (i == 6 || i == 12 ? 1.0f : lookAmount);
     c.look[13] = state.getRawParameterValue ("calm")->load() > 0.5f ? 1.0f : 0.0f;
-    c.look[14] = state.getRawParameterValue ("shots")->load();
-    c.look[15] = state.getRawParameterValue ("hud")->load();
+    c.look[14] = state.getRawParameterValue ("shots")->load() * lookAmount;
+    c.look[15] = state.getRawParameterValue ("hud")->load() * lookAmount;
+    c.style = (int) state.getRawParameterValue ("reactStyle")->load();
     auto colours = getPaletteColours();
     for (int i = 0; i < 3; ++i)
     {
@@ -500,7 +692,13 @@ void VJAnalyzerProcessor::setStateInformation (const void* data, int size)
 {
     if (auto xml = getXmlFromBinary (data, size))
         if (xml->hasTagName (state.state.getType()))
+        {
             state.replaceState (juce::ValueTree::fromXml (*xml));
+            // The loaded look is whatever was saved: never re-write it; if it no
+            // longer matches its named look, it shows as Custom (updateLookPreset).
+            lastLookPreset = (int) state.getRawParameterValue ("lookPreset")->load();
+            lookMorph.active = false;
+        }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

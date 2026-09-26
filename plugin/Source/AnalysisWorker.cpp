@@ -202,6 +202,13 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    if (dropPending.exchange (false))
+    {
+        writer.begin ("/v2/trigger");
+        writer.addString ("drop");
+        sendPacket (writer.finish());
+    }
+
     if (fullscreenPending.exchange (false))
     {
         writer.begin ("/fullscreen"); // no argument = toggle
@@ -243,6 +250,13 @@ void AnalysisWorker::sendControlsIfChanged()
         for (auto v : c.palette)
             writer.addFloat (v);
         writer.addFloat (c.paletteMix);
+        sendPacket (writer.finish());
+    }
+
+    if (controlsNeverSent || c.style != sentControls.style)
+    {
+        writer.begin ("/v2/style");
+        writer.addInt (c.style);
         sendPacket (writer.finish());
     }
 
@@ -407,6 +421,11 @@ void AnalysisWorker::oscMessageReceived (const juce::OSCMessage& m)
         status.demo = asInt (7) != 0;
         status.renderScale = m.size() > 8 ? asFloat (8) : 1.0f;
         status.speed = m.size() > 9 ? asFloat (9) : 1.0f;
+        status.rest = m.size() > 10 ? asFloat (10) : 0.0f;
+        status.tension = m.size() > 11 ? asFloat (11) : 0.0f;
+        status.accentEnv = m.size() > 12 ? asFloat (12) : 0.0f;
+        status.accents = m.size() > 13 ? asInt (13) : 0;
+        status.drops = m.size() > 14 ? asInt (14) : 0;
         lastStatusTime = nowSeconds();
     }
     else if (address == "/v2/macros")

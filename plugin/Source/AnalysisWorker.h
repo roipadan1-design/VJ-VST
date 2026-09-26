@@ -39,6 +39,7 @@ public:
         int clipMode = 0;            // 0 loop, 1 ping-pong
         int clipSyncBeats = 0;       // 0 free, else the clip spans this many beats
         bool useMedia = false;       // USE MEDIA: the image replaces the forms in every scene
+        int style = 1;               // reaction character: 0 BREATHE, 1 PULSE, 2 PUNCH (/v2/style)
     };
 
     struct Meters // UI snapshot, copied under a spin lock at ~30 Hz
@@ -66,6 +67,10 @@ public:
         std::array<MediaSlot, 8> media;     // the media slots as the engine has them
         int mediaActive = 0;
         std::array<float, 8> macroActivity {}; // how much the sound moves each macro's targets
+        // Reaction layer (engine /v2/status tail): resting 0-1, build-up 0-1,
+        // the accent envelope (flashes on every accent), running counts.
+        float rest = 0.0f, tension = 0.0f, accentEnv = 0.0f;
+        int accents = 0, drops = 0;
     };
 
     AnalysisWorker();
@@ -82,6 +87,7 @@ public:
     // --- message thread ---
     void setControls (const Controls& c);
     void sendUserTrigger() { userTriggerPending = true; }
+    void sendDrop() { dropPending = true; }
     void selectPresetNow (int index) { presetOverride = index; }
     void stepScene (int direction) { sceneStep += direction; }
     void toggleEngineFullscreen() { fullscreenPending = true; }
@@ -117,7 +123,7 @@ private:
     juce::SpinLock controlsLock;
     Controls controls, sentControls;
     bool controlsNeverSent = true, presetNeverSent = true;
-    std::atomic<bool> userTriggerPending { false };
+    std::atomic<bool> userTriggerPending { false }, dropPending { false };
     std::atomic<int> presetOverride { -1 };
     std::atomic<int> sceneStep { 0 };
     std::atomic<bool> fullscreenPending { false };
