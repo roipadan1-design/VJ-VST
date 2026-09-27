@@ -133,6 +133,20 @@ public:
     juce::String getLeadTrackName() const { return leads->leadTrackName(); }
     juce::String getTrackName() const { return trackName; }
 
+    // True only when this instance sits on Live's Master track - independent
+    // of role/lead status (isLead() is about which instance sends *control*
+    // OSC when several run at once; it does not mean "this processBlock buffer
+    // is the true master mix" - see REELS-RECORDING-PLAN.md). Recording gates
+    // on this, not isLead(), since only the master bus has the full mix.
+    bool isOnMasterTrack() const { return trackName.toLowerCase().contains ("master"); }
+
+    // Reels recording: starts/stops the engine's video capture (worker) and
+    // this instance's own WAV capture of the exact samples processBlock sees
+    // (see processBlock) - no WASAPI loopback needed. Message thread only.
+    void startRecording (double seconds, bool vertical);
+    void stopRecording();
+    bool isRecording() const noexcept { return recording.load(); }
+
     // Role follows the track name ("Kick 808" -> KICK) until picked by hand.
     bool isRoleAuto() const { return (bool) state.state.getProperty ("roleAuto", true); }
     void setRoleByHand (int role);
@@ -214,6 +228,21 @@ private:
 
     juce::AudioProcessorValueTreeState state;
     AnalysisWorker worker;
+
+    // Reels recording: the WAV is the exact samples processBlock sees, written
+    // off the audio thread via JUCE's standard ThreadedWriter idiom (REELS-
+    // RECORDING-PLAN.md #4). recordDeadline (message-thread clock seconds) is
+    // this instance's own auto-stop - the engine times out on the same
+    // requested duration independently, so either side stopping first is fine.
+    std::atomic<bool> recording { false };
+    // Declared before recordingWriter so it's destroyed after it (member
+    // destruction is reverse-declaration-order) - the ThreadedWriter must be
+    // torn down first, since its destructor removes it from this thread.
+    juce::TimeSliceThread recordingWriteThread { "VJ Recording Writer" };
+    std::unique_ptr<juce::AudioFormatWriter::ThreadedWriter> recordingWriter;
+    juce::File recordingFile;
+    double recordDeadline = 0.0;
+    void checkRecordingTimeout(); // message thread, called from timerCallback()
 
     // Visual look-ahead ("lookahead" ms, default 0 = off): the audio leaving
     // the plug-in is delayed and reported as latency, so Live's delay
