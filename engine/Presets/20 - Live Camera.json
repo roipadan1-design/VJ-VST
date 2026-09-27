@@ -1,0 +1,382 @@
+{
+  "schemaVersion": "2.0",
+  "id": "live-camera",
+  "name": "Live Camera",
+  "description": "The webcam (WEBCAM button) or a video file dropped straight on the engine's own window, drawn plainly with no treatment stage - a different pathway from the MEDIA tab's LOAD button (see Media Raw for that one). Intensity is gain, Form mirrors it, Scale zooms in, Erode fades it toward a worn desaturated print, Detail sharpens; all sit neutral by default so the frame stays exactly what the camera sees. Stretches to fill rather than fitting to the source's aspect (see the shader header for why).",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "cam",
+      "kind": "generator",
+      "shader": "Instrument/live_camera.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "gain",
+          "label": "Gain",
+          "min": 0.4,
+          "max": 2.0,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "mirror",
+          "label": "Mirror",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.6,
+          "max": 2.5,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fade",
+          "label": "Fade",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "sharpen",
+          "label": "Sharpen",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "gain",
+      "default": 0.5
+    },
+    {
+      "id": "speed",
+      "slot": 1,
+      "label": "Speed",
+      "default": 0.5
+    },
+    {
+      "id": "form",
+      "slot": 2,
+      "label": "mirror",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
+      "slot": 3,
+      "label": "zoom",
+      "default": 0.5
+    },
+    {
+      "id": "react",
+      "slot": 4,
+      "label": "React",
+      "default": 0.5
+    },
+    {
+      "id": "erode",
+      "slot": 5,
+      "label": "wear",
+      "default": 0.5
+    },
+    {
+      "id": "glide",
+      "slot": 6,
+      "label": "Glide",
+      "default": 0.25
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "sharpen",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "hit",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 1300,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "hit"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 800,
+      "peak": 1,
+      "retrigger": "restart",
+      "style": "snare"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 80,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-cam-gain",
+      "source": "macro.intensity",
+      "destination": "stage.cam.gain",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.4,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-form-cam-mirror",
+      "source": "macro.form",
+      "destination": "stage.cam.mirror",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.2,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-cam-zoom",
+      "source": "macro.scale",
+      "destination": "stage.cam.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-cam-fade",
+      "source": "macro.erode",
+      "destination": "stage.cam.fade",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-detail-cam-sharpen",
+      "source": "macro.detail",
+      "destination": "stage.cam.sharpen",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "react-energy-cam-fade",
+      "source": "react.energy",
+      "destination": "stage.cam.fade",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.08,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-cam-zoom",
+      "source": "env.hit",
+      "destination": "stage.cam.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.04,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-body-cam-gain",
+      "source": "react.body",
+      "destination": "stage.cam.gain",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.05,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-cam-sharpen",
+      "source": "react.tension",
+      "destination": "stage.cam.sharpen",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.06,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "pulse",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1,
+          "scale": "snare"
+        }
+      ]
+    },
+    {
+      "id": "drop",
+      "on": "event.drop",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "beat",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": false,
+      "amount": 0.0,
+      "threshold": 1.0,
+      "levels": 4
+    },
+    "toneMap": "none",
+    "exposureEv": 0.0,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.0
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 2121,
+    "notes": "target, not measured"
+  }
+}

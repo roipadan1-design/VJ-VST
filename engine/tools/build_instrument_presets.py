@@ -222,6 +222,15 @@ NEGATIVE_PARAMS = [param('polarity', 0, 1, 1), param('threshold', 0.2, 0.8, 0.45
 MEDIA_NEGATIVE_PARAMS = [dict(p, default=d) if p['name'] in d_ else p for p in NEGATIVE_PARAMS
                          for d_ in [{'threshold': 0.6, 'contrast': 0.75, 'detail': 1.4}] for d in [d_.get(p['name'])]]
 
+# media_frame.fs with every drift/re-grade default turned off: zoom 1 (no crop),
+# fit 0 (contain - full frame, letterboxed), roam 0 (kills the Ken-Burns
+# breathing: with roam and surge both 0 the shader's z and pan collapse to
+# static regardless of wander's own rate), surge 0, autolevel 0 (raw
+# brightness - autolevel is declared by the shader but was never exposed as a
+# preset param before this scene).
+MEDIA_RAW_PARAMS = [param('zoom', 0.6, 2.5, 1.0), param('fit', 0, 1, 0.0), param('wander', 0.0, 0.5, 0.1, integrate=True),
+                    param('roam', 0, 1, 0.0), param('surge', 0, 2.5, 0), param('autolevel', 0, 1, 0.0)]
+
 
 def rest(dst, amount, **kw):
     """REST: silence carries the scene to its rest pose; centre .5 = the tuned look."""
@@ -605,6 +614,51 @@ PRESETS = [
            transition={'type': 'crossfade', 'durationMs': 5000, 'quantize': 'bar', 'historyOnEnter': 'reset',
                        'retarget': 'snapshot-current'},
            seed=1919),
+
+    # --- Utility pass-throughs: fix for "loaded media/webcam looks unrecognisable" -
+    # every other scene that reads a source is one strong treatment by design
+    # (SourceLibrary.h), so there was no scene that just showed what you loaded.
+    # These two stay genuinely static and unprocessed at their defaults. The
+    # generator requires a REST/HIT/BODY/BUILD route on every scene (check()
+    # below), so each of those four is wired at token amplitude onto a
+    # non-positional destination (autolevel/fit's blend, never roam/zoom - a
+    # continuous source landing on the Ken-Burns driver would quietly turn
+    # the drift back on under real music). "roam" itself carries no audio
+    # route at all: it is exactly 0 until the Erode macro is turned up.
+    preset('19 - Media Raw.json', 'media-raw', 'Media Raw',
+           'Your loaded image or clip (MEDIA tab, LOAD button), shown as it is: one stage, contain-fit, no drift, '
+           'no auto brightness - a plain window onto what you loaded. Intensity brings in auto-levelling, Scale zooms, '
+           'Form crops toward cover, Erode/Detail bring back a slow Ken-Burns drift and a small punch-in on hits, '
+           'once you want them. Shows the built-in forms until an image or video is loaded.',
+           [stage('frame', 'media_frame.fs', MEDIA_RAW_PARAMS, {'source': MEDIA})],
+           [route('macro.intensity', 'frame.autolevel', 1.0, 0.5), route('macro.form', 'frame.fit', 1.4, 0.5),
+            route('macro.scale', 'frame.zoom', 0.6, 0.5), route('macro.erode', 'frame.roam', 0.8, 0.5),
+            route('macro.detail', 'frame.surge', 1.0, 0.5),
+            rest('frame.autolevel', 0.06), hit('frame.surge', 0.08), body('frame.zoom', 0.02, 0.5),
+            build('frame.fit', 0.03)],
+           {'intensity': 'levels', 'form': 'crop', 'scale': 'zoom', 'erode': 'drift', 'detail': 'pop'},
+           post={'bloom': {'enabled': False, 'amount': 0.0, 'threshold': 1.0, 'levels': 4},
+                 'toneMap': 'none', 'exposureEv': 0.0, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.0},
+           seed=2020),
+
+    preset('20 - Live Camera.json', 'live-camera', 'Live Camera',
+           'The webcam (WEBCAM button) or a video file dropped straight on the engine\'s own window, drawn plainly with '
+           'no treatment stage - a different pathway from the MEDIA tab\'s LOAD button (see Media Raw for that one). '
+           'Intensity is gain, Form mirrors it, Scale zooms in, Erode fades it toward a worn desaturated print, Detail '
+           'sharpens; all sit neutral by default so the frame stays exactly what the camera sees. Stretches to fill '
+           'rather than fitting to the source\'s aspect (see the shader header for why).',
+           [stage('cam', 'live_camera.fs', [
+               param('gain', 0.4, 2.0, 1.0), param('mirror', 0, 1, 0.0), param('zoom', 0.6, 2.5, 1.0),
+               param('fade', 0, 1, 0.0), param('sharpen', 0, 1, 0.0)])],
+           [route('macro.intensity', 'cam.gain', 0.4, 0.5), route('macro.form', 'cam.mirror', 1.2, 0.5),
+            route('macro.scale', 'cam.zoom', 0.6, 0.5), route('macro.erode', 'cam.fade', 0.8, 0.5),
+            route('macro.detail', 'cam.sharpen', 0.8, 0.5),
+            rest('cam.fade', 0.08), hit('cam.zoom', 0.04), body('cam.gain', 0.05, 0.5),
+            build('cam.sharpen', 0.06)],
+           {'intensity': 'gain', 'form': 'mirror', 'scale': 'zoom', 'erode': 'wear', 'detail': 'sharpen'},
+           post={'bloom': {'enabled': False, 'amount': 0.0, 'threshold': 1.0, 'levels': 4},
+                 'toneMap': 'none', 'exposureEv': 0.0, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.0},
+           seed=2121),
 ]
 
 if __name__ == '__main__':

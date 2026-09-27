@@ -1,0 +1,399 @@
+{
+  "schemaVersion": "2.0",
+  "id": "media-raw",
+  "name": "Media Raw",
+  "description": "Your loaded image or clip (MEDIA tab, LOAD button), shown as it is: one stage, contain-fit, no drift, no auto brightness - a plain window onto what you loaded. Intensity brings in auto-levelling, Scale zooms, Form crops toward cover, Erode/Detail bring back a slow Ken-Burns drift and a small punch-in on hits, once you want them. Shows the built-in forms until an image or video is loaded.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "frame",
+      "kind": "generator",
+      "shader": "Instrument/media_frame.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "zoom",
+          "label": "Zoom",
+          "min": 0.6,
+          "max": 2.5,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "fit",
+          "label": "Fit",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "wander",
+          "label": "Wander",
+          "min": 0.0,
+          "max": 0.5,
+          "default": 0.1,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "roam",
+          "label": "Roam",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "surge",
+          "label": "Surge",
+          "min": 0,
+          "max": 2.5,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "autolevel",
+          "label": "Autolevel",
+          "min": 0,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ],
+      "sources": {
+        "source": {
+          "type": "media",
+          "fallback": "Images/Forms",
+          "advance": "none"
+        }
+      }
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "levels",
+      "default": 0.5
+    },
+    {
+      "id": "speed",
+      "slot": 1,
+      "label": "Speed",
+      "default": 0.5
+    },
+    {
+      "id": "form",
+      "slot": 2,
+      "label": "crop",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
+      "slot": 3,
+      "label": "zoom",
+      "default": 0.5
+    },
+    {
+      "id": "react",
+      "slot": 4,
+      "label": "React",
+      "default": 0.5
+    },
+    {
+      "id": "erode",
+      "slot": 5,
+      "label": "drift",
+      "default": 0.5
+    },
+    {
+      "id": "glide",
+      "slot": 6,
+      "label": "Glide",
+      "default": 0.25
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "pop",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "hit",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 1300,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "hit"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 800,
+      "peak": 1,
+      "retrigger": "restart",
+      "style": "snare"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 80,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-frame-autolevel",
+      "source": "macro.intensity",
+      "destination": "stage.frame.autolevel",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-form-frame-fit",
+      "source": "macro.form",
+      "destination": "stage.frame.fit",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.4,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-frame-zoom",
+      "source": "macro.scale",
+      "destination": "stage.frame.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-frame-roam",
+      "source": "macro.erode",
+      "destination": "stage.frame.roam",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-detail-frame-surge",
+      "source": "macro.detail",
+      "destination": "stage.frame.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 1.0,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "react-energy-frame-autolevel",
+      "source": "react.energy",
+      "destination": "stage.frame.autolevel",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.06,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "env-hit-frame-surge",
+      "source": "env.hit",
+      "destination": "stage.frame.surge",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.08,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-body-frame-zoom",
+      "source": "react.body",
+      "destination": "stage.frame.zoom",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.02,
+      "attackMs": 0,
+      "releaseMs": 0
+    },
+    {
+      "id": "react-tension-frame-fit",
+      "source": "react.tension",
+      "destination": "stage.frame.fit",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.03,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "pulse",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1,
+          "scale": "snare"
+        }
+      ]
+    },
+    {
+      "id": "drop",
+      "on": "event.drop",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "cut",
+    "durationMs": 0,
+    "quantize": "beat",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": false,
+      "amount": 0.0,
+      "threshold": 1.0,
+      "levels": 4
+    },
+    "toneMap": "none",
+    "exposureEv": 0.0,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.0
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 2020,
+    "notes": "target, not measured"
+  }
+}
