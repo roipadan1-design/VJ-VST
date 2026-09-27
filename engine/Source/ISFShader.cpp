@@ -610,8 +610,23 @@ void ISFShader::render (juce::OpenGLContext&, float timeSeconds, int pixelWidth,
     lastRenderTime = timeSeconds;
 
     for (int i = 0; i < passes.size(); ++i)
+    {
+        // Optional measurement only (VJ_GPUTIMING); a no-op otherwise.
+        int timing = -1;
+        if (gpuTiming::enabled())
+        {
+            const auto& pass = passes.getReference (i);
+            const bool offscreen = pass.target.isNotEmpty() && i != passes.size() - 1;
+            timing = gpuTiming::begin (shaderFile.getFileName() + " pass " + juce::String (i)
+                                       + (offscreen ? " [" + pass.target + " x" + juce::String (pass.widthScale, 2) + "]" : juce::String())
+                                       + " @" + juce::String (pixelWidth) + "x" + juce::String (pixelHeight));
+        }
+
         runPass (i, pixelWidth, pixelHeight, timeSeconds, level, bass, mid, high, beatphase, onset,
                  externalImageTexture, finalTargetFbo);
+
+        gpuTiming::end (timing);
+    }
 
     glBindFramebuffer (GL_FRAMEBUFFER, 0);
     glViewport (0, 0, pixelWidth, pixelHeight);

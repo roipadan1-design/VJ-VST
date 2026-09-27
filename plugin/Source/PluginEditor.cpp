@@ -35,6 +35,17 @@ namespace
 
     void outlineOf (juce::Component& c, juce::Colour colour) { c.getProperties().set ("outline", (int) colour.getARGB()); }
 
+    // A five-point star (drawn, so it never depends on the font having the glyph).
+    juce::Path starPath (juce::Rectangle<float> r)
+    {
+        juce::Path p;
+        p.addStar (r.getCentre(), 5, r.getWidth() * 0.21f, r.getWidth() * 0.5f, 0.0f);
+        return p;
+    }
+
+    const juce::String starText { juce::CharPointer_UTF8 ("\xe2\x98\x85") };
+    const juce::String dotText { juce::CharPointer_UTF8 (" \xc2\xb7 ") };
+
     void styleButton (juce::TextButton& b, juce::Colour fill, juce::Colour text, juce::Colour onFill, juce::Colour onText)
     {
         b.setColour (juce::TextButton::buttonColourId, fill);
@@ -400,6 +411,12 @@ void SegmentedControl::paint (juce::Graphics& g)
         g.setColour (i == pending ? vjui::tungsten : (sel ? vjui::bone : vjui::line));
         g.drawRoundedRectangle (cell, 2.0f, i == pending ? 1.5f : 1.0f);
         g.setColour (sel ? vjui::ink0 : (isEnabled() ? vjui::ash : vjui::dust));
+        if (names[i] == starText)
+        {
+            const auto size = juce::jmin (cell.getHeight() - 5.0f, 11.0f);
+            g.fillPath (starPath (cell.withSizeKeepingCentre (size, size)));
+            continue;
+        }
         g.setFont (vjui::font (juce::jlimit (9.5f, 12.0f, (float) getHeight() * 0.42f), true));
         g.drawText (names[i], cell.toNearestInt(), juce::Justification::centred, true);
     }
@@ -432,8 +449,8 @@ void SegmentedControl::mouseExit (const juce::MouseEvent&)
 //==============================================================================
 void SceneGrid::setState (const State& s)
 {
-    const bool changed = s.names != st.names || s.usesMedia != st.usesMedia || s.live != st.live || s.cued != st.cued
-                      || s.firing != st.firing || s.connected != st.connected;
+    const bool changed = s.names != st.names || s.usesMedia != st.usesMedia || s.hasDefault != st.hasDefault || s.live != st.live
+                      || s.cued != st.cued || s.firing != st.firing || s.connected != st.connected;
     st = s;
     if (changed || st.cued >= 0 || st.firing >= 0)
         repaint();
@@ -507,6 +524,13 @@ void SceneGrid::paint (juce::Graphics& g)
         g.setColour (! st.connected ? vjui::dust : (live || cued || firing || hover ? vjui::bone : vjui::ash));
         g.setFont (vjui::font (11.0f, live));
         g.drawText (st.names[i], text, juce::Justification::centredLeft, true);
+
+        // A default look is set for this scene: a small dot in the corner.
+        if (juce::isPositiveAndBelow (i, st.hasDefault.size()) && st.hasDefault[i])
+        {
+            g.setColour (vjui::ash);
+            g.fillEllipse (t.getRight() - 7.0f, t.getY() + 3.5f, 4.0f, 4.0f);
+        }
     }
 
     // Scroll hint when there are more than 16 scenes.
@@ -521,6 +545,12 @@ void SceneGrid::paint (juce::Graphics& g)
 
 void SceneGrid::mouseDown (const juce::MouseEvent& e)
 {
+    if (e.mods.isPopupMenu())
+    {
+        if (onMenu)
+            onMenu (tileAt (e.getPosition()));
+        return;
+    }
     if (! st.connected || e.getNumberOfClicks() > 1)
         return;
     if (auto t = tileAt (e.getPosition()); t >= 0 && onCue)
@@ -529,7 +559,7 @@ void SceneGrid::mouseDown (const juce::MouseEvent& e)
 
 void SceneGrid::mouseDoubleClick (const juce::MouseEvent& e)
 {
-    if (! st.connected)
+    if (! st.connected || e.mods.isPopupMenu())
         return;
     if (auto t = tileAt (e.getPosition()); t >= 0 && onFire)
         onFire (t);
@@ -543,6 +573,8 @@ void SceneGrid::mouseMove (const juce::MouseEvent& e)
         hovered = t;
         vjui::setHelp (*this, t >= 0 ? st.names[t] + (t < st.descriptions.size() && st.descriptions[t].isNotEmpty() ? ": " + st.descriptions[t] : juce::String())
                                            + "  -  click = cue it (NEXT), GO = switch, double-click = both."
+                                           + (juce::isPositiveAndBelow (t, st.hasDefault.size()) && st.hasDefault[t] ? "  Opens on its default look." : "")
+                                           + (t == st.live ? "  Right-click = save look." : "")
                                      : juce::String());
         repaint();
     }
@@ -557,6 +589,236 @@ void SceneGrid::mouseExit (const juce::MouseEvent&)
 void SceneGrid::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& w)
 {
     const auto rows = (st.names.size() + columns - 1) / columns;
+    scrollRow = juce::jlimit (0, juce::jmax (0, rows - visibleRows), scrollRow + (w.deltaY < 0 ? 1 : -1));
+    repaint();
+}
+
+//==============================================================================
+void LookGrid::setState (State s)
+{
+    const bool changed = s.signature != st.signature || s.favouritesOnly != st.favouritesOnly;
+    st = std::move (s);
+    if (hovered >= (int) st.tiles.size())
+        hovered = -1;
+    const auto rows = ((int) st.tiles.size() + columns - 1) / columns;
+    scrollRow = juce::jlimit (0, juce::jmax (0, rows - visibleRows), scrollRow);
+    if (changed || st.cued.isNotEmpty())
+        repaint();
+}
+
+juce::Rectangle<int> LookGrid::tileBounds (int index) const
+{
+    const auto row = index / columns - scrollRow, col = index % columns;
+    return { col * stepX, row * stepY, tileW, tileH };
+}
+
+juce::Rectangle<int> LookGrid::starBounds (int index) const
+{
+    auto r = tileBounds (index);
+    return { r.getRight() - 17, r.getY() + 3, 13, 13 };
+}
+
+int LookGrid::tileAt (juce::Point<int> p) const
+{
+    const auto col = p.x / stepX, row = p.y / stepY + scrollRow;
+    if (p.x < 0 || p.y < 0 || col >= columns || p.x % stepX >= tileW || p.y % stepY >= tileH)
+        return -1;
+    const auto index = row * columns + col;
+    return juce::isPositiveAndBelow (index, (int) st.tiles.size()) ? index : -1;
+}
+
+int LookGrid::indexOf (const juce::String& id) const
+{
+    for (int i = 0; i < (int) st.tiles.size(); ++i)
+        if (st.tiles[(size_t) i].id == id)
+            return i;
+    return -1;
+}
+
+void LookGrid::reveal (int index)
+{
+    if (index < 0)
+        return;
+    const auto row = index / columns;
+    if (row < scrollRow)
+        scrollRow = row;
+    else if (row >= scrollRow + visibleRows)
+        scrollRow = row - visibleRows + 1;
+    repaint();
+}
+
+void LookGrid::paint (juce::Graphics& g)
+{
+    if (st.tiles.empty())
+    {
+        auto r = getLocalBounds().toFloat().reduced (0.5f).withHeight ((float) (stepY * 2 - 4));
+        juce::Path p;
+        p.addRoundedRectangle (r, 2.0f);
+        juce::Path dashed;
+        const float dashes[] = { 3.0f, 3.0f };
+        juce::PathStrokeType (1.0f).createDashedStroke (dashed, p, dashes, 2);
+        g.setColour (vjui::dust.withAlpha (0.6f));
+        g.fillPath (dashed);
+        g.setColour (vjui::ash);
+        g.setFont (vjui::font (11.0f, true));
+        g.drawText (st.favouritesOnly ? "No favourites yet" : "No saved looks yet", r.toNearestInt().removeFromTop (30).withTrimmedTop (6),
+                    juce::Justification::centred);
+        g.setColour (vjui::dust);
+        g.setFont (vjui::font (10.0f));
+        g.drawText (st.favouritesOnly ? "Click the star on a look (in LOOKS) to add it here."
+                                      : "Right-click here or on the live scene's name  >  Save look...",
+                    r.toNearestInt().withTrimmedTop (30).removeFromTop (18), juce::Justification::centred);
+        return;
+    }
+
+    const auto pulse = 0.55f + 0.45f * (float) std::sin (seconds() * juce::MathConstants<double>::twoPi * 1.5);
+    for (int i = 0; i < (int) st.tiles.size(); ++i)
+    {
+        auto r = tileBounds (i);
+        if (r.getBottom() <= 0 || r.getY() >= getHeight())
+            continue;
+        const auto& tile = st.tiles[(size_t) i];
+        auto t = r.toFloat().reduced (0.5f);
+        const bool live = tile.id == st.live, cued = tile.id == st.cued, saved = tile.id == st.saved, hover = i == hovered;
+
+        g.setColour (live || hover ? vjui::ink2 : vjui::ink1);
+        g.fillRoundedRectangle (t, 2.0f);
+        g.setColour (saved ? vjui::tungsten : (live ? vjui::signal : (cued ? vjui::tungsten.withAlpha (pulse) : (hover ? vjui::ash : vjui::line))));
+        g.drawRoundedRectangle (t, 2.0f, live || cued || saved ? 1.5f : 1.0f);
+        if (live)
+        {
+            g.setColour (vjui::signal);
+            g.fillRect (t.withWidth (3.0f));
+        }
+
+        // Star (favourite): red when on - the owner's own marker.
+        {
+            auto s = starBounds (i).toFloat().reduced (1.0f);
+            auto star = starPath (s);
+            if (tile.favourite)
+            {
+                g.setColour (vjui::signal);
+                g.fillPath (star);
+            }
+            else
+            {
+                g.setColour (hover && hoverStar ? vjui::bone : (hover ? vjui::ash : vjui::dust.withAlpha (0.7f)));
+                g.strokePath (star, juce::PathStrokeType (1.0f));
+            }
+        }
+
+        // Line 1: the name.
+        auto inner = r.reduced (8, 0);
+        auto line1 = inner.withHeight (16).withY (r.getY() + 1);
+        line1.removeFromRight (16);
+        g.setColour (live || cued || hover || saved ? vjui::bone : vjui::ash);
+        g.setFont (vjui::font (11.0f, live));
+        g.drawText (tile.name, line1, juce::Justification::centredLeft, true);
+
+        // Line 2: colour strip, the scene, a badge.
+        auto line2 = inner.withHeight (11).withY (r.getY() + 16);
+        juce::String badge;
+        bool filledBadge = false;
+        if (saved)                  { badge = "SAVED"; filledBadge = true; }
+        else if (cued)              { badge = "NEXT"; filledBadge = true; }
+        else if (tile.startup)      badge = "START";
+        else if (tile.sceneDefault) badge = "DEF";
+        if (badge.isNotEmpty())
+        {
+            const auto w = badge.length() * 5 + 8;
+            auto b = line2.removeFromRight (w).toFloat();
+            if (filledBadge)
+            {
+                g.setColour (vjui::tungsten);
+                g.fillRoundedRectangle (b, 2.0f);
+                g.setColour (vjui::ink0);
+            }
+            else
+            {
+                g.setColour (vjui::ash.withAlpha (0.8f));
+                g.drawRoundedRectangle (b.reduced (0.5f), 2.0f, 1.0f);
+            }
+            g.setFont (vjui::font (7.5f, true));
+            g.drawText (badge, b.toNearestInt(), juce::Justification::centred);
+            line2.removeFromRight (3);
+        }
+        auto strip = line2.removeFromLeft (18).toFloat().withSizeKeepingCentre (18.0f, 5.0f);
+        stripes (g, strip, tile.colours);
+        line2.removeFromLeft (5);
+        g.setColour (tile.sceneMissing ? vjui::tungsten : vjui::dust);
+        g.setFont (vjui::font (8.5f));
+        g.drawText (tile.scene.isEmpty() ? juce::String ("any scene") : (tile.sceneMissing ? tile.scene + " (missing)" : tile.scene),
+                    line2, juce::Justification::centredLeft, true);
+    }
+
+    const auto rows = ((int) st.tiles.size() + columns - 1) / columns;
+    if (rows > visibleRows)
+    {
+        const auto h = (float) getHeight() * (float) visibleRows / (float) rows;
+        g.setColour (vjui::line);
+        g.fillRect ((float) getWidth() - 2.0f, (float) scrollRow / (float) rows * (float) getHeight(), 2.0f, h);
+    }
+}
+
+void LookGrid::mouseDown (const juce::MouseEvent& e)
+{
+    const auto t = tileAt (e.getPosition());
+    if (e.mods.isPopupMenu())
+    {
+        if (onMenu)
+            onMenu (t);
+        return;
+    }
+    if (e.getNumberOfClicks() > 1 || t < 0)
+        return;
+    if (starBounds (t).expanded (2).contains (e.getPosition()))
+    {
+        if (onStar)
+            onStar (t);
+        return;
+    }
+    if (onCue)
+        onCue (t);
+}
+
+void LookGrid::mouseDoubleClick (const juce::MouseEvent& e)
+{
+    const auto t = tileAt (e.getPosition());
+    if (t < 0 || e.mods.isPopupMenu() || starBounds (t).expanded (2).contains (e.getPosition()))
+        return;
+    if (onFire)
+        onFire (t);
+}
+
+void LookGrid::mouseMove (const juce::MouseEvent& e)
+{
+    const auto t = tileAt (e.getPosition());
+    const bool star = t >= 0 && starBounds (t).expanded (2).contains (e.getPosition());
+    if (t != hovered || star != hoverStar)
+    {
+        hovered = t;
+        hoverStar = star;
+        juce::String help;
+        if (t >= 0)
+            help = star ? (st.tiles[(size_t) t].favourite ? "Remove from favourites." : "Add to favourites (they come first, and alone in the star view).")
+                        : st.tiles[(size_t) t].help;
+        else
+            help = "Right-click = save the picture on screen as a new look.";
+        vjui::setHelp (*this, help);
+        repaint();
+    }
+}
+
+void LookGrid::mouseExit (const juce::MouseEvent&)
+{
+    hovered = -1;
+    hoverStar = false;
+    repaint();
+}
+
+void LookGrid::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& w)
+{
+    const auto rows = ((int) st.tiles.size() + columns - 1) / columns;
     scrollRow = juce::jlimit (0, juce::jmax (0, rows - visibleRows), scrollRow + (w.deltaY < 0 ? 1 : -1));
     repaint();
 }
@@ -662,13 +924,13 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     vjui::setHelp (previous, "Cue the previous scene. GO switches. (Live: Previous Scene)");
     vjui::setHelp (next, "Cue the next scene. GO switches. (Live: Next Scene)");
     go.onClick = [this, press] {
-        if (processor.getCuedScene() < 0)
-            setInfo ("Cue a scene first: click a tile, then GO.", vjui::tungsten);
+        if (processor.getCuedScene() < 0 && processor.getCuedLook().isEmpty())
+            setInfo ("Cue a scene or a look first: click a tile, then GO.", vjui::tungsten);
         press ("sceneGo");
     };
     go.getProperties().set ("fontSize", 14.0f);
     styleButton (go, vjui::ink1, vjui::dust, vjui::tungsten, vjui::ink0);
-    vjui::setHelp (go, "Switch to the cued scene. While Live plays it lands on the beat. (Live: Go)");
+    vjui::setHelp (go, "Switch to the cued scene or look. While Live plays it lands on the beat. (Live: Go)");
     cueField.getProperties().set ("left", true);
     cueField.getProperties().set ("fontSize", 11.0f);
     cueField.onClick = [this] { processor.cueScene (-1); };
@@ -682,7 +944,54 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
         shownCue = -2;
     };
     sceneGrid.onFire = [this] (int i) { selectPreset (i); };
+    sceneGrid.onMenu = [this] (int i) { showSceneTileMenu (i, &sceneGrid); };
     addChildComponent (sceneGrid);
+
+    // ------------------------------------------------------------ looks
+    gridSwitch.setComponentID ("gridSwitch");
+    gridSwitch.onChange = [this] (int i) { setGridView (i); };
+    gridSwitch.setCellHelp (0, "The scenes (the engine's generative pictures).");
+    gridSwitch.setCellHelp (1, "Your saved looks: a scene + your knobs, look, colours and reactions. Right-click the live scene's name to save one.");
+    gridSwitch.setCellHelp (2, "Only your favourite looks (the star on a look tile) - the set list.");
+    addChildComponent (gridSwitch);
+
+    lookGrid.setComponentID ("lookList");
+    lookGrid.onCue = [this] (int i) { cueLookTile (i); };
+    lookGrid.onFire = [this] (int i) { fireLookTile (i); };
+    lookGrid.onStar = [this] (int i) { toggleFavourite (i); };
+    lookGrid.onMenu = [this] (int i) {
+        if (i < 0)
+            showLookAreaMenu();
+        else
+            showLookTileMenu (i);
+    };
+    addChildComponent (lookGrid);
+
+    nameField.setComponentID ("lookName");
+    nameField.setFont (vjui::font (14.0f, true));
+    nameField.setJustification (juce::Justification::centredLeft);
+    nameField.setIndents (10, 0);
+    nameField.setInputRestrictions (60);
+    nameField.setSelectAllWhenFocused (true);
+    nameField.setColour (juce::TextEditor::backgroundColourId, vjui::ink0);
+    nameField.setColour (juce::TextEditor::textColourId, vjui::bone);
+    nameField.setColour (juce::TextEditor::highlightColourId, vjui::tungsten.withAlpha (0.35f));
+    nameField.setColour (juce::TextEditor::highlightedTextColourId, vjui::bone);
+    nameField.setColour (juce::TextEditor::outlineColourId, vjui::tungsten);
+    nameField.setColour (juce::TextEditor::focusedOutlineColourId, vjui::tungsten);
+    nameField.setColour (juce::CaretComponent::caretColourId, vjui::bone);
+    nameField.onReturnKey = [this] { commitName (nameField.getText()); };
+    nameField.onEscapeKey = [this] { endNaming(); };
+    vjui::setHelp (nameField, "Type a name for the look. Enter (or SAVE) saves it, Esc cancels.");
+    nameSave.getProperties().set ("fontSize", 11.0f);
+    styleButton (nameSave, vjui::tungsten, vjui::ink0, vjui::tungsten, vjui::ink0);
+    nameSave.onClick = [this] { commitName (nameField.getText()); };
+    vjui::setHelp (nameSave, "Save it.");
+    nameCancel.getProperties().set ("fontSize", 10.0f);
+    nameCancel.onClick = [this] { endNaming(); };
+    vjui::setHelp (nameCancel, "Don't save.");
+    for (auto* c : std::initializer_list<juce::Component*> { &nameField, &nameSave, &nameCancel })
+        addChildComponent (c);
 
     // ------------------------------------------------------------ react row + lamps
     auto reactChange = [this] (int i) {
@@ -1070,11 +1379,21 @@ void VJAnalyzerEditor::updateMode()
 
     const bool lead = mode != Mode::source, drawer = mode == Mode::edit;
     leadChip.setVisible (false); // lead status lives in EDIT > SETUP (it only duplicated EDIT here)
+    if (! lead && naming)
+        endNaming();
     for (auto* c : std::initializer_list<juce::Component*> { &enginePill, &fullscreenButton, &editButton, &blackout,
-                                                             &previous, &next, &go, &cueField, &sceneGrid, &reactRow, &colourPicker,
+                                                             &gridSwitch, &reactRow, &colourPicker,
                                                              &lookPicker, &lookAmount, &mediaChip, &loadButton, &morphButton,
                                                              &freeze, &hit, &drop })
         c->setVisible (lead);
+    for (auto* c : std::initializer_list<juce::Component*> { &previous, &next, &go, &cueField })
+        c->setVisible (lead && ! naming);
+    for (auto* c : std::initializer_list<juce::Component*> { &nameField, &nameSave, &nameCancel })
+        c->setVisible (lead && naming);
+    const auto view = getGridView();
+    gridSwitch.setSelected (view);
+    sceneGrid.setVisible (lead && view == 0);
+    lookGrid.setVisible (lead && view != 0);
     for (auto* c : lamps)   c->setVisible (lead);
     for (auto* c : moments) c->setVisible (lead);
     for (auto* c : macros)  c->setVisible (lead);
@@ -1131,6 +1450,11 @@ void VJAnalyzerEditor::layoutPlay()
     next.setBounds (332, 116, 32, 36);
     go.setBounds (372, 116, 92, 36);
     sceneGrid.setBounds (16, 162, 450, 134);
+    lookGrid.setBounds (sceneGrid.getBounds());
+    gridSwitch.setBounds (318, 44, 146, 18);
+    nameField.setBounds (16, 116, 336, 36);
+    nameSave.setBounds (356, 116, 56, 36);
+    nameCancel.setBounds (416, 116, 48, 36);
 
     reactRow.setBounds (480, 64, 264, 28);
     for (int i = 0; i < lamps.size(); ++i)
@@ -1335,9 +1659,12 @@ void VJAnalyzerEditor::momentClicked (int slot, const juce::MouseEvent* rightCli
         juce::PopupMenu m;
         m.addItem (1, "Save here");
         m.addItem (2, "Clear", processor.hasSnapshot (slot));
+        m.addSeparator();
+        m.addItem (3, "Save to library...", processor.hasSnapshot (slot));
         m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (moments[slot]), [this, slot] (int r) {
             if (r == 1) { processor.storeSnapshot (slot); savedSlot = slot; savedFlash = now(); }
             if (r == 2) processor.clearSnapshot (slot);
+            if (r == 3) saveMomentToLibrary (slot);
         });
         return;
     }
@@ -1426,6 +1753,390 @@ void VJAnalyzerEditor::rememberScenes()
 }
 
 //==============================================================================
+// Looks: SCENES · LOOKS · ★ on the PLAY grid (docs/product-design/PRESET-BANK-PROPOSAL.md, option B).
+
+int VJAnalyzerEditor::getGridView() const
+{
+    return juce::jlimit (0, 2, (int) processor.getState().state.getProperty ("gridView", 0));
+}
+
+void VJAnalyzerEditor::setGridView (int view)
+{
+    processor.getState().state.setProperty ("gridView", juce::jlimit (0, 2, view), nullptr);
+    updateMode();
+    updateLookGrid();
+}
+
+void VJAnalyzerEditor::updateLookGrid()
+{
+    if (! lookGrid.isVisible())
+        return;
+    auto& lib = processor.getLooks();
+    const auto view = getGridView();
+    const auto liveScene = processor.currentSceneName();
+    const auto active = processor.getActiveLook();
+    const auto cued = processor.getCuedLook();
+    const auto saved = now() - savedLookAt < 0.8 ? savedLookId : juce::String();
+    juce::String live;
+    if (auto* a = lib.find (active); a != nullptr && (a->scene.isEmpty() || a->scene.equalsIgnoreCase (liveScene)))
+        live = active;
+    const bool haveScenes = status.connected && ! status.presetNames.isEmpty();
+
+    juce::String sig;
+    sig << view << '|' << live << '|' << cued << '|' << saved << '|' << lib.getRevision() << '|' << (int) haveScenes << '|'
+        << status.presetNames.joinIntoString (",");
+    if (sig == lookGridSig)
+    {
+        if (cued.isNotEmpty())
+            lookGrid.repaint(); // the NEXT pulse
+        return;
+    }
+    lookGridSig = sig;
+
+    LookGrid::State s;
+    s.favouritesOnly = view == 2;
+    s.live = live;
+    s.cued = cued;
+    s.saved = saved;
+    s.signature = sig;
+    for (auto& l : lib.getAll())
+    {
+        if (s.favouritesOnly && ! l.favourite)
+            continue;
+        LookGrid::Tile t;
+        t.id = l.getId();
+        t.name = l.name;
+        t.scene = l.scene;
+        t.colours = processor.lookColours (l);
+        t.favourite = l.favourite;
+        t.sceneDefault = l.sceneDefault;
+        t.startup = l.startup;
+        t.sceneMissing = haveScenes && l.scene.isNotEmpty() && status.presetNames.indexOf (l.scene, true) < 0;
+        t.help = l.name + " - " + (l.scene.isEmpty() ? juce::String ("any scene") : l.scene) + dotText + VJAnalyzerProcessor::lookRecipe (l)
+               + (l.sceneDefault ? ". " + l.scene + " always opens on it" : juce::String())
+               + (l.startup ? ". New sets start on it" : juce::String())
+               + (t.sceneMissing ? ". Its scene is not in the engine: the knobs land on the current scene" : juce::String())
+               + ".  Click = cue, GO = switch, double-click = both, right-click = more.";
+        s.tiles.push_back (std::move (t));
+    }
+    lookGrid.setState (std::move (s));
+}
+
+juce::String VJAnalyzerEditor::suggestedLookName() const
+{
+    const auto scene = processor.currentSceneName();
+    const auto recipe = recipeName ((int) param ("palette"), (int) param ("lookPreset"));
+    return processor.getLooks().uniqueName (scene.isEmpty() ? recipe : scene + dotText + recipe);
+}
+
+void VJAnalyzerEditor::beginNaming (const juce::String& prompt, const juce::String& suggestion, std::function<void (const juce::String&)> commit)
+{
+    naming = true;
+    namingPrompt = prompt;
+    namingSuggestion = suggestion;
+    nameCommitAction = std::move (commit);
+    nameField.setText (suggestion, false);
+    updateMode();
+    if (nameField.isShowing())
+        nameField.grabKeyboardFocus();
+    nameField.selectAll();
+}
+
+void VJAnalyzerEditor::endNaming()
+{
+    naming = false;
+    nameCommitAction = nullptr;
+    namingPrompt = {};
+    updateMode();
+}
+
+void VJAnalyzerEditor::commitName (const juce::String& text)
+{
+    if (! naming)
+        return;
+    auto name = text.trim();
+    if (name.isEmpty())
+        name = namingSuggestion;
+    auto action = std::move (nameCommitAction);
+    endNaming();
+    if (action)
+        action (name);
+}
+
+void VJAnalyzerEditor::lookSaved (const juce::String& id, const juce::String& message)
+{
+    auto& lib = processor.getLooks();
+    auto* look = lib.find (id);
+    if (look == nullptr)
+    {
+        setInfo ("Could not save the look: " + lib.getLastError(), vjui::signal);
+        return;
+    }
+    const bool favourite = look->favourite;
+    const auto name = look->name, scene = look->scene;
+    savedLookId = id;
+    savedLookAt = now();
+    const auto view = getGridView();
+    if (view == 0 || (view == 2 && ! favourite))
+        setGridView (1); // show the new tile flashing SAVED
+    else
+        updateLookGrid();
+    lookGrid.reveal (lookGrid.indexOf (id));
+    setInfo (message.isNotEmpty() ? message
+                                  : "Saved look '" + name + "'" + (scene.isNotEmpty() ? " on " + scene : juce::String())
+                                        + ". Click it to cue, GO to switch.",
+             vjui::tungsten);
+}
+
+void VJAnalyzerEditor::saveCurrentLook (bool asSceneDefault)
+{
+    const auto scene = processor.currentSceneName();
+    beginNaming (asSceneDefault ? "Name the look " + scene + " will always open on. Enter = save, Esc = cancel."
+                                : "Name this look. Enter = save, Esc = cancel.",
+                 suggestedLookName(), [this, asSceneDefault] (const juce::String& name) {
+                     auto look = processor.captureLook (name);
+                     look.sceneDefault = asSceneDefault && look.scene.isNotEmpty();
+                     const auto id = processor.getLooks().add (look);
+                     if (id.isNotEmpty())
+                         processor.setActiveLook (id); // it is exactly what is on screen
+                     juce::String message;
+                     if (auto* saved = processor.getLooks().find (id); saved != nullptr && look.sceneDefault)
+                         message = "Saved '" + saved->name + "'. " + saved->scene + " now always opens on it.";
+                     lookSaved (id, message);
+                 });
+}
+
+void VJAnalyzerEditor::saveMomentToLibrary (int slot)
+{
+    int palette = 0, look = 0;
+    if (! processor.getSnapshotRecipe (slot, palette, look))
+        return;
+    const auto letter = juce::String::charToString ((juce::juce_wchar) ('A' + slot));
+    const auto scene = processor.currentSceneName();
+    const auto recipe = recipeName (palette, look);
+    beginNaming ("Name moment " + letter + " as a look" + (scene.isNotEmpty() ? " (on " + scene + ", the scene playing now)" : juce::String())
+                     + ". Enter = save, Esc = cancel.",
+                 processor.getLooks().uniqueName (scene.isEmpty() ? recipe : scene + dotText + recipe),
+                 [this, slot] (const juce::String& name) {
+                     LookLibrary::Look l;
+                     if (! processor.captureMomentLook (slot, name, l))
+                     {
+                         setInfo ("That moment is empty now.", vjui::signal);
+                         return;
+                     }
+                     lookSaved (processor.getLooks().add (l), {});
+                 });
+}
+
+void VJAnalyzerEditor::showSceneTileMenu (int tile, juce::Component* target)
+{
+    const auto& names = sceneGrid.getState().names;
+    if (tile < 0 && status.connected)
+        tile = status.presetIndex;
+    const bool isLive = ! status.connected || tile == status.presetIndex;
+    const auto sceneName = juce::isPositiveAndBelow (tile, names.size()) && status.connected ? names[tile] : processor.currentSceneName();
+    const auto* def = processor.getLooks().sceneDefault (sceneName);
+    const auto defId = def != nullptr ? def->getId() : juce::String();
+    const auto label = sceneName.isEmpty() ? juce::String ("this scene") : sceneName;
+
+    juce::PopupMenu m;
+    if (isLive)
+    {
+        m.addItem (1, "Save look...");
+        m.addItem (2, "Save look as " + label + "'s default...", sceneName.isNotEmpty());
+    }
+    else
+        m.addItem (9, "Save look...  (right-click the live scene)", false);
+    if (def != nullptr)
+    {
+        m.addSeparator();
+        m.addItem (8, "Opens on: " + def->name, false, true);
+        m.addItem (3, "Clear " + label + "'s default");
+    }
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (target).withMousePosition(), [this, defId, label] (int r) {
+        if (r == 1) saveCurrentLook (false);
+        if (r == 2) saveCurrentLook (true);
+        if (r == 3 && processor.getLooks().setSceneDefault (defId, false))
+            setInfo (label + " has no default look now: switching to it keeps the knobs, as before.", vjui::bone);
+    });
+}
+
+void VJAnalyzerEditor::showLookAreaMenu()
+{
+    const auto scene = processor.currentSceneName();
+    juce::PopupMenu m;
+    m.addItem (1, "Save look...");
+    m.addItem (2, "Save look as " + (scene.isEmpty() ? juce::String ("this scene") : scene) + "'s default...", scene.isNotEmpty());
+    m.addSeparator();
+    m.addItem (8, "Show the looks folder");
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&lookGrid).withMousePosition(), [this] (int r) {
+        if (r == 1) saveCurrentLook (false);
+        if (r == 2) saveCurrentLook (true);
+        if (r == 8)
+        {
+            auto folder = processor.getLooks().getFolder();
+            folder.createDirectory();
+            folder.startAsProcess();
+        }
+    });
+}
+
+void VJAnalyzerEditor::cueLookTile (int index)
+{
+    const auto& tiles = lookGrid.getState().tiles;
+    if (! juce::isPositiveAndBelow (index, (int) tiles.size()))
+        return;
+    const auto id = tiles[(size_t) index].id;
+    processor.cueLook (processor.getCuedLook() == id ? juce::String() : id);
+    updateLookGrid();
+}
+
+void VJAnalyzerEditor::fireLookTile (int index)
+{
+    const auto& tiles = lookGrid.getState().tiles;
+    if (! juce::isPositiveAndBelow (index, (int) tiles.size()))
+        return;
+    const auto tile = tiles[(size_t) index];
+    if (! processor.applyLook (tile.id))
+    {
+        setInfo ("That look is gone (its file was removed).", vjui::signal);
+        return;
+    }
+    if (tile.sceneMissing)
+        setInfo ("Scene '" + tile.scene + "' is not in the engine: the look's knobs went onto " + status.presetName + ".", vjui::tungsten);
+    updateLookGrid();
+}
+
+void VJAnalyzerEditor::toggleFavourite (int index)
+{
+    const auto& tiles = lookGrid.getState().tiles;
+    if (! juce::isPositiveAndBelow (index, (int) tiles.size()))
+        return;
+    const auto tile = tiles[(size_t) index];
+    if (processor.getLooks().setFavourite (tile.id, ! tile.favourite))
+        setInfo (tile.favourite ? "'" + tile.name + "' is no longer a favourite."
+                                : "'" + tile.name + "' is a favourite: it comes first here and shows in the star view.",
+                 vjui::bone);
+    updateLookGrid();
+}
+
+void VJAnalyzerEditor::showLookTileMenu (int index)
+{
+    const auto& tiles = lookGrid.getState().tiles;
+    if (! juce::isPositiveAndBelow (index, (int) tiles.size()))
+        return;
+    auto& lib = processor.getLooks();
+    const auto* look = lib.find (tiles[(size_t) index].id);
+    if (look == nullptr)
+        return;
+    const auto id = look->getId(), name = look->name, scene = look->scene;
+    const bool favourite = look->favourite, isDefault = look->sceneDefault, isStartup = look->startup;
+
+    juce::PopupMenu m, update, del;
+    update.addItem (1, "Yes, overwrite '" + name + "' with what is on screen now");
+    m.addSubMenu ("Update with current settings", update);
+    m.addItem (2, "Rename...");
+    m.addItem (3, "Duplicate");
+    del.addItem (4, "Yes, delete '" + name + "' (to the Recycle Bin)");
+    m.addSubMenu ("Delete", del);
+    m.addSeparator();
+    m.addItem (5, favourite ? "Remove from favourites" : "Add to favourites");
+    m.addItem (6, scene.isEmpty() ? juce::String ("Set as this scene's default")
+                                  : (isDefault ? "Default of " + scene + "  (click to clear)" : "Set as this scene's default (" + scene + ")"),
+               scene.isNotEmpty(), isDefault);
+    m.addItem (7, isStartup ? juce::String ("Start-up look  (click to clear)") : juce::String ("Set as start-up look"), true, isStartup);
+    m.addSeparator();
+    m.addItem (8, "Show the looks folder");
+
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&lookGrid).withMousePosition(),
+                     [this, id, name, scene, favourite, isDefault, isStartup] (int r) {
+        auto& library = processor.getLooks();
+        switch (r)
+        {
+            case 1:
+            {
+                auto current = processor.captureLook (name);
+                current.favourite = favourite;
+                current.startup = isStartup;
+                current.sceneDefault = isDefault && current.scene.equalsIgnoreCase (scene);
+                if (library.save (id, current).isEmpty())
+                {
+                    setInfo ("Could not update the look: " + library.getLastError(), vjui::signal);
+                    break;
+                }
+                processor.setActiveLook (id);
+                savedLookId = id;
+                savedLookAt = now();
+                setInfo ("Updated '" + name + "' with what is on screen"
+                             + (isDefault && ! current.sceneDefault ? ". It is built on " + current.scene + " now, so it is no longer " + scene + "'s default."
+                                                                    : juce::String (".")),
+                         vjui::tungsten);
+                break;
+            }
+            case 2:
+                beginNaming ("Rename '" + name + "'. Enter = save, Esc = cancel.", name, [this, id] (const juce::String& newName) {
+                    const auto newId = processor.getLooks().rename (id, newName);
+                    if (newId.isEmpty())
+                    {
+                        setInfo ("Could not rename the look: " + processor.getLooks().getLastError(), vjui::signal);
+                        return;
+                    }
+                    if (processor.getCuedLook() == id) processor.cueLook (newId);
+                    if (processor.getActiveLook() == id) processor.setActiveLook (newId);
+                    lookSaved (newId, "Renamed to '" + processor.getLooks().find (newId)->name + "'.");
+                });
+                break;
+            case 3:
+                lookSaved (library.duplicate (id), {});
+                break;
+            case 4:
+                if (library.remove (id))
+                {
+                    if (processor.getCuedLook() == id) processor.cueLook ({});
+                    setInfo ("Deleted '" + name + "' (it is in the Recycle Bin)."
+                                 + (isDefault ? " " + scene + " keeps the knobs again when you switch to it." : juce::String()),
+                             vjui::bone);
+                }
+                else
+                    setInfo (library.getLastError(), vjui::signal);
+                break;
+            case 5:
+                library.setFavourite (id, ! favourite);
+                break;
+            case 6:
+                if (library.setSceneDefault (id, ! isDefault))
+                    setInfo (isDefault ? scene + " has no default look now: switching to it keeps the knobs, as before."
+                                       : scene + " now always opens on '" + name + "' (from the grid, GO, MIDI and automation).",
+                             vjui::bone);
+                break;
+            case 7:
+                if (library.setStartup (id, ! isStartup))
+                    setInfo (isStartup ? "No start-up look: new sets start as before."
+                                       : "New sets start on '" + name + "' (a Live set that was saved opens as it was saved).",
+                             vjui::bone);
+                break;
+            case 8:
+            {
+                auto folder = library.getFolder();
+                folder.createDirectory();
+                folder.startAsProcess();
+                break;
+            }
+            default:
+                break;
+        }
+        updateLookGrid();
+    });
+}
+
+void VJAnalyzerEditor::mouseDown (const juce::MouseEvent& e)
+{
+    // Right-click the live scene's name (the "currently playing state") = save it as a look.
+    if (mode != Mode::source && e.mods.isPopupMenu() && juce::Rectangle<int> (16, 62, 448, 48).contains (e.getPosition()))
+        showSceneTileMenu (-1, this);
+}
+
+//==============================================================================
 void VJAnalyzerEditor::updateKnobLabels()
 {
     auto& state = processor.getState();
@@ -1484,6 +2195,12 @@ void VJAnalyzerEditor::updateInfoLine()
                 break;
             }
 
+    if (text.isEmpty() && naming)
+    {
+        text = namingPrompt;
+        colour = vjui::tungsten;
+    }
+
     if (text.isEmpty() && now() < infoHoldUntil)
     {
         text = stateHint;
@@ -1502,6 +2219,8 @@ void VJAnalyzerEditor::updateInfoLine()
             text = "Switching to " + status.presetNames[fired] + " on the next beat...", colour = vjui::tungsten;
         else if (cue >= 0 && juce::isPositiveAndBelow (cue, status.presetNames.size()))
             text = status.presetNames[cue] + " is cued - press GO.", colour = vjui::tungsten;
+        else if (auto* look = processor.getLooks().find (processor.getCuedLook()))
+            text = "Look " + look->name + " is cued - press GO.", colour = vjui::tungsten;
         else if (! meters.frame.gateOpen)
             text = "SILENT - play something in Live (the picture rests).";
         else if (param ("calm") > 0.5f)
@@ -1598,9 +2317,15 @@ void VJAnalyzerEditor::timerCallback()
             for (int i = 0; i < s.names.size(); ++i)
                 s.descriptions.add (i == status.presetIndex ? status.sceneDescription : juce::String());
         }
+        processor.getLooks().refreshIfChanged();
+        for (auto& name : s.names)
+            s.hasDefault.add (processor.getLooks().sceneDefault (name) != nullptr);
         sceneGrid.setState (s);
     }
-    go.setToggleState (cue >= 0, juce::dontSendNotification);
+    updateLookGrid();
+    const auto cuedLookId = processor.getCuedLook();
+    const auto* cuedLook = processor.getLooks().find (cuedLookId);
+    go.setToggleState (cue >= 0 || cuedLook != nullptr, juce::dontSendNotification);
     {
         juce::String text;
         auto textColour = vjui::dust;
@@ -1616,6 +2341,13 @@ void VJAnalyzerEditor::timerCallback()
         else if (cue >= 0 && juce::isPositiveAndBelow (cue, status.presetNames.size()))
         {
             text = juce::String (juce::CharPointer_UTF8 ("NEXT \xe2\x96\xb8 ")) + status.presetNames[cue].toUpperCase() + "   press GO";
+            textColour = vjui::tungsten;
+            outline = vjui::tungsten;
+        }
+        else if (cuedLook != nullptr)
+        {
+            text = juce::String (juce::CharPointer_UTF8 ("NEXT \xe2\x96\xb8 LOOK ")) + cuedLook->name.toUpperCase()
+                 + (cuedLook->scene.isNotEmpty() ? " (" + cuedLook->scene + ")" : juce::String()) + "   press GO";
             textColour = vjui::tungsten;
             outline = vjui::tungsten;
         }
@@ -1672,7 +2404,7 @@ void VJAnalyzerEditor::timerCallback()
         moments[i]->setInfo (stored, active, stored ? recipeName (palette, look) : juce::String(),
                              active ? processor.getMorphProgress() : -1.0f, i == savedSlot && now() - savedFlash < 0.8);
         vjui::setHelp (*moments[i], stored ? "Moment " + juce::String::charToString ((juce::juce_wchar) ('A' + i)) + " (" + recipeName (palette, look)
-                                                 + "). Click to blend to it. Right-click: save here / clear. (Live: Snapshot "
+                                                 + "). Click to blend to it. Right-click: save here / clear / save to library. (Live: Snapshot "
                                                  + juce::String::charToString ((juce::juce_wchar) ('A' + i)) + ")"
                                            : "Empty. Click to save the knobs, look, colour and reactions here.");
     }
@@ -1749,7 +2481,7 @@ void VJAnalyzerEditor::paintPlay (juce::Graphics& g)
 {
     // Scene: LIVE tag, name, description.
     caption (g, "Scene", 16, 48);
-    hint (g, juce::String (juce::CharPointer_UTF8 ("click = cue \xc2\xb7 GO = switch \xc2\xb7 double-click = both")), { 200, 48, 264, 12 },
+    hint (g, juce::String (juce::CharPointer_UTF8 ("click = cue \xc2\xb7 GO = switch \xc2\xb7 double-click = both")), { 60, 48, 250, 12 },
           juce::Justification::centredRight);
     if (status.connected)
     {

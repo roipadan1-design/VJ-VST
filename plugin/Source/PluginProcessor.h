@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "AnalysisWorker.h"
 #include "LeadRegistry.h"
+#include "LookLibrary.h"
 
 // VJ Analyzer: drop on any track in Live 10.1+ (audio effect). Audio passes
 // through bit-for-bit; a copy feeds the AnalysisWorker. Every control is a
@@ -100,9 +101,30 @@ public:
     // Scene cue, theatre style: clicking a scene or Previous / Next Scene only
     // marks it NEXT; GO (parameter "Go") fires it, on the scene's beat grid.
     // Engine indices; -1 = none. "Fired" = sent, engine not switched yet.
+    // Firing a scene that has a default look (LookLibrary) blends to that look,
+    // exactly like GO on the look; scenes without one keep the current knobs.
     void cueScene (int engineIndex);
-    void fireScene (int engineIndex);
+    void fireScene (int engineIndex, bool withSceneDefault = true);
     int getCuedScene() const noexcept { return cuedScene.load(); }
+
+    // --- Looks (saved states in Documents\VJ VST\Looks, shared by every instance).
+    // Cued / applied like scenes: cueLook marks it NEXT, GO (or applyLook) fires
+    // the look's scene by name and morphs the knobs to it over the Snapshot
+    // Morph time. Message thread only.
+    LookLibrary& getLooks() noexcept { return *looks; }
+    void cueLook (const juce::String& id);
+    juce::String getCuedLook() const { return cuedLook; }
+    bool applyLook (const juce::String& id);
+    juce::String getActiveLook() const { return activeLook; }
+    void setActiveLook (const juce::String& id) { activeLook = id; } // e.g. the look just saved from the screen
+    juce::String getPendingScene() const { return pendingScene; }    // a look's scene waiting for the engine
+    LookLibrary::Look captureLook (const juce::String& name) const;          // what is on screen now
+    bool captureMomentLook (int slot, const juce::String& name, LookLibrary::Look&) const;
+    juce::String currentSceneName() const;   // the live scene (or the last one known), "" if unknown
+    juce::String sceneNameAt (int engineIndex) const;
+    int findScene (const juce::String& name) const; // engine index, -1 if the engine has no such scene
+    std::array<juce::Colour, 3> lookColours (const LookLibrary::Look&) const;
+    static juce::String lookRecipe (const LookLibrary::Look&); // "Film · Blood · Pulse"
 
     // Lead: the one instance that sends knobs, look, scene and blackout
     // (LeadRegistry). MAKE LEAD pins this instance.
@@ -171,6 +193,23 @@ private:
     };
     Morph morph;
     int activeSnapshot = -1;
+    void startMorph (const juce::ValueTree& snapshot, bool cut); // recallSnapshot's blend, for moments and looks
+    static juce::ValueTree lookToSnapshot (const LookLibrary::Look&);
+    void fillLookRecipe (LookLibrary::Look&, int palette, int lookPreset, int style) const;
+    void applyLookObject (const LookLibrary::Look&, bool cut);
+    void applySceneDefault (int engineIndex);
+    void watchPresetParameter();
+    void resolvePendingScene();
+    void applyStartupLook();
+
+    juce::SharedResourcePointer<LookLibrary> looks;
+    juce::String cuedLook, activeLook;
+    juce::String pendingScene;                // a look's scene to fire once the engine lists it
+    int lastPresetSeen = 0;                   // "preset" as last seen / set by us: other changes = host automation
+    std::atomic<bool> stateLoaded { false };  // setStateInformation ran: resync lastPresetSeen
+    std::atomic<bool> stateEverLoaded { false }; // a Live set (or a duplicate) was loaded: never the start-up look
+    bool startupPending = true;
+    int timerTicks = 0;
     std::atomic<double> hostBpm { 120.0 };
 
     juce::AudioProcessorValueTreeState state;

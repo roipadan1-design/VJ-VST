@@ -97,6 +97,16 @@ public:
         return {};
     }
 
+    // Another instance processed audio recently (a deleted device Live keeps for undo does not).
+    bool anyOtherRunning (const void* owner) const
+    {
+        const juce::SpinLock::ScopedLockType l (lock);
+        for (auto& e : entries)
+            if (e.owner != owner && e.info.running)
+                return true;
+        return false;
+    }
+
     int count() const
     {
         const juce::SpinLock::ScopedLockType l (lock);

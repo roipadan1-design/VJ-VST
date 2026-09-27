@@ -39,3 +39,23 @@ unsigned int uploadImageTexture (const juce::Image& image);
 std::unique_ptr<juce::OpenGLShaderProgram> buildFullscreenProgram (juce::OpenGLContext& context,
                                                                    const juce::String& fragmentSource,
                                                                    juce::String& error);
+
+// ---- optional GPU timing (measurement only; only when the VJ_GPUTIMING
+// environment variable is set to anything but "" or "0"). Brackets GPU work
+// with GL_TIMESTAMP queries, reads results back a few frames later without
+// ever waiting on the GPU, and every ~5 s appends per-section median / p90 ms
+// to VJEngine.log ("GPU timing" lines). When unset (or when the driver lacks
+// timer queries) every call is a no-op and no GL call is made, so it can never
+// change what gets rendered. GL render thread only.
+//
+//   const int t = gpuTiming::enabled() ? gpuTiming::begin ("label") : -1;
+//   ...GPU work...
+//   gpuTiming::end (t);
+//   ...once per frame, after all work: gpuTiming::endFrame ("context");
+namespace gpuTiming
+{
+    bool enabled();                              // cached; checks the env var and driver support once
+    int begin (const juce::String& label);       // returns a section handle, or -1
+    void end (int section) noexcept;             // -1 is ignored
+    void endFrame (const juce::String& context); // resolves finished frames, logs periodically
+}

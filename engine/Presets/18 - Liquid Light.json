@@ -1,0 +1,538 @@
+{
+  "schemaVersion": "2.0",
+  "id": "liquid-light",
+  "name": "Liquid Light",
+  "description": "After the 1960s oil-and-water light shows: dense dye and clear oil in a clock glass on a dim projector, stirred by slow convection. Light leaks where the dye thins; oil lenses drift, merge and split with a dark meniscus and a caustic inside. The level thins the dye, an accent drops clear spirit that opens a window, build-ups heat the glass. Ambient: try BREATHE, React To kick off, palette Nitrate, Tungsten or Scene Colors.",
+  "author": "VJ VST",
+  "license": "project-internal",
+  "engine": {
+    "minimumVersion": "0.2.0",
+    "shaderProfile": "isf-legacy",
+    "workingColorSpace": "linear-srgb",
+    "featureContract": "2.0"
+  },
+  "sourcePolicy": {
+    "bass": "kick-or-mix",
+    "mid": "snare-or-mix",
+    "high": "hat-or-mix",
+    "level": "mix"
+  },
+  "stages": [
+    {
+      "id": "glass",
+      "kind": "generator",
+      "shader": "Instrument/liquid_light.fs",
+      "targetFormat": "rgba16f",
+      "scale": 1.0,
+      "inputs": {},
+      "parameters": [
+        {
+          "name": "flow",
+          "label": "Flow",
+          "min": 0.0,
+          "max": 0.3,
+          "default": 0.06,
+          "unit": "normalized",
+          "cyclic": false,
+          "integrate": true
+        },
+        {
+          "name": "stir",
+          "label": "Stir",
+          "min": 0,
+          "max": 1,
+          "default": 0.35,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "turn",
+          "label": "Turn",
+          "min": -1,
+          "max": 1,
+          "default": 0.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "scale",
+          "label": "Scale",
+          "min": 0.4,
+          "max": 2.5,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "oil",
+          "label": "Oil",
+          "min": 0,
+          "max": 1,
+          "default": 0.4,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "melt",
+          "label": "Melt",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "eddies",
+          "label": "Eddies",
+          "min": 0,
+          "max": 1,
+          "default": 0.4,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "density",
+          "label": "Density",
+          "min": 0.5,
+          "max": 8.0,
+          "default": 4.5,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "heat",
+          "label": "Heat",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "drip",
+          "label": "Drip",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "lens",
+          "label": "Lens",
+          "min": 0,
+          "max": 1.5,
+          "default": 0.6,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "rim",
+          "label": "Rim",
+          "min": 0,
+          "max": 2,
+          "default": 0.8,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "clarity",
+          "label": "Clarity",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "tint",
+          "label": "Tint",
+          "min": 0,
+          "max": 1,
+          "default": 0.4,
+          "unit": "normalized",
+          "cyclic": false
+        },
+        {
+          "name": "lamp",
+          "label": "Lamp",
+          "min": 0.2,
+          "max": 3.0,
+          "default": 1.0,
+          "unit": "normalized",
+          "cyclic": false
+        }
+      ]
+    }
+  ],
+  "macros": [
+    {
+      "id": "intensity",
+      "slot": 0,
+      "label": "lamp",
+      "default": 0.5
+    },
+    {
+      "id": "speed",
+      "slot": 1,
+      "label": "Speed",
+      "default": 0.5
+    },
+    {
+      "id": "form",
+      "slot": 2,
+      "label": "oil",
+      "default": 0.5
+    },
+    {
+      "id": "scale",
+      "slot": 3,
+      "label": "blob size",
+      "default": 0.5
+    },
+    {
+      "id": "react",
+      "slot": 4,
+      "label": "React",
+      "default": 0.5
+    },
+    {
+      "id": "erode",
+      "slot": 5,
+      "label": "melt",
+      "default": 0.5
+    },
+    {
+      "id": "glide",
+      "slot": 6,
+      "label": "Glide",
+      "default": 0.25
+    },
+    {
+      "id": "detail",
+      "slot": 7,
+      "label": "eddies",
+      "default": 0.5
+    }
+  ],
+  "modulators": [
+    {
+      "id": "hit",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 1300,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "hit"
+    },
+    {
+      "id": "snare",
+      "type": "ad",
+      "attackMs": 2,
+      "decayMs": 800,
+      "peak": 1,
+      "retrigger": "restart",
+      "style": "snare"
+    },
+    {
+      "id": "drop",
+      "type": "ad",
+      "attackMs": 0,
+      "decayMs": 4000,
+      "peak": 1,
+      "retrigger": "max",
+      "style": "drop"
+    },
+    {
+      "id": "pulse",
+      "type": "ad",
+      "attackMs": 1,
+      "decayMs": 80,
+      "peak": 1,
+      "retrigger": "restart"
+    },
+    {
+      "id": "phrase",
+      "type": "lfo",
+      "shape": "sine",
+      "periodBeats": 64,
+      "phaseOffset": 0,
+      "polarity": "bipolar"
+    }
+  ],
+  "routes": [
+    {
+      "id": "macro-intensity-glass-lamp",
+      "source": "macro.intensity",
+      "destination": "stage.glass.lamp",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-form-glass-oil",
+      "source": "macro.form",
+      "destination": "stage.glass.oil",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-scale-glass-scale",
+      "source": "macro.scale",
+      "destination": "stage.glass.scale",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.6,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-erode-glass-melt",
+      "source": "macro.erode",
+      "destination": "stage.glass.melt",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.8,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "macro-detail-glass-eddies",
+      "source": "macro.detail",
+      "destination": "stage.glass.eddies",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.9,
+      "attackMs": 60,
+      "releaseMs": 60
+    },
+    {
+      "id": "react-energy-glass-density",
+      "source": "react.energy",
+      "destination": "stage.glass.density",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": -0.35,
+      "attackMs": 2500,
+      "releaseMs": 6000
+    },
+    {
+      "id": "env-hit-glass-drip",
+      "source": "env.hit",
+      "destination": "stage.glass.drip",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 1.0,
+      "attackMs": 300,
+      "releaseMs": 2500
+    },
+    {
+      "id": "react-body-glass-lens",
+      "source": "react.body",
+      "destination": "stage.glass.lens",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.3,
+      "amount": 0.4,
+      "attackMs": 1500,
+      "releaseMs": 5000
+    },
+    {
+      "id": "react-tension-glass-heat",
+      "source": "react.tension",
+      "destination": "stage.glass.heat",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.7,
+      "attackMs": 3000,
+      "releaseMs": 10000
+    },
+    {
+      "id": "env-drop-glass-clarity",
+      "source": "env.drop",
+      "destination": "stage.glass.clarity",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.0,
+      "amount": 0.5,
+      "attackMs": 2000,
+      "releaseMs": 9000
+    },
+    {
+      "id": "react-air-glass-rim",
+      "source": "react.air",
+      "destination": "stage.glass.rim",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.3,
+      "amount": 0.35,
+      "attackMs": 1500,
+      "releaseMs": 5000
+    },
+    {
+      "id": "descriptor-centroid-glass-tint",
+      "source": "descriptor.centroid",
+      "destination": "stage.glass.tint",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.45,
+      "amount": 0.6,
+      "attackMs": 5000,
+      "releaseMs": 10000
+    },
+    {
+      "id": "descriptor-presence-glass-lamp",
+      "source": "descriptor.presence",
+      "destination": "stage.glass.lamp",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.4,
+      "amount": 0.25,
+      "attackMs": 3000,
+      "releaseMs": 6000
+    },
+    {
+      "id": "lfo-phrase-glass-turn",
+      "source": "lfo.phrase",
+      "destination": "stage.glass.turn",
+      "inputMin": 0.0,
+      "inputMax": 1.0,
+      "curve": "linear",
+      "exponent": 1.0,
+      "center": 0.5,
+      "amount": 0.5,
+      "attackMs": 0,
+      "releaseMs": 0
+    }
+  ],
+  "triggers": [
+    {
+      "id": "accent",
+      "on": "event.accent",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1
+        },
+        {
+          "type": "envelope",
+          "target": "pulse",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "tick",
+      "on": "event.tick",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "hit",
+          "amount": 1,
+          "scale": "tick"
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "on": "event.snare",
+      "minStrength": 0.1,
+      "refractoryMs": 70,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "snare",
+          "amount": 1,
+          "scale": "snare"
+        }
+      ]
+    },
+    {
+      "id": "drop",
+      "on": "event.drop",
+      "minStrength": 0,
+      "refractoryMs": 0,
+      "quantize": "none",
+      "actions": [
+        {
+          "type": "envelope",
+          "target": "drop",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "transition": {
+    "type": "crossfade",
+    "durationMs": 5000,
+    "quantize": "bar",
+    "historyOnEnter": "reset",
+    "retarget": "snapshot-current"
+  },
+  "post": {
+    "bloom": {
+      "enabled": true,
+      "amount": 0.25,
+      "threshold": 0.8,
+      "levels": 5
+    },
+    "toneMap": "reinhard",
+    "exposureEv": 0.4,
+    "outputColorSpace": "srgb",
+    "grain": 0.0,
+    "vignette": 0.3
+  },
+  "performance": {
+    "qualityTier": "medium",
+    "sceneBudgetMs1080p": 3.0,
+    "deterministicSeed": 1919,
+    "notes": "target, not measured"
+  }
+}

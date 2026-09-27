@@ -328,7 +328,13 @@ void MainComponent::render()
     frame.onset = (float) juce::jlimit (0.0, 1.0, 1.0 - (now - signals.lastImpactTime) / onsetPulseDurationSeconds);
 
     updateAdaptiveQuality (now);
+    // Optional GPU timing (only with the VJ_GPUTIMING environment variable; no-op otherwise).
+    const int frameTiming = gpuTiming::enabled() ? gpuTiming::begin ("frame total (preset render)") : -1;
     presetManager.render (frame, 0);
+    gpuTiming::end (frameTiming);
+    if (gpuTiming::enabled())
+        gpuTiming::endFrame ("'" + presetManager.getCurrentName() + "' " + juce::String (physicalWidth) + "x"
+                             + juce::String (physicalHeight) + " scale " + juce::String (presetManager.getRenderScale(), 2));
     forensics::dumpFrame (physicalWidth, physicalHeight, now, signals);
 
     // presetManager.render() leaves the default framebuffer (0) holding this

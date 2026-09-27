@@ -86,6 +86,48 @@ static int runSelfTest()
             juce::MessageManager::getInstance()->runDispatchLoopUntil (5);
     };
 
+    // Looks live in a scratch folder here, never in the owner's Documents\VJ VST\Looks.
+    juce::SharedResourcePointer<LookLibrary> library;
+    const auto looksDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("vjvst_looks_selftest");
+    looksDir.deleteRecursively();
+    library->setFolder (looksDir);
+
+    // Start-up look: a brand-new instance (nothing loaded, the only one) opens on it; a loaded set or a second instance never does.
+    {
+        LookLibrary::Look boot;
+        boot.name = "Boot";
+        boot.values.set ("macro1", 0.33f);
+        boot.values.set ("grain", 0.61f);
+        boot.paletteName = "Ice";
+        boot.startup = true;
+        const auto bootId = library->add (boot);
+        check (bootId.isNotEmpty() && looksDir.getChildFile ("Boot.json").existsAsFile(), "a look is one JSON file in the looks folder");
+        {
+            VJAnalyzerProcessor fresh;
+            pump (2.0);
+            auto& fs = fresh.getState();
+            check (std::abs (fs.getRawParameterValue ("macro1")->load() - 0.33f) < 0.01f
+                       && (int) fs.getRawParameterValue ("palette")->load() == 3,
+                   "a new instance opens on the start-up look");
+            check (fresh.getActiveLook() == bootId, "the start-up look shows as the active look");
+        }
+        {
+            VJAnalyzerProcessor first, second;
+            first.getState().getParameter ("macro1")->setValueNotifyingHost (0.9f);
+            juce::MemoryBlock set;
+            first.getStateInformation (set);
+            VJAnalyzerProcessor loaded;
+            loaded.setStateInformation (set.getData(), (int) set.getSize());
+            pump (2.0);
+            check (std::abs (second.getState().getRawParameterValue ("macro1")->load() - 0.5f) < 0.01f,
+                   "a second instance in the same set does not get the start-up look");
+            check (std::abs (loaded.getState().getRawParameterValue ("macro1")->load() - 0.9f) < 0.01f,
+                   "a loaded Live set keeps its own values (no start-up look)");
+        }
+        library->setStartup (bootId, false);
+        check (library->startupLook() == nullptr, "start-up look can be cleared");
+    }
+
     VJAnalyzerProcessor processor;
     auto& st = processor.getState();
     auto set = [&st] (const char* id, float plain) {
@@ -162,6 +204,112 @@ static int runSelfTest()
         processor.setRoleByHand (0);
     }
 
+    // --- Looks: save / favourite / rename / duplicate / delete, cue + GO, scene defaults.
+    {
+        set ("morphTime", 0.0f); // cut, so values land at once
+        st.state.setProperty ("sceneCache", "Hot Blobs\nDot Relief\nOne Bit\nCorridor\nFibers", nullptr); // engine off: names from the cache
+        processor.fireScene (3); // Corridor
+        pump (0.1);
+        check (processor.currentSceneName() == "Corridor", "the current scene is known by name");
+
+        set ("macro1", 0.3f); set ("grain", 0.2f); set ("palette", 8.0f); set ("reactStyle", 2.0f);
+        auto look = processor.captureLook ("Night");
+        LookLibrary::Look parsed;
+        check (LookLibrary::fromJson (LookLibrary::toJson (look), parsed) && parsed.scene == "Corridor"
+                   && std::abs ((float) parsed.values["macro1"] - 0.3f) < 1e-4f && parsed.paletteName == "Cyanotype"
+                   && parsed.styleName == "Punch" && parsed.colours.size() == 3,
+               "a look holds the scene name, knobs, palette, react style and colours (JSON round trip)");
+        const auto night = library->add (look);
+        const auto night2 = library->add (look);
+        check (library->find (night2) != nullptr && library->find (night2)->name == "Night 2", "the same name twice becomes 'Night 2'");
+
+        library->setFavourite (night2, true);
+        check (library->getAll().front().getId() == night2, "a favourite sorts first");
+
+        // Cue a look, GO fires it: scene by name + knobs.
+        set ("macro1", 0.9f); set ("grain", 0.8f); set ("palette", 0.0f); set ("reactStyle", 0.0f);
+        processor.fireScene (1); // Dot Relief (no default): knobs carry over
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.9f) < 0.01f, "a scene without a default keeps the knobs (as before)");
+        processor.cueLook (night);
+        pump (0.1);
+        check (processor.getCuedLook() == night && (int) get ("preset") == 2, "cueing a look does not switch anything");
+        set ("sceneGo", 1.0f);
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.3f) < 0.01f && std::abs (get ("grain") - 0.2f) < 0.01f
+                   && (int) get ("palette") == 8 && (int) get ("reactStyle") == 2 && processor.getCuedLook().isEmpty(),
+               "GO on a cued look recalls its knobs, palette and style");
+        check ((int) get ("preset") == 2 && processor.getPendingScene() == "Corridor",
+               "engine off: the look's scene waits (by name) until the engine lists its scenes");
+        check (processor.getActiveLook() == night, "the recalled look is the active look");
+
+        // Scene default: Corridor opens on 'Night' from now on.
+        library->setSceneDefault (night, true);
+        library->setSceneDefault (night2, true);
+        check (library->sceneDefault ("corridor") != nullptr && library->sceneDefault ("Corridor")->getId() == night2
+                   && ! library->find (night)->sceneDefault,
+               "one default per scene (the newest wins, the other is cleared)");
+        set ("macro1", 0.7f);
+        processor.fireScene (0); // Hot Blobs: no default
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.7f) < 0.01f, "still carry-over for scenes without a default");
+        processor.fireScene (3); // Corridor: default Night 2
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.3f) < 0.01f && processor.getActiveLook() == night2, "firing a scene with a default opens on it");
+        set ("macro1", 0.75f);
+        set ("preset", 2.0f); // host automation to Dot Relief
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.75f) < 0.01f, "automation to a scene without a default keeps the knobs");
+        set ("preset", 4.0f); // automation back to Corridor
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.3f) < 0.01f, "automation to a scene with a default opens on it too");
+
+        // A look whose scene is gone still recalls its knobs.
+        auto orphan = look;
+        orphan.name = "Orphan";
+        orphan.scene = "No Such Scene";
+        orphan.values.set ("macro1", 0.44f);
+        const auto orphanId = library->add (orphan);
+        processor.applyLook (orphanId);
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.44f) < 0.01f && (int) get ("preset") == 4, "a look of a missing scene lands its knobs on the current scene");
+
+        // Rename / duplicate / delete.
+        const auto renamed = library->rename (night2, "Night Blue");
+        check (renamed.isNotEmpty() && library->find (night2) == nullptr && library->find (renamed)->name == "Night Blue"
+                   && library->find (renamed)->sceneDefault && library->find (renamed)->favourite
+                   && looksDir.getChildFile ("Night Blue.json").existsAsFile() && ! looksDir.getChildFile ("Night 2.json").existsAsFile(),
+               "rename moves the file and keeps favourite / default");
+        const auto copy = library->duplicate (renamed);
+        check (copy.isNotEmpty() && library->find (copy)->name == "Night Blue copy" && ! library->find (copy)->sceneDefault,
+               "duplicate makes a copy that is not the scene default");
+        const auto before = (int) library->getAll().size();
+        check (library->remove (copy) && (int) library->getAll().size() == before - 1 && library->find (copy) == nullptr, "delete removes it from the library");
+
+        // A moment becomes a look.
+        set ("macro1", 0.12f);
+        processor.storeSnapshot (2);
+        set ("macro1", 0.5f);
+        LookLibrary::Look fromMoment;
+        check (processor.captureMomentLook (2, "From C", fromMoment) && std::abs ((float) fromMoment.values["macro1"] - 0.12f) < 1e-4f
+                   && fromMoment.scene == "Corridor",
+               "Save to library: a moment becomes a look on the scene playing now");
+        processor.clearSnapshot (2);
+
+        // Files dropped in / removed by hand are picked up.
+        looksDir.getChildFile ("Night.json").copyFileTo (looksDir.getChildFile ("Hand Copy.json"));
+        pump (0.6);
+        library->refreshIfChanged();
+        check (library->find ("Hand Copy.json") != nullptr, "a look file copied in by hand appears");
+
+        library->setSceneDefault (renamed, false);
+        check (library->sceneDefault ("Corridor") == nullptr, "a scene default can be cleared");
+        set ("macro1", 0.66f);
+        processor.fireScene (3);
+        pump (0.1);
+        check (std::abs (get ("macro1") - 0.66f) < 0.01f, "after clearing, the scene keeps the knobs again");
+    }
+
     juce::MemoryBlock saved;
     processor.getStateInformation (saved);
     VJAnalyzerProcessor restored;
@@ -184,6 +332,18 @@ int main (int argc, char** argv)
     // took to switch (should be at most one beat at the fake 120 BPM).
     const bool cueTest = argc > 1 && juce::String (argv[1]) == "--cuetest";
     if (cueTest) { --argc; ++argv; }
+    // --lookstest out.png: the Looks click paths (scratch looks folder, never the
+    // owner's): right-click the scene name, type a name + Enter, star it, cue + GO
+    // it from the LOOKS grid, scene default via the scene grid. PNGs of each step.
+    const bool looksTest = argc > 1 && juce::String (argv[1]) == "--lookstest";
+    if (looksTest) { --argc; ++argv; }
+    juce::SharedResourcePointer<LookLibrary> library;
+    const auto looksDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("vjvst_looks_uitest");
+    if (looksTest)
+    {
+        looksDir.deleteRecursively();
+        library->setFolder (looksDir);
+    }
     // --tab N: open the EDIT drawer on tab N (0 LOOK .. 5 SETUP) before the snapshot.
     int drawerTab = -1;
     if (argc > 2 && juce::String (argv[1]) == "--tab") { drawerTab = juce::String (argv[2]).getIntValue(); argc -= 2; argv += 2; }
@@ -278,6 +438,156 @@ int main (int argc, char** argv)
             {
                 switchedAt = juce::Time::getMillisecondCounterHiRes();
                 std::printf ("GO -> plug-in sees the switch: %.0f ms (one beat = 500 ms)\n", switchedAt - goAt);
+            }
+        }
+
+        if (looksTest)
+        {
+            auto* ed = dynamic_cast<VJAnalyzerEditor*> (editor.get());
+            auto status = processor.getWorker().getEngineStatus();
+            const auto t = samples / rate;
+            auto shoot = [&] (const char* suffix) {
+                auto shot = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
+                juce::File f (juce::File::getCurrentWorkingDirectory().getChildFile (outPath).withFileExtension ("").getFullPathName() + suffix + ".png");
+                f.deleteFile();
+                juce::FileOutputStream s (f);
+                juce::PNGImageFormat().writeImageToStream (shot, s);
+            };
+            auto click = [] (juce::Component& c, juce::Point<int> p, bool right, int clicks = 1) {
+                const auto pos = p.toFloat();
+                juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), pos,
+                                    right ? juce::ModifierKeys (juce::ModifierKeys::rightButtonModifier) : juce::ModifierKeys(),
+                                    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, &c, &c, juce::Time::getCurrentTime(), pos, juce::Time::getCurrentTime(), clicks, false);
+                c.mouseDown (e);
+                if (clicks == 2 && ! right)
+                    c.mouseDoubleClick (e);
+            };
+            auto knob = [&processor] (const char* id) { return processor.getState().getRawParameterValue (id)->load(); };
+            auto setKnob = [&processor] (const char* id, float v) {
+                auto* p = processor.getState().getParameter (id);
+                p->setValueNotifyingHost (p->convertTo0to1 (v));
+            };
+            static int step = 0;
+            static juce::String lookScene;
+            static double stepAt = 0.0;
+            auto& grid = ed->getLookGrid();
+            auto& scenes = ed->getSceneGrid();
+
+            if (step == 0 && t > 3.0 && (status.connected || t > 5.0))
+            {
+                std::printf ("engine %s, live scene '%s'\n", status.connected ? "connected" : "NOT connected", status.presetName.toRawUTF8());
+                // The switch: click LOOKS (middle cell), as a user would.
+                if (auto* sw = ed->findChildWithID ("gridSwitch"))
+                    click (*sw, { sw->getWidth() / 2, sw->getHeight() / 2 }, false);
+                std::printf ("LOOKS view: %s, look grid visible: %s\n", ed->getGridView() == 1 ? "yes" : "NO", grid.isVisible() ? "yes" : "NO");
+                shoot ("-1-empty");
+                // Right-click the live scene's name: a menu must open (its "Save look..." = saveCurrentLook).
+                click (*ed, { 120, 76 }, true);
+                const bool menu = juce::PopupMenu::dismissAllActiveMenus();
+                std::printf ("right-click on the scene name opened a menu: %s\n", menu ? "yes" : "NO");
+                setKnob ("macro1", 0.21f);
+                setKnob ("palette", 3.0f); // Ice
+                lookScene = processor.currentSceneName();
+                ed->saveCurrentLook (false);
+                std::printf ("name field open: %s, pre-filled '%s'\n", ed->isNaming() ? "yes" : "NO",
+                             dynamic_cast<juce::TextEditor*> (ed->findChildWithID ("lookName"))->getText().toRawUTF8());
+                shoot ("-2-naming");
+                step = 1;
+                stepAt = t;
+            }
+            else if (step == 1 && t > stepAt + 0.5)
+            {
+                auto* field = dynamic_cast<juce::TextEditor*> (ed->findChildWithID ("lookName"));
+                field->setText ("Test Ice", false);
+                field->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)); // Enter (JUCE delivers it on the next message loop turn)
+                step = 2;
+                stepAt = t;
+            }
+            else if (step == 2 && t > stepAt + 0.1)
+            {
+                std::printf ("after Enter: naming %s, looks in library %d, tile 0 '%s' on '%s'\n", ed->isNaming() ? "STILL OPEN" : "closed",
+                             (int) library->getAll().size(), grid.getState().tiles.empty() ? "-" : grid.getState().tiles[0].name.toRawUTF8(),
+                             grid.getState().tiles.empty() ? "-" : grid.getState().tiles[0].scene.toRawUTF8());
+                shoot ("-3-saved"); // the SAVED flash
+                // A second look (different knobs), then star the first.
+                setKnob ("macro1", 0.8f);
+                setKnob ("palette", 1.0f); // Ember
+                ed->saveCurrentLook (false);
+                ed->commitName ("Test Ember");
+                const auto idx = grid.indexOf ("Test Ice.json");
+                click (grid, grid.starBounds (idx).getCentre(), false);
+                std::printf ("star clicked: 'Test Ice' favourite = %s, first tile now '%s'\n",
+                             library->find ("Test Ice.json") != nullptr && library->find ("Test Ice.json")->favourite ? "yes" : "NO",
+                             grid.getState().tiles[0].name.toRawUTF8());
+                // Move away: another scene and other knobs.
+                if (status.connected && status.numPresets > 2)
+                    processor.fireScene ((status.presetIndex + 3) % status.numPresets);
+                setKnob ("macro1", 0.95f);
+                setKnob ("palette", 0.0f);
+                step = 3;
+                stepAt = t;
+            }
+            else if (step == 3 && t > stepAt + 1.5)
+            {
+                std::printf ("moved away to '%s', macro1 %.2f\n", status.presetName.toRawUTF8(), knob ("macro1"));
+                setKnob ("morphTime", 0.0f); // cut, so the result is immediate
+                const auto idx = grid.indexOf ("Test Ice.json");
+                click (grid, grid.tileBounds (idx).getCentre().translated (-20, 0), false); // click = cue
+                std::printf ("clicked the look tile: cued look '%s', live scene unchanged '%s'\n", processor.getCuedLook().toRawUTF8(),
+                             status.presetName.toRawUTF8());
+                step = 4;
+                stepAt = t;
+            }
+            else if (step == 4 && t > stepAt + 0.3)
+            {
+                shoot ("-4-cued");
+                processor.getState().getParameter ("sceneGo")->setValueNotifyingHost (1.0f); // GO (as the button / MIDI does)
+                step = 5;
+                stepAt = t;
+            }
+            else if (step == 5 && t > stepAt + 1.5)
+            {
+                std::printf ("after GO: live scene '%s' (look's scene '%s'), macro1 %.2f (look 0.21), palette %d (look 3 = Ice)\n",
+                             status.presetName.toRawUTF8(), lookScene.toRawUTF8(), knob ("macro1"), (int) knob ("palette"));
+                shoot ("-5-after-go");
+                // Right-click the look tile: its menu opens. Then "Set as this scene's default" (the menu's action).
+                const auto idx = grid.indexOf ("Test Ice.json");
+                click (grid, grid.tileBounds (idx).getCentre(), true);
+                std::printf ("right-click on a look tile opened a menu: %s\n", juce::PopupMenu::dismissAllActiveMenus() ? "yes" : "NO");
+                library->setSceneDefault ("Test Ice.json", true);
+                // Leave the scene, turn the knob, come back by double-clicking the scene tile.
+                if (status.connected && status.numPresets > 2)
+                    processor.fireScene ((status.presetIndex + 1) % status.numPresets);
+                setKnob ("macro1", 0.6f);
+                step = 6;
+                stepAt = t;
+            }
+            else if (step == 6 && t > stepAt + 1.5)
+            {
+                std::printf ("left to '%s' (no default): macro1 %.2f (carried over: expect 0.60)\n", status.presetName.toRawUTF8(), knob ("macro1"));
+                if (auto* sw = ed->findChildWithID ("gridSwitch"))
+                    click (*sw, { sw->getWidth() / 6, sw->getHeight() / 2 }, false); // SCENES
+                const auto target = status.presetNames.indexOf (lookScene, true);
+                if (target >= 0)
+                    click (scenes, scenes.tileBounds (target).getCentre(), false, 2); // double-click = cue + GO
+                step = 7;
+                stepAt = t;
+            }
+            else if (step == 7 && t > stepAt + 1.5)
+            {
+                std::printf ("back on '%s' (default 'Test Ice'): macro1 %.2f (expect 0.21), scene tile has default dot: %s\n",
+                             status.presetName.toRawUTF8(), knob ("macro1"),
+                             scenes.getState().hasDefault[juce::jmax (0, status.presetIndex)] ? "yes" : "NO");
+                shoot ("-6-scenes-default-dot");
+                if (auto* sw = ed->findChildWithID ("gridSwitch"))
+                    click (*sw, { sw->getWidth() * 5 / 6, sw->getHeight() / 2 }, false); // favourites
+                std::printf ("star view: %d tile(s) (expect 1)\n", (int) grid.getState().tiles.size());
+                // Moment A -> library.
+                processor.storeSnapshot (0);
+                ed->saveMomentToLibrary (0);
+                ed->commitName ({}); // Enter on the suggested name
+                std::printf ("moment A saved to library: %d looks now (expect 3)\n", (int) library->getAll().size());
+                step = 8;
             }
         }
 

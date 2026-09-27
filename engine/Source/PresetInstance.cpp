@@ -239,7 +239,10 @@ void V2Instance::render (const FrameContext& f, const GLRenderTarget& output)
         return;
 
     auto& scene = stageTargets[(size_t) readIndex];
-    if (! finish.render (f.gl, scene.texture, lastWidth, lastHeight, preset.post, f.time, output) && copyProgram != nullptr)
+    const int finishTiming = gpuTiming::enabled() ? gpuTiming::begin ("finish (scene post)") : -1; // measurement only
+    const bool finished = finish.render (f.gl, scene.texture, lastWidth, lastHeight, preset.post, f.time, output);
+    gpuTiming::end (finishTiming);
+    if (! finished && copyProgram != nullptr)
     {
         // Finish unavailable: a clamped copy keeps the picture on screen.
         output.bind();

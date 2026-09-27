@@ -541,6 +541,70 @@ PRESETS = [
            post={'bloom': {'enabled': True, 'amount': 0.2, 'threshold': 0.85, 'levels': 5},
                  'toneMap': 'reinhard', 'exposureEv': 0.3, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.3},
            seed=1717),
+
+    # --- Ambient family (docs/research/AMBIENT-STYLE-DIRECTION.md): music with no kicks, for lying on
+    # your back. Same rules as above, played differently: every audio route is slow (seconds of attack,
+    # longer release), driven by sustained signals (energy, presence, centroid, body, tension); the
+    # required HIT route is a slow swell, never a jolt; scenes arrive with a long crossfade on the bar.
+    preset('17 - Lumia.json', 'lumia', 'Lumia',
+           'After Thomas Wilfred\'s lumia and the aurora: veils of light hang in the dark and fold slowly, brightest where '
+           'a fold is seen edge-on. The level unfurls them, build-ups bring in a third veil, an accent is a slow swell; '
+           'in silence they settle toward the horizon. Ambient: try BREATHE, React To kick off, palette Cyanotype or Scene Colors.',
+           [stage('sky', 'lumia.fs', [
+               param('drift', 0.0, 0.25, 0.05, integrate=True), param('sway', 0.0, 0.2, 0.03, integrate=True),
+               param('veils', 1, 3, 2.0), param('horizon', -0.8, 0.4, -0.3), param('height', 0.1, 1.4, 0.45),
+               param('fold', 0, 1.5, 0.9), param('lift', 0, 1, 0.2), param('rays', 0, 1, 0.55),
+               param('fineness', 6, 80, 30), param('diffuse', 0, 1, 0.2), param('shimmer', 0, 1, 0.2),
+               param('swell', 0, 1.5, 0), param('haze', 0, 1, 0.25), param('tint', 0, 1, 0.35),
+               param('emission', 0.2, 3.0, 1.0)])],
+           [route('macro.intensity', 'sky.emission', 0.6, 0.5), route('macro.form', 'sky.fold', 0.8, 0.5),
+            route('macro.scale', 'sky.height', 0.7, 0.5), route('macro.erode', 'sky.diffuse', 0.8, 0.5),
+            route('macro.detail', 'sky.fineness', 0.8, 0.5),
+            rest('sky.horizon', 0.4, attack=2500, release=6000),
+            route('env.hit', 'sky.swell', 1.0, attack=700, release=5000),
+            route('react.body', 'sky.lift', 0.6, 0.3, attack=1500, release=5000),
+            route('react.tension', 'sky.veils', 0.6, attack=3000, release=10000),
+            route('env.drop', 'sky.haze', 0.6, attack=2000, release=9000),
+            route('react.air', 'sky.shimmer', 0.5, 0.3, attack=2000, release=5000),
+            route('descriptor.centroid', 'sky.tint', 0.6, 0.45, attack=5000, release=10000),
+            route('descriptor.presence', 'sky.rays', 0.35, 0.4, attack=3000, release=6000),
+            route('lfo.phrase', 'sky.fold', 0.12, 0.5)],
+           {'intensity': 'glow', 'form': 'folds', 'scale': 'height', 'erode': 'wisps', 'detail': 'rays'},
+           post={'bloom': {'enabled': True, 'amount': 0.3, 'threshold': 0.75, 'levels': 6},
+                 'toneMap': 'reinhard', 'exposureEv': 0.2, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.35},
+           transition={'type': 'crossfade', 'durationMs': 4000, 'quantize': 'bar', 'historyOnEnter': 'reset',
+                       'retarget': 'snapshot-current'},
+           seed=1818),
+
+    preset('18 - Liquid Light.json', 'liquid-light', 'Liquid Light',
+           'After the 1960s oil-and-water light shows: dense dye and clear oil in a clock glass on a dim projector, stirred '
+           'by slow convection. Light leaks where the dye thins; oil lenses drift, merge and split with a dark meniscus and a '
+           'caustic inside. The level thins the dye, an accent drops clear spirit that opens a window, build-ups heat the glass. '
+           'Ambient: try BREATHE, React To kick off, palette Nitrate, Tungsten or Scene Colors.',
+           [stage('glass', 'liquid_light.fs', [
+               param('flow', 0.0, 0.3, 0.06, integrate=True), param('stir', 0, 1, 0.35), param('turn', -1, 1, 0.0),
+               param('scale', 0.4, 2.5, 1.0), param('oil', 0, 1, 0.4), param('melt', 0, 1, 0.25),
+               param('eddies', 0, 1, 0.4), param('density', 0.5, 8.0, 4.5), param('heat', 0, 1, 0),
+               param('drip', 0, 1, 0), param('lens', 0, 1.5, 0.6), param('rim', 0, 2, 0.8),
+               param('clarity', 0, 1, 0.25), param('tint', 0, 1, 0.4), param('lamp', 0.2, 3.0, 1.0)])],
+           [route('macro.intensity', 'glass.lamp', 0.6, 0.5), route('macro.form', 'glass.oil', 0.8, 0.5),
+            route('macro.scale', 'glass.scale', -0.6, 0.5), route('macro.erode', 'glass.melt', 0.8, 0.5),
+            route('macro.detail', 'glass.eddies', 0.9, 0.5),
+            rest('glass.density', -0.35, attack=2500, release=6000),
+            route('env.hit', 'glass.drip', 1.0, attack=300, release=2500),
+            route('react.body', 'glass.lens', 0.4, 0.3, attack=1500, release=5000),
+            route('react.tension', 'glass.heat', 0.7, attack=3000, release=10000),
+            route('env.drop', 'glass.clarity', 0.5, attack=2000, release=9000),
+            route('react.air', 'glass.rim', 0.35, 0.3, attack=1500, release=5000),
+            route('descriptor.centroid', 'glass.tint', 0.6, 0.45, attack=5000, release=10000),
+            route('descriptor.presence', 'glass.lamp', 0.25, 0.4, attack=3000, release=6000),
+            route('lfo.phrase', 'glass.turn', 0.5, 0.5)],
+           {'intensity': 'lamp', 'form': 'oil', 'scale': 'blob size', 'erode': 'melt', 'detail': 'eddies'},
+           post={'bloom': {'enabled': True, 'amount': 0.25, 'threshold': 0.8, 'levels': 5},
+                 'toneMap': 'reinhard', 'exposureEv': 0.4, 'outputColorSpace': 'srgb', 'grain': 0.0, 'vignette': 0.3},
+           transition={'type': 'crossfade', 'durationMs': 5000, 'quantize': 'bar', 'historyOnEnter': 'reset',
+                       'retarget': 'snapshot-current'},
+           seed=1919),
 ]
 
 if __name__ == '__main__':

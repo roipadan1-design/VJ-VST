@@ -161,6 +161,13 @@ void VJAnalyzerProcessor::recallSnapshot (int slot)
     if (! s.isValid())
         return;
 
+    startMorph (s, false);
+    activeSnapshot = slot;
+    activeLook = {};
+}
+
+void VJAnalyzerProcessor::startMorph (const juce::ValueTree& s, bool cut)
+{
     morph = {};
     for (auto& id : snapshotParamIds())
     {
@@ -176,11 +183,253 @@ void VJAnalyzerProcessor::recallSnapshot (int slot)
 
     const double beatsFor[] = { 0.0, 1.0, 4.0, 16.0, 64.0 };
     const auto choice = juce::jlimit (0, 4, (int) state.getRawParameterValue ("morphTime")->load());
-    morph.seconds = beatsFor[choice] * 60.0 / juce::jlimit (20.0, 400.0, hostBpm.load());
+    morph.seconds = cut ? 0.0 : beatsFor[choice] * 60.0 / juce::jlimit (20.0, 400.0, hostBpm.load());
     morph.start = juce::Time::getMillisecondCounterHiRes() * 0.001;
     morph.active = true;
-    activeSnapshot = slot;
     advanceMorph(); // a cut lands immediately
+}
+
+//==============================================================================
+// Looks (LookLibrary): a scene name + exactly what a Moment holds.
+
+juce::String VJAnalyzerProcessor::sceneNameAt (int engineIndex) const
+{
+    const auto status = worker.getEngineStatus();
+    if (status.connected && ! status.presetNames.isEmpty())
+        return status.presetNames[engineIndex];
+    return juce::StringArray::fromLines (state.state.getProperty ("sceneCache").toString())[engineIndex];
+}
+
+juce::String VJAnalyzerProcessor::currentSceneName() const
+{
+    const auto status = worker.getEngineStatus();
+    if (status.connected && juce::isPositiveAndBelow (status.presetIndex, status.presetNames.size()))
+        return status.presetNames[status.presetIndex];
+    if (status.connected && status.presetName.isNotEmpty())
+        return status.presetName;
+    const auto preset = (int) state.getRawParameterValue ("preset")->load();
+    return preset > 0 ? sceneNameAt (preset - 1) : juce::String();
+}
+
+int VJAnalyzerProcessor::findScene (const juce::String& name) const
+{
+    const auto status = worker.getEngineStatus();
+    if (name.isEmpty() || ! status.connected)
+        return -1;
+    return status.presetNames.indexOf (name, true);
+}
+
+void VJAnalyzerProcessor::fillLookRecipe (LookLibrary::Look& l, int palette, int lookPreset, int style) const
+{
+    l.palette = palette;
+    l.paletteName = paletteNames[palette];
+    l.lookPreset = lookPreset;
+    l.lookName = lookPreset >= 0 ? lookPresetNames[lookPreset] : juce::String();
+    l.reactStyle = style;
+    l.styleName = style >= 0 ? styleNames[style] : juce::String();
+}
+
+LookLibrary::Look VJAnalyzerProcessor::captureLook (const juce::String& name) const
+{
+    LookLibrary::Look l;
+    l.name = name;
+    l.scene = currentSceneName();
+    for (auto& id : snapshotParamIds())
+        l.values.set (id, state.getRawParameterValue (id)->load());
+    fillLookRecipe (l, (int) state.getRawParameterValue ("palette")->load(), (int) state.getRawParameterValue ("lookPreset")->load(),
+                    (int) state.getRawParameterValue ("reactStyle")->load());
+    for (int i = 0; i < 3; ++i)
+        l.colours.add (getCustomColour (i).toString());
+    return l;
+}
+
+bool VJAnalyzerProcessor::captureMomentLook (int slot, const juce::String& name, LookLibrary::Look& l) const
+{
+    auto s = state.state.getChildWithName ("Snapshots").getChildWithName ("S" + juce::String (slot));
+    if (! s.isValid())
+        return false;
+    l = {};
+    l.name = name;
+    l.scene = currentSceneName(); // a moment holds no scene: the look is built on the scene playing now
+    for (auto& id : snapshotParamIds())
+        l.values.set (id, (float) s.getProperty (id, state.getRawParameterValue (id)->load()));
+    const auto palette = juce::jlimit (0, paletteNames.size() - 1, (int) s.getProperty ("palette", 0));
+    const auto look = (int) s.getProperty ("lookPreset", -1);
+    const auto style = (int) s.getProperty ("reactStyle", -1);
+    fillLookRecipe (l, palette, juce::isPositiveAndBelow (look, lookPresetNames.size()) ? look : -1,
+                    juce::isPositiveAndBelow (style, styleNames.size()) ? style : -1);
+    for (int i = 0; i < 3; ++i)
+        l.colours.add (s.getProperty ("colour" + juce::String (i), getCustomColour (i).toString()).toString());
+    return true;
+}
+
+juce::ValueTree VJAnalyzerProcessor::lookToSnapshot (const LookLibrary::Look& l)
+{
+    // Names first (stable if a choice list is ever re-ordered), stored index second.
+    auto resolve = [] (const juce::StringArray& names, const juce::String& name, int index, int fallback) {
+        if (auto i = names.indexOf (name, true); name.isNotEmpty() && i >= 0)
+            return i;
+        return juce::isPositiveAndBelow (index, names.size()) ? index : fallback;
+    };
+    juce::ValueTree s ("S");
+    for (auto& v : l.values)
+        s.setProperty (v.name, v.value, nullptr);
+    s.setProperty ("palette", resolve (paletteNames, l.paletteName, l.palette, 0), nullptr);
+    if (auto look = resolve (lookPresetNames, l.lookName, l.lookPreset, -1); look >= 0)
+        s.setProperty ("lookPreset", look, nullptr);
+    if (auto style = resolve (styleNames, l.styleName, l.reactStyle, -1); style >= 0)
+        s.setProperty ("reactStyle", style, nullptr);
+    for (int i = 0; i < juce::jmin (3, l.colours.size()); ++i)
+        s.setProperty ("colour" + juce::String (i), l.colours[i], nullptr);
+    return s;
+}
+
+std::array<juce::Colour, 3> VJAnalyzerProcessor::lookColours (const LookLibrary::Look& l) const
+{
+    const auto palette = (int) lookToSnapshot (l).getProperty ("palette", 0);
+    if (isPresetPalette (palette))
+        return presetPalette (palette);
+    if (palette == sceneColours)
+        return { juce::Colour (0xff202020), juce::Colour (0xff606060), juce::Colour (0xffb0b0b0) };
+    std::array<juce::Colour, 3> c;
+    for (int i = 0; i < 3; ++i)
+        c[(size_t) i] = i < l.colours.size() ? juce::Colour::fromString (l.colours[i]) : presetPalette (0)[(size_t) i];
+    return c;
+}
+
+juce::String VJAnalyzerProcessor::lookRecipe (const LookLibrary::Look& l)
+{
+    auto s = lookToSnapshot (l);
+    const auto dot = juce::String (juce::CharPointer_UTF8 (" \xc2\xb7 "));
+    juce::String text = lookPresetNames[juce::jlimit (0, lookPresetNames.size() - 1, (int) s.getProperty ("lookPreset", customLook))]
+                      + dot + paletteNames[juce::jlimit (0, paletteNames.size() - 1, (int) s.getProperty ("palette", 0))];
+    if (s.hasProperty ("reactStyle"))
+        text << dot << styleNames[juce::jlimit (0, styleNames.size() - 1, (int) s.getProperty ("reactStyle"))];
+    return text;
+}
+
+void VJAnalyzerProcessor::cueLook (const juce::String& id)
+{
+    cuedLook = id;
+    if (id.isNotEmpty())
+        cuedScene = -1;
+}
+
+bool VJAnalyzerProcessor::applyLook (const juce::String& id)
+{
+    looks->refreshIfChanged();
+    auto* look = looks->find (id);
+    if (look == nullptr)
+        return false;
+    const auto copy = *look;
+    applyLookObject (copy, false);
+    activeLook = id;
+    return true;
+}
+
+void VJAnalyzerProcessor::applyLookObject (const LookLibrary::Look& look, bool cut)
+{
+    cuedLook = {};
+    pendingScene = {};
+    if (look.scene.isNotEmpty())
+    {
+        const auto status = worker.getEngineStatus();
+        if (status.connected && ! status.presetNames.isEmpty())
+        {
+            // Scene by NAME. A scene that no longer exists: the values still land on the current one.
+            const auto index = status.presetNames.indexOf (look.scene, true);
+            const auto fired = firedScene.load();
+            if (index >= 0 && (index != status.presetIndex || (fired >= 0 && fired != index)))
+                fireScene (index, false); // the look's own values, not the scene default
+        }
+        else
+            pendingScene = look.scene; // fired as soon as the engine lists its scenes
+    }
+    startMorph (lookToSnapshot (look), cut);
+    activeSnapshot = -1;
+}
+
+void VJAnalyzerProcessor::applySceneDefault (int engineIndex)
+{
+    looks->refreshIfChanged();
+    if (auto* d = looks->sceneDefault (sceneNameAt (engineIndex)))
+    {
+        const auto id = d->getId();
+        startMorph (lookToSnapshot (*d), false);
+        activeSnapshot = -1;
+        activeLook = id;
+    }
+}
+
+void VJAnalyzerProcessor::watchPresetParameter()
+{
+    // "preset" moved without fireScene (Live automation, a MIDI-mapped knob,
+    // the device's parameter list): that scene is being fired too.
+    const auto preset = (int) state.getRawParameterValue ("preset")->load();
+    if (stateLoaded.exchange (false))
+    {
+        lastPresetSeen = preset; // a loaded Live set keeps its own knobs
+        return;
+    }
+    if (preset != lastPresetSeen)
+    {
+        lastPresetSeen = preset;
+        if (preset > 0)
+        {
+            activeLook = {};
+            applySceneDefault (preset - 1);
+        }
+    }
+}
+
+void VJAnalyzerProcessor::resolvePendingScene()
+{
+    const auto status = worker.getEngineStatus();
+    if (! status.connected || status.presetNames.isEmpty())
+        return;
+
+    // Remember the scene list with the set (scene names while the engine is off).
+    auto joined = status.presetNames.joinIntoString ("\n");
+    if (state.state.getProperty ("sceneCache").toString() != joined)
+        state.state.setProperty ("sceneCache", joined, nullptr);
+
+    if (pendingScene.isEmpty())
+        return;
+    const auto index = status.presetNames.indexOf (pendingScene, true);
+    pendingScene = {};
+    if (index >= 0 && index != status.presetIndex)
+    {
+        const auto keep = activeLook;
+        fireScene (index, false);
+        activeLook = keep;
+    }
+}
+
+void VJAnalyzerProcessor::applyStartupLook()
+{
+    if (! startupPending)
+        return;
+    if (stateEverLoaded.load())
+    {
+        startupPending = false; // a saved Live set opens as it was saved
+        return;
+    }
+    if (++timerTicks < 45) // ~1.5 s of a running message loop: Live restores a set before that
+        return;
+    startupPending = false;
+    // Only the first VJ Analyzer of a new set, never a second one added later.
+    // With audio running, only instances that really run count (Live keeps
+    // deleted devices alive for undo); with audio off, it must be the only one.
+    const bool meRunning = juce::Time::getMillisecondCounter() - lastProcessMs.load() < 2000;
+    if (meRunning ? leads->anyOtherRunning (this) : leads->count() != 1)
+        return;
+    looks->refreshIfChanged();
+    if (auto* l = looks->startupLook())
+    {
+        const auto copy = *l;
+        applyLookObject (copy, true);
+        activeLook = copy.getId();
+    }
 }
 
 void VJAnalyzerProcessor::advanceMorph()
@@ -551,13 +800,17 @@ void VJAnalyzerProcessor::parameterChanged (const juce::String& id, float newVal
 void VJAnalyzerProcessor::cueScene (int engineIndex)
 {
     cuedScene = engineIndex;
+    cuedLook = {}; // one cue at a time (and cueScene (-1) cancels a cued look too)
 }
 
-void VJAnalyzerProcessor::fireScene (int engineIndex)
+void VJAnalyzerProcessor::fireScene (int engineIndex, bool withSceneDefault)
 {
     if (engineIndex < 0)
         return;
     cuedScene = -1;
+    cuedLook = {};
+    pendingScene = {};
+    lastPresetSeen = engineIndex + 1; // our own change, not automation (watchPresetParameter)
     // Through the host parameter (so Live records/recalls it) and immediately.
     if (auto* param = state.getParameter ("preset"))
     {
@@ -568,10 +821,19 @@ void VJAnalyzerProcessor::fireScene (int engineIndex)
     worker.selectPresetNow (engineIndex);
     firedScene = engineIndex;
     firedAt = juce::Time::getMillisecondCounterHiRes() * 0.001;
+
+    // A scene with a default look always opens on it; without one the knobs
+    // carry over from the previous scene, as before.
+    if (withSceneDefault)
+    {
+        activeLook = {};
+        applySceneDefault (engineIndex);
+    }
 }
 
 void VJAnalyzerProcessor::stepCue (int direction)
 {
+    cuedLook = {};
     const auto status = worker.getEngineStatus();
     const int n = status.numPresets;
     if (! status.connected || n <= 0)
@@ -588,6 +850,13 @@ void VJAnalyzerProcessor::stepCue (int direction)
 
 void VJAnalyzerProcessor::goCue()
 {
+    if (cuedLook.isNotEmpty())
+    {
+        const auto id = cuedLook;
+        cuedLook = {};
+        applyLook (id);
+        return;
+    }
     fireScene (cuedScene.exchange (-1));
 }
 
@@ -624,6 +893,9 @@ void VJAnalyzerProcessor::timerCallback()
             p->setValueNotifyingHost (0.0f);
     }
 
+    watchPresetParameter();
+    resolvePendingScene();
+    applyStartupLook();
     advanceMorph();
     updateLookPreset();
     updateCue();
@@ -697,7 +969,12 @@ void VJAnalyzerProcessor::setStateInformation (const void* data, int size)
     if (auto xml = getXmlFromBinary (data, size))
         if (xml->hasTagName (state.state.getType()))
         {
+            // The restored "preset" is not a scene being fired (no scene default),
+            // and a loaded set never gets the start-up look.
+            stateEverLoaded = true;
+            stateLoaded = true;
             state.replaceState (juce::ValueTree::fromXml (*xml));
+            stateLoaded = true;
             // The loaded look is whatever was saved: never re-write it; if it no
             // longer matches its named look, it shows as Custom (updateLookPreset).
             lastLookPreset = (int) state.getRawParameterValue ("lookPreset")->load();

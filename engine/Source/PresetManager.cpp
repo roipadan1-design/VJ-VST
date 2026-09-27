@@ -347,7 +347,9 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
         glBindTexture (GL_TEXTURE_2D, tex);
     };
 
+    const int sceneTiming = gpuTiming::enabled() ? gpuTiming::begin ("scene total (stages + finish)") : -1; // measurement only
     current->render (frame, currentTarget);
+    gpuTiming::end (sceneTiming);
     {
         const auto activity = current->getMacroActivity();
         const auto hold = (float) std::exp (-frame.dt / 0.3);
@@ -365,7 +367,9 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
         else if (outgoing != nullptr)
         {
             outgoingTarget.ensure (w, h, GL_RGBA16F);
+            const int outgoingTiming = gpuTiming::enabled() ? gpuTiming::begin ("outgoing scene (transition)") : -1; // measurement only
             outgoing->render (frame, outgoingTarget);
+            gpuTiming::end (outgoingTiming);
             outgoingTexture = outgoingTarget.texture;
         }
 
@@ -398,8 +402,11 @@ void PresetManager::render (FrameContext& frame, unsigned int finalTargetFbo)
     frame.height = outputHeight;
     auto sceneLook = look;
     sceneLook.duo = current->usesDuoPalette() ? 1.0f : 0.0f;
-    if (lookPass.render (frame.gl, compositeSource, w, h, finalTargetFbo, outputWidth, outputHeight,
-                         sceneLook, frame.time, outputGain))
+    const int lookTiming = gpuTiming::enabled() ? gpuTiming::begin ("look pass (output)") : -1; // measurement only
+    const bool looked = lookPass.render (frame.gl, compositeSource, w, h, finalTargetFbo, outputWidth, outputHeight,
+                                         sceneLook, frame.time, outputGain);
+    gpuTiming::end (lookTiming);
+    if (looked)
         return;
 
     glBindFramebuffer (GL_FRAMEBUFFER, finalTargetFbo);

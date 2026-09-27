@@ -44,6 +44,7 @@ target_sources(VJAnalyzer PRIVATE
     Source/PluginEditor.cpp
     Source/AnalysisWorker.cpp
     Source/EngineLauncher.cpp
+    Source/LookLibrary.cpp
 )
 target_include_directories(VJAnalyzer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -73,6 +74,7 @@ target_sources(PluginHarness PRIVATE
     Source/PluginEditor.cpp
     Source/AnalysisWorker.cpp
     Source/EngineLauncher.cpp
+    Source/LookLibrary.cpp
 )
 target_include_directories(PluginHarness PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_compile_definitions(PluginHarness PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)

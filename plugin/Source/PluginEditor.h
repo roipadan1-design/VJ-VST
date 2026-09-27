@@ -98,7 +98,8 @@ private:
     int selected = -1, hovered = -1, pending = -1;
 };
 
-// The scene grid: 4 columns of tiles. Click = cue (NEXT), double-click = cue + GO.
+// The scene grid: 4 columns of tiles. Click = cue (NEXT), double-click = cue + GO,
+// right-click = the scene's menu (save look, scene default).
 class SceneGrid : public juce::Component
 {
 public:
@@ -113,6 +114,7 @@ public:
     {
         juce::StringArray names;
         juce::Array<bool> usesMedia;
+        juce::Array<bool> hasDefault;   // a default look is set for the scene (small dot)
         juce::StringArray descriptions;
         int live = -1, cued = -1, firing = -1;
         bool connected = false;
@@ -124,10 +126,57 @@ public:
     const State& getState() const noexcept { return st; }
 
     std::function<void (int)> onCue, onFire;
+    std::function<void (int)> onMenu; // right-click on a tile (-1 = empty area)
 
 private:
     State st;
     int hovered = -1, scrollRow = 0;
+    static constexpr int columns = 4, tileW = 109, tileH = 30, stepX = 113, stepY = 34, visibleRows = 4;
+};
+
+// The LOOKS / favourites grid: same size and language as the scene grid.
+// A tile = name, a star (click = favourite), the look's 3 colours and the
+// scene it is built on. Click = cue (NEXT), double-click = cue + GO,
+// right-click = the look's menu (empty area: save look).
+class LookGrid : public juce::Component
+{
+public:
+    struct Tile
+    {
+        juce::String id, name, scene, help;
+        std::array<juce::Colour, 3> colours;
+        bool favourite = false, sceneDefault = false, startup = false, sceneMissing = false;
+    };
+    struct State
+    {
+        std::vector<Tile> tiles;
+        juce::String live, cued, saved;   // look ids
+        bool favouritesOnly = false;
+        juce::String signature;           // repaint only when this changes
+    };
+
+    void paint (juce::Graphics&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDoubleClick (const juce::MouseEvent&) override;
+    void mouseMove (const juce::MouseEvent&) override;
+    void mouseExit (const juce::MouseEvent&) override;
+    void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+
+    void setState (State);
+    const State& getState() const noexcept { return st; }
+    juce::Rectangle<int> tileBounds (int index) const;
+    juce::Rectangle<int> starBounds (int index) const;
+    int tileAt (juce::Point<int>) const;
+    int indexOf (const juce::String& id) const;
+    void reveal (int index); // scroll so the tile is visible
+
+    std::function<void (int)> onCue, onFire, onStar;
+    std::function<void (int)> onMenu; // -1 = empty area
+
+private:
+    State st;
+    int hovered = -1, scrollRow = 0;
+    bool hoverStar = false;
     static constexpr int columns = 4, tileW = 109, tileH = 30, stepX = 113, stepY = 34, visibleRows = 4;
 };
 
@@ -160,11 +209,20 @@ public:
     void paint (juce::Graphics&) override;
     void paintOverChildren (juce::Graphics&) override;
     void resized() override;
+    void mouseDown (const juce::MouseEvent&) override; // right-click on the live scene's name = save look
 
     bool isInterestedInFileDrag (const juce::StringArray& files) override;
     void filesDropped (const juce::StringArray& files, int x, int y) override;
 
     SceneGrid& getSceneGrid() noexcept { return sceneGrid; } // PluginHarness --cuetest
+    LookGrid& getLookGrid() noexcept { return lookGrid; }    // PluginHarness --lookstest
+    void setGridView (int view);                             // 0 SCENES, 1 LOOKS, 2 favourites
+    int getGridView() const;
+    // Harness entry points = exactly what the menus / name field do.
+    void saveCurrentLook (bool asSceneDefault);
+    void saveMomentToLibrary (int slot);
+    void commitName (const juce::String& text);
+    bool isNaming() const noexcept { return naming; }
 
 private:
     enum class Mode { play, edit, source };
@@ -202,6 +260,19 @@ private:
     void rememberScenes();
     double now() const;
 
+    // --- looks
+    void updateLookGrid();
+    void showSceneTileMenu (int tile, juce::Component* target);
+    void showLookTileMenu (int index);
+    void showLookAreaMenu();
+    void cueLookTile (int index);
+    void fireLookTile (int index);
+    void toggleFavourite (int index);
+    void lookSaved (const juce::String& id, const juce::String& message);
+    juce::String suggestedLookName() const;
+    void beginNaming (const juce::String& prompt, const juce::String& suggestion, std::function<void (const juce::String&)> commit);
+    void endNaming();
+
     VJAnalyzerProcessor& processor;
     vjui::LookAndFeel lookAndFeel;
     Mode mode = Mode::play;
@@ -222,6 +293,16 @@ private:
     // --- PLAY: scenes
     juce::TextButton previous { "<" }, next { ">" }, go { "GO" }, cueField;
     SceneGrid sceneGrid;
+    // --- PLAY: looks (SCENES · LOOKS · ★ over the same grid area) + the inline name field
+    SegmentedControl gridSwitch { { "SCENES", "LOOKS", juce::String (juce::CharPointer_UTF8 ("\xe2\x98\x85")) } };
+    LookGrid lookGrid;
+    juce::TextEditor nameField;
+    juce::TextButton nameSave { "SAVE" }, nameCancel { "CANCEL" };
+    std::function<void (const juce::String&)> nameCommitAction;
+    juce::String namingPrompt, namingSuggestion;
+    bool naming = false;
+    juce::String savedLookId, lookGridSig;
+    double savedLookAt = -10.0;
 
     // --- PLAY: react row, lamps, style, media, moments
     SegmentedControl reactRow { { "STILL", "BREATHE", "PULSE", "PUNCH" } };
