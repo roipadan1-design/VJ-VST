@@ -347,6 +347,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> useMediaAttachment;
     SegmentedControl clipModeRow { { "LOOP", "PING-PONG" } };
     SegmentedControl clipSyncRow { { "FREE", "1 BEAT", "1 BAR", "2", "4", "8 BARS" } };
+    juce::TextButton webcamButton { "WEBCAM" };
     std::map<juce::String, juce::Image> thumbnails;
     // SETUP
     SegmentedControl roleRow { { "MIX", "KICK", "SNARE", "HAT", "BASS", "TEXT." } };

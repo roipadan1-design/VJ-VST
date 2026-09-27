@@ -316,7 +316,9 @@ void MainComponent::render()
         lastReframeCount = reframes;
         mediaBin.jumpActive();
     }
-    frame.videoTexture = videoPlayer.getTextureID();
+    // 0 (not the stale last frame) once closed, so inputImage falls back to
+    // the black placeholder immediately instead of freezing on last frame.
+    frame.videoTexture = videoPlayer.isLoaded() ? videoPlayer.getTextureID() : 0;
     frame.width = physicalWidth;
     frame.height = physicalHeight;
     // Legacy uniforms, now fed from whichever analysis source is live.
@@ -984,6 +986,12 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
             deviceIndex = message[0].getInt32();
 
         videoPlayer.openCamera (deviceIndex);
+        return;
+    }
+
+    if (address == "/camera/close")
+    {
+        videoPlayer.close();
         return;
     }
 }

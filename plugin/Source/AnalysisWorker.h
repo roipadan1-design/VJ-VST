@@ -91,6 +91,8 @@ public:
     void selectPresetNow (int index) { presetOverride = index; }
     void stepScene (int direction) { sceneStep += direction; }
     void toggleEngineFullscreen() { fullscreenPending = true; }
+    void openWebcam (int deviceIndex = 0) { webcamDeviceIndex = deviceIndex; webcamOpenPending = true; }
+    void closeWebcam() { webcamClosePending = true; }
     Meters getMeters() const;
     EngineStatus getEngineStatus() const;
     void setTarget (const juce::String& host, int port);
@@ -127,6 +129,8 @@ private:
     std::atomic<int> presetOverride { -1 };
     std::atomic<int> sceneStep { 0 };
     std::atomic<bool> fullscreenPending { false };
+    std::atomic<bool> webcamOpenPending { false }, webcamClosePending { false };
+    std::atomic<int> webcamDeviceIndex { 0 };
 
     mutable juce::SpinLock metersLock;
     Meters meters;

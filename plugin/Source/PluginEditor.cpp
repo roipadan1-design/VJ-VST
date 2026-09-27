@@ -1282,7 +1282,18 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     for (int i = 0; i < 6; ++i)
         clipSyncRow.setCellHelp (i, i == 0 ? "The clip plays at its own speed x Speed. (Live: Clip Sync)"
                                            : "The clip is stretched over " + VJAnalyzerProcessor::clipSyncNames[i].toLowerCase() + ", locked to the tempo. (Live: Clip Sync)");
-    tabContents[mediaTab].addArray (std::initializer_list<juce::Component*> { &mediaLoad, &mediaClear, &useMedia, &clipModeRow, &clipSyncRow });
+    webcamButton.setClickingTogglesState (true);
+    webcamButton.getProperties().set ("fontSize", 10.0f);
+    styleButton (webcamButton, vjui::ink1, vjui::ash, vjui::signal, vjui::ink0);
+    outlineOf (webcamButton, vjui::ink1);
+    webcamButton.onClick = [this] {
+        if (webcamButton.getToggleState())
+            processor.getWorker().openWebcam();
+        else
+            processor.getWorker().closeWebcam();
+    };
+    vjui::setHelp (webcamButton, "Streams your laptop's camera live into the engine as the image (Media Negative, Media Lines, and any USE IN ALL scene). Click again to stop.");
+    tabContents[mediaTab].addArray (std::initializer_list<juce::Component*> { &mediaLoad, &mediaClear, &useMedia, &clipModeRow, &clipSyncRow, &webcamButton });
 
     // SETUP
     auto roleChange = [this] (int i) { processor.setRoleByHand (i); };
@@ -1518,6 +1529,7 @@ void VJAnalyzerEditor::layoutDrawer()
     useMedia.setBounds (948, 212, 216, 24);
     clipModeRow.setBounds (776, 264, 150, 24);
     clipSyncRow.setBounds (940, 264, 224, 24);
+    webcamButton.setBounds (776, 412, 150, 24);
 
     // SETUP
     roleRow.setBounds (776, 64, 318, 24);
@@ -2294,6 +2306,7 @@ void VJAnalyzerEditor::timerCallback()
         vjui::setHelp (enginePill, "The picture engine is not running. Click to start it.");
     }
     fullscreenButton.setEnabled (status.connected);
+    webcamButton.setEnabled (status.connected);
     {
         auto track = processor.getTrackName();
         leadChip.setButtonText ("LEAD" + (track.isNotEmpty() ? juce::String (juce::CharPointer_UTF8 (" \xc2\xb7 ")) + track : juce::String()));
@@ -2722,6 +2735,7 @@ void VJAnalyzerEditor::paintDrawer (juce::Graphics& g)
                                                                    : m.name + (m.loading ? "  loading..." : "  " + juce::String (m.width) + "x" + juce::String (m.height))),
                         776, 352, 388, 14, juce::Justification::centredLeft, true);
             hint (g, "Drop a file on a slot to load it there.", { 776, 372, 388, 14 });
+            caption (g, "Live camera", 776, 396);
             break;
         }
         case setupTab:

@@ -215,6 +215,19 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    if (webcamOpenPending.exchange (false))
+    {
+        writer.begin ("/camera/open");
+        writer.addInt (webcamDeviceIndex.load());
+        sendPacket (writer.finish());
+    }
+
+    if (webcamClosePending.exchange (false))
+    {
+        writer.begin ("/camera/close");
+        sendPacket (writer.finish());
+    }
+
     for (auto step = sceneStep.exchange (0); step != 0; step += step > 0 ? -1 : 1)
     {
         writer.begin (step > 0 ? "/v2/preset/next" : "/v2/preset/previous");
