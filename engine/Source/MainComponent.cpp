@@ -162,6 +162,7 @@ void MainComponent::shutdown()
     frameFence = nullptr;
     presetManager.releaseGLObjects();
     mediaBin.release();
+    videoRecorder.releaseGLObjects();
 }
 
 void MainComponent::render()
@@ -342,6 +343,7 @@ void MainComponent::render()
     // presetManager.render() leaves the default framebuffer (0) holding this
     // frame's final image - share it as-is, no extra copy/blit needed.
     spoutSender.sendFrame (0, physicalWidth, physicalHeight);
+    videoRecorder.pushFrame (0, physicalWidth, physicalHeight);
     frameFence = glFenceSync (GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
     if (pendingSnapshot.exchange (false))
@@ -992,6 +994,27 @@ void MainComponent::oscMessageReceived (const juce::OSCMessage& message)
     if (address == "/camera/close")
     {
         videoPlayer.close();
+        return;
+    }
+
+    if (address == "/record/start")
+    {
+        auto seconds = message.size() > 0 ? numberArg (0, 20.0f) : 20.0f;
+        auto vertical = message.size() > 1 && numberArg (1, 0.0f) > 0.5f;
+        videoRecorder.start ((double) seconds, vertical);
+        return;
+    }
+
+    if (address == "/record/stop")
+    {
+        videoRecorder.stop();
+        return;
+    }
+
+    if (address == "/record/audiopath")
+    {
+        if (message.size() > 0 && message[0].isString())
+            videoRecorder.setAudioPath (message[0].getString());
         return;
     }
 }

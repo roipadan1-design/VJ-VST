@@ -93,6 +93,13 @@ public:
     void toggleEngineFullscreen() { fullscreenPending = true; }
     void openWebcam (int deviceIndex = 0) { webcamDeviceIndex = deviceIndex; webcamOpenPending = true; }
     void closeWebcam() { webcamClosePending = true; }
+    // Reels recording (REELS-RECORDING-PLAN.md): tells the engine to start/stop
+    // capturing its own output. The plug-in separately captures the master
+    // audio itself (PluginProcessor) and reports the WAV path with sendAudioPath()
+    // once it closes the file.
+    void startRecording (double seconds, bool vertical) { recordSeconds = seconds; recordVertical = vertical; recordStartPending = true; }
+    void stopRecording() { recordStopPending = true; }
+    void sendAudioPath (const juce::String& path) { const juce::SpinLock::ScopedLockType sl (audioPathLock); audioPathToSend = path; audioPathPending = true; }
     Meters getMeters() const;
     EngineStatus getEngineStatus() const;
     void setTarget (const juce::String& host, int port);
@@ -131,6 +138,12 @@ private:
     std::atomic<bool> fullscreenPending { false };
     std::atomic<bool> webcamOpenPending { false }, webcamClosePending { false };
     std::atomic<int> webcamDeviceIndex { 0 };
+    std::atomic<bool> recordStartPending { false }, recordStopPending { false };
+    std::atomic<double> recordSeconds { 20.0 };
+    std::atomic<bool> recordVertical { false };
+    std::atomic<bool> audioPathPending { false };
+    juce::SpinLock audioPathLock;
+    juce::String audioPathToSend;
 
     mutable juce::SpinLock metersLock;
     Meters meters;

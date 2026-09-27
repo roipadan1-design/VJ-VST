@@ -1345,7 +1345,22 @@ VJAnalyzerEditor::VJAnalyzerEditor (VJAnalyzerProcessor& p)
     locateEngine.getProperties().set ("fontSize", 10.0f);
     locateEngine.onClick = [this] { processor.getState().state.setProperty ("enginePath", "", nullptr); openEngine(); };
     vjui::setHelp (locateEngine, "Point at VJ Engine.exe (only needed if it moved).");
-    tabContents[setupTab].addArray (std::initializer_list<juce::Component*> { &roleRow, &roleAuto, &canLead, &makeLead, &levelRow, &locateEngine });
+    verticalButton.setClickingTogglesState (true);
+    verticalButton.getProperties().set ("fontSize", 10.0f);
+    styleButton (verticalButton, vjui::ink1, vjui::ash, vjui::bone, vjui::ink0);
+    vjui::setHelp (verticalButton, "9:16 crop for Reels/Stories instead of the full landscape frame. Set before RECORD.");
+    recordButton.setClickingTogglesState (true);
+    recordButton.getProperties().set ("fontSize", 10.0f);
+    styleButton (recordButton, vjui::ink1, vjui::ash, vjui::signal, vjui::ink0);
+    outlineOf (recordButton, vjui::ink1);
+    recordButton.onClick = [this] {
+        if (recordButton.getToggleState())
+            processor.startRecording (20.0, verticalButton.getToggleState());
+        else
+            processor.stopRecording();
+    };
+    vjui::setHelp (recordButton, "Records ~20s of the engine's picture + this track's audio to Documents\\VJ VST\\Recordings, one MP4. Only on the instance on the Master track.");
+    tabContents[setupTab].addArray (std::initializer_list<juce::Component*> { &roleRow, &roleAuto, &canLead, &makeLead, &levelRow, &locateEngine, &recordButton, &verticalButton });
 
     for (auto& tab : tabContents)
         for (auto* c : tab)
@@ -1542,6 +1557,8 @@ void VJAnalyzerEditor::layoutDrawer()
     signalBands = { 1028, 250, 136, 40 };
     signalLamps = { 1028, 296, 136, 16 };
     locateEngine.setBounds (1070, 404, 94, 24);
+    recordButton.setBounds (776, 330, 150, 24);
+    verticalButton.setBounds (940, 330, 94, 24);
 }
 
 void VJAnalyzerEditor::layoutSource()
@@ -2307,6 +2324,11 @@ void VJAnalyzerEditor::timerCallback()
     }
     fullscreenButton.setEnabled (status.connected);
     webcamButton.setEnabled (status.connected);
+    // Gated on the master track, not isLead()/connected alone - see
+    // VJAnalyzerProcessor::isOnMasterTrack(). Toggle state follows the
+    // processor's own (it can stop itself on the requested duration).
+    recordButton.setEnabled (status.connected && processor.isOnMasterTrack());
+    recordButton.setToggleState (processor.isRecording(), juce::dontSendNotification);
     {
         auto track = processor.getTrackName();
         leadChip.setButtonText ("LEAD" + (track.isNotEmpty() ? juce::String (juce::CharPointer_UTF8 (" \xc2\xb7 ")) + track : juce::String()));

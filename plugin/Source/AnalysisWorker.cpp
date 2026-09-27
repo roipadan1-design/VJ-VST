@@ -228,6 +228,29 @@ void AnalysisWorker::sendControlsIfChanged()
         sendPacket (writer.finish());
     }
 
+    if (recordStartPending.exchange (false))
+    {
+        writer.begin ("/record/start");
+        writer.addFloat ((float) recordSeconds.load());
+        writer.addInt (recordVertical.load() ? 1 : 0);
+        sendPacket (writer.finish());
+    }
+
+    if (recordStopPending.exchange (false))
+    {
+        writer.begin ("/record/stop");
+        sendPacket (writer.finish());
+    }
+
+    if (audioPathPending.exchange (false))
+    {
+        juce::String path;
+        { const juce::SpinLock::ScopedLockType sl (audioPathLock); path = audioPathToSend; }
+        writer.begin ("/record/audiopath");
+        writer.addString (path.toStdString());
+        sendPacket (writer.finish());
+    }
+
     for (auto step = sceneStep.exchange (0); step != 0; step += step > 0 ? -1 : 1)
     {
         writer.begin (step > 0 ? "/v2/preset/next" : "/v2/preset/previous");

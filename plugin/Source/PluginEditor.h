@@ -355,6 +355,11 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> canLeadAttachment;
     juce::OwnedArray<MacroKnob> inputKnobs; // DETECT, TRIM, LOOKAHEAD
     SegmentedControl levelRow { { "AUTO", "FIXED" } };
+    // Reels recording: a short clip of the engine's output + this track's
+    // audio (SETUP, since - like role/lead - it only makes sense on the one
+    // instance sitting on the master track).
+    juce::TextButton recordButton { "RECORD" };
+    juce::TextButton verticalButton { "VERTICAL" };
 
     // --- SOURCE view
     SegmentedControl sourceRole { { "MIX", "KICK", "SNARE", "HAT", "BASS", "TEXT." } };

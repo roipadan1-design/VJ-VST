@@ -685,6 +685,7 @@ VJAnalyzerProcessor::~VJAnalyzerProcessor()
     for (auto& id : actionIds)
         state.removeParameterListener (id, this);
     leads->remove (this);
+    recordingWriter.reset(); // before recordingWriteThread tears down (see its declaration)
     worker.release();
 }
 
@@ -715,6 +716,61 @@ void VJAnalyzerProcessor::updateLatency()
     }
 }
 
+void VJAnalyzerProcessor::startRecording (double seconds, bool vertical)
+{
+    if (recording.load())
+        return; // one at a time
+
+    auto folder = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("VJ VST").getChildFile ("Recordings");
+    folder.createDirectory();
+    recordingFile = folder.getChildFile ("recording_" + juce::String (juce::Time::getCurrentTime().toMilliseconds()) + ".wav");
+
+    std::unique_ptr<juce::FileOutputStream> stream (recordingFile.createOutputStream());
+    if (stream == nullptr)
+    {
+        DBG ("VJAnalyzer: could not create " << recordingFile.getFullPathName());
+        return;
+    }
+
+    juce::WavAudioFormat wavFormat;
+    auto options = juce::AudioFormatWriterOptions().withSampleRate (lastSampleRate).withNumChannels (2).withBitsPerSample (24);
+    std::unique_ptr<juce::OutputStream> streamBase (stream.release());
+    auto writer = wavFormat.createWriterFor (streamBase, options);
+    if (writer == nullptr)
+        return;
+
+    if (! recordingWriteThread.isThreadRunning())
+        recordingWriteThread.startThread();
+
+    // 32768 samples buffered before the background thread has to catch up -
+    // standard JUCE ThreadedWriter idiom, keeps the audio thread's write() lock-free.
+    recordingWriter = std::make_unique<juce::AudioFormatWriter::ThreadedWriter> (writer.release(), recordingWriteThread, 32768);
+
+    worker.startRecording (seconds, vertical); // tells the engine (/record/start)
+    recordDeadline = juce::Time::getMillisecondCounterHiRes() * 0.001 + seconds;
+    recording = true;
+}
+
+void VJAnalyzerProcessor::stopRecording()
+{
+    if (! recording.exchange (false))
+        return;
+
+    recordingWriter.reset(); // flushes and closes the WAV
+    worker.stopRecording();  // tells the engine (/record/stop) - it also times out on its own
+
+    // Hand the WAV back to the engine so it can mux once its own video leg is
+    // done - the exact samples processBlock saw, no WASAPI loopback needed
+    // (REELS-RECORDING-PLAN.md #3).
+    worker.sendAudioPath (recordingFile.getFullPathName());
+}
+
+void VJAnalyzerProcessor::checkRecordingTimeout()
+{
+    if (recording.load() && juce::Time::getMillisecondCounterHiRes() * 0.001 >= recordDeadline)
+        stopRecording();
+}
+
 void VJAnalyzerProcessor::releaseResources()
 {
     worker.release();
@@ -730,7 +786,18 @@ void VJAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     const float* left = buffer.getNumChannels() > 0 ? buffer.getReadPointer (0) : nullptr;
     const float* right = buffer.getNumChannels() > 1 ? buffer.getReadPointer (1) : nullptr;
     if (left != nullptr)
+    {
         worker.pushAudio (left, right, numSamples);
+
+        // Reels recording: the WAV is fed the same buffer the analyser sees,
+        // not a WASAPI loopback tap - simpler, and it's already gated on
+        // isOnMasterTrack() so this is genuinely the full mix (see startRecording).
+        if (recording.load() && recordingWriter != nullptr)
+        {
+            const float* channels[2] { left, right != nullptr ? right : left };
+            recordingWriter->write (channels, numSamples);
+        }
+    }
 
     for (const auto metadata : midi)
     {
@@ -877,6 +944,7 @@ void VJAnalyzerProcessor::updateCue()
 void VJAnalyzerProcessor::timerCallback()
 {
     updateLatency();
+    checkRecordingTimeout();
 
     for (int i = 0; i < actionIds.size(); ++i)
     {

@@ -8,6 +8,7 @@
 #include "Modulation.h"
 #include "Motion.h"
 #include "MediaBin.h"
+#include "VideoRecorder.h"
 
 // The VJ Engine window: owns the GL context, the preset library/compositor
 // (PresetManager), the analysis intake (FeatureBus) and the outputs (window,
@@ -27,6 +28,8 @@
 //  - legacy:    /preset/select|next|previous, /preset/transitionduration,
 //               /effect/toggle, /effect/param, /display/*, /fullscreen,
 //               /camera/open, /video/load, /debug/snapshot
+//  - recording: /record/start <seconds> <0|1 vertical>, /record/stop,
+//               /record/audiopath <path> (the plug-in's captured WAV, once closed)
 // Keys: F/F11 fullscreen, [ ] move monitor, Left/Right presets, 1-9 toggle
 // stages, Space manual hit, B blackout, D demo groove, C webcam; drop a video
 // file onto the window to use it as the video input.
@@ -116,6 +119,7 @@ private:
     std::array<std::atomic<float>, MoveSettings::numSlots> moveValues {};
     SceneClock sceneClock;
     MediaBin mediaBin;
+    VideoRecorder videoRecorder;
     // Low latency (/v2/lowlatency <0|1>, default on): wait for the previous
     // frame's GPU work before sampling the audio features, so the driver
     // can't queue several frames between the music and the screen.
