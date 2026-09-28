@@ -1,5 +1,6 @@
 #include "VideoPlayer.h"
 #include "Diagnostics.h"
+#include "MFFrame.h"
 
 using namespace juce::gl;
 
@@ -75,7 +76,7 @@ public:
         ensureMediaFoundationStarted();
 
         ComPtr<IMFSourceReader> reader;
-        int width = 0, height = 0;
+        mfframe::Layout layout;
         juce::String sourceDescription = isCameraMode() ? ("camera device " + juce::String (cameraDeviceIndex))
                                                           : file.getFullPathName();
 
@@ -86,19 +87,17 @@ public:
             return;
         }
 
-        if (! queryFrameSize (reader.Get(), width, height) || width <= 0 || height <= 0)
+        if (! mfframe::readLayout (reader.Get(), videoStreamIndex, layout))
         {
-            logDiagnostic ("queryFrameSize() failed for " + sourceDescription + " (got " + juce::String (width) + "x" + juce::String (height) + ")");
+            logDiagnostic ("no frame size for " + sourceDescription);
             if (comInitialisedHere) CoUninitialize();
             return;
         }
 
-        const int fallbackStride = queryStride (reader.Get());
+        logDiagnostic ("opened " + sourceDescription + " at " + layout.describe() + ", starting decode loop");
 
-        logDiagnostic ("opened " + sourceDescription + " at " + juce::String (width) + "x" + juce::String (height)
-                        + " (fallback stride " + juce::String (fallbackStride) + "), starting decode loop");
-
-        std::vector<uint8_t> frameBuffer ((size_t) width * (size_t) height * 4);
+        std::vector<uint8_t> frameBuffer;
+        int unreadable = 0;
         double playbackStartMs = juce::Time::getMillisecondCounterHiRes();
         int samplesReceived = 0;
 
@@ -131,6 +130,19 @@ public:
                 continue;
             }
 
+            // The decoder may only settle the real geometry once frames flow
+            // (typical for H.264): re-read it, or the old stride/size would be
+            // applied to the new frames.
+            if ((flags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED) != 0)
+            {
+                mfframe::Layout changed;
+                if (mfframe::readLayout (reader.Get(), videoStreamIndex, changed))
+                {
+                    logDiagnostic (sourceDescription + " layout now " + changed.describe());
+                    layout = changed;
+                }
+            }
+
             if (sample == nullptr)
             {
                 // Common for capture devices: a "stream tick" with no actual
@@ -145,8 +157,10 @@ public:
                 logDiagnostic ("first sample received from " + sourceDescription);
             ++samplesReceived;
 
-            copySampleToFrameBuffer (sample.Get(), width, height, fallbackStride, frameBuffer);
-            owner.pushFrame (frameBuffer.data(), width, height);
+            if (copySampleToFrameBuffer (sample.Get(), layout, frameBuffer))
+                owner.pushFrame (frameBuffer.data(), layout.width, layout.height);
+            else if (unreadable++ == 0)
+                logDiagnostic ("unreadable frame from " + sourceDescription + " (buffer smaller than " + layout.describe() + ")");
 
             // Pace playback to the source's own timestamps (100ns units) -
             // without this, ReadSample() would decode as fast as the CPU
@@ -357,42 +371,6 @@ private:
         return ok;
     }
 
-    static bool queryFrameSize (IMFSourceReader* reader, int& width, int& height)
-    {
-        ComPtr<IMFMediaType> currentType;
-        if (FAILED (reader->GetCurrentMediaType (videoStreamIndex, currentType.GetAddressOf())))
-            return false;
-
-        UINT32 w = 0, h = 0;
-        if (FAILED (MFGetAttributeSize (currentType.Get(), MF_MT_FRAME_SIZE, &w, &h)))
-            return false;
-
-        width = (int) w;
-        height = (int) h;
-        return true;
-    }
-
-    // MF_MT_DEFAULT_STRIDE is the row pitch the video processor MFT actually
-    // produces for its RGB32 output - not necessarily width*4. Widths that
-    // aren't a multiple of the decoder's internal alignment (16 pixels is a
-    // common requirement) get padded, and assuming a tightly-packed stride
-    // in that case reads each row a few bytes into the next, which
-    // accumulates into a diagonal shear across the frame. Returns 0 if the
-    // attribute isn't present (some sources don't set it); callers should
-    // fall back to width*4 in that case.
-    static int queryStride (IMFSourceReader* reader)
-    {
-        ComPtr<IMFMediaType> currentType;
-        if (FAILED (reader->GetCurrentMediaType (videoStreamIndex, currentType.GetAddressOf())))
-            return 0;
-
-        UINT32 stride = 0;
-        if (FAILED (currentType->GetUINT32 (MF_MT_DEFAULT_STRIDE, &stride)))
-            return 0;
-
-        return (int) stride;
-    }
-
     static void seekToStart (IMFSourceReader* reader)
     {
         PROPVARIANT var;
@@ -403,62 +381,27 @@ private:
         PropVariantClear (&var);
     }
 
-    // Copies the sample into frameBuffer as straight top-down RGBA rows
-    // (row 0 = the image's visual top row) for VideoPlayer::updateGLTexture()
-    // to upload as-is. Empirically verified with a 4-quadrant test clip
-    // rendered through Spout into Resolume: a row-reversed copy here (the
-    // "should be bottom-up for GL" assumption one might reach for) produced
-    // a vertically-flipped image, so row order is NOT reversed - Lock2D's
-    // scanline0/pitch already lines up directly with what glTexImage2D wants.
-    static void copySampleToFrameBuffer (IMFSample* sample, int width, int height, int fallbackStride, std::vector<uint8_t>& frameBuffer)
+    // Copies the sample's visible picture into frameBuffer (resized to fit)
+    // as tightly packed B,G,R,X rows, BOTTOM row first - the orientation of
+    // every other texture the engine samples (stage FBOs, still images,
+    // MEDIA-tab clips), so the v2 scenes show it upright. The previous
+    // straight top-down copy put the webcam upside down on screen: rows are
+    // now taken in picture order via LockedFrame (which resolves Lock2D vs
+    // plain buffers, signed strides and decoder row padding) and reversed.
+    // Returns false (frame skipped) if the buffer is unreadable.
+    static bool copySampleToFrameBuffer (IMFSample* sample, const mfframe::Layout& layout, std::vector<uint8_t>& frameBuffer)
     {
-        ComPtr<IMFMediaBuffer> buffer;
-        if (FAILED (sample->ConvertToContiguousBuffer (buffer.GetAddressOf())))
-            return;
+        mfframe::LockedFrame pixels (sample, layout);
+        if (! pixels.isValid())
+            return false;
 
-        const size_t rowBytes = (size_t) width * 4;
-        ComPtr<IMF2DBuffer> buffer2D;
+        const size_t rowBytes = (size_t) layout.width * 4;
+        frameBuffer.resize (rowBytes * (size_t) layout.height);
 
-        if (SUCCEEDED (buffer.As (&buffer2D)))
-        {
-            BYTE* scanline0 = nullptr;
-            LONG pitch = 0;
+        for (int row = 0; row < layout.height; ++row)
+            std::memcpy (frameBuffer.data() + (size_t) (layout.height - 1 - row) * rowBytes, pixels.row (row), rowBytes);
 
-            if (SUCCEEDED (buffer2D->Lock2D (&scanline0, &pitch)))
-            {
-                for (int row = 0; row < height; ++row)
-                {
-                    auto* src = scanline0 + (ptrdiff_t) row * pitch;
-                    auto* dst = frameBuffer.data() + (size_t) row * rowBytes;
-                    std::memcpy (dst, src, rowBytes);
-                }
-
-                buffer2D->Unlock2D();
-                return;
-            }
-        }
-
-        // Fallback for buffers that don't support IMF2DBuffer: use the
-        // stride Media Foundation actually reported (MF_MT_DEFAULT_STRIDE),
-        // not width*4 - some sources pad each row to the decoder's internal
-        // alignment (e.g. a 1080px-wide frame padded to 1088), and copying
-        // with an assumed tightly-packed stride reads a few bytes into the
-        // next row each time, producing a diagonal shear across the frame.
-        BYTE* data = nullptr;
-        DWORD maxLen = 0, curLen = 0;
-        const size_t srcStride = fallbackStride > 0 ? (size_t) fallbackStride : rowBytes;
-
-        if (SUCCEEDED (buffer->Lock (&data, &maxLen, &curLen)))
-        {
-            for (int row = 0; row < height; ++row)
-            {
-                auto* src = data + (size_t) row * srcStride;
-                auto* dst = frameBuffer.data() + (size_t) row * rowBytes;
-                std::memcpy (dst, src, rowBytes);
-            }
-
-            buffer->Unlock();
-        }
+        return true;
     }
 
     VideoPlayer& owner;
@@ -497,10 +440,10 @@ void VideoPlayer::close()
     newFrameReady = false;
 }
 
-void VideoPlayer::pushFrame (const void* rgbaTopDown, int width, int height)
+void VideoPlayer::pushFrame (const void* bgraBottomUp, int width, int height)
 {
     const juce::ScopedLock sl (frameLock);
-    latestFrameRGBA.replaceAll (rgbaTopDown, (size_t) width * (size_t) height * 4);
+    latestFrameRGBA.replaceAll (bgraBottomUp, (size_t) width * (size_t) height * 4);
     latestFrameWidth = width;
     latestFrameHeight = height;
     newFrameReady = true;

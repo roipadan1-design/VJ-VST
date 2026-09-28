@@ -60,17 +60,23 @@ bool MediaBin::requestLoad (int slot, const juce::File& file)
             pending.push_back ({ slot, {}, clip, file.getFullPathName() });
         }
         decoder.addJob ([this, slot, file, clip, budget] {
-            ClipDecoder::decode (file, *clip, budget, 1280);
+            const bool ok = ClipDecoder::decode (file, *clip, budget, 1280);
             const juce::ScopedLock sl (lock);
             auto& i = info[(size_t) slot];
             if (i.path == file.getFullPathName())
             {
-                if (clip->failed)
+                if (! ok || clip->failed)
                     i = {};
                 else
                 {
                     i.loading = false;
                     i.frames = clip->decoded.load();
+                    // Set here too (not only when the GL thread first shows it):
+                    // a clip decoded in a slot that isn't showing must still
+                    // count as loaded, or a client re-sending its path would
+                    // decode it all over again.
+                    i.width = clip->width;
+                    i.height = clip->height;
                     clipBytes[(size_t) slot] = (size_t) clip->capacity * clip->frameBytes();
                 }
             }

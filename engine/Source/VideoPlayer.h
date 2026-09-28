@@ -65,11 +65,11 @@ private:
     std::atomic<bool> newFrameReady { false };
 
     juce::CriticalSection frameLock;
-    juce::MemoryBlock latestFrameRGBA; // top-down rows, 4 bytes/pixel, tightly packed
+    juce::MemoryBlock latestFrameRGBA; // B,G,R,X, bottom row first (GL order), tightly packed
     int latestFrameWidth = 0, latestFrameHeight = 0;
 
     // Called from the decode thread to publish a freshly decoded frame.
-    void pushFrame (const void* rgbaTopDown, int width, int height);
+    void pushFrame (const void* bgraBottomUp, int width, int height);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VideoPlayer)
 };
