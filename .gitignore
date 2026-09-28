@@ -16,3 +16,7 @@ references/
 
 # python bytecode
 __pycache__/
+
+# Claude Code: agent worktrees and local scheduler state (agents/ is tracked)
+.claude/worktrees/
+.claude/scheduled_tasks.lock
