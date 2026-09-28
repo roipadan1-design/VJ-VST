@@ -11,6 +11,7 @@ using namespace juce::gl;
 #include <mferror.h>
 #include <propvarutil.h>
 #include <wrl/client.h>
+#include <algorithm>
 #include <cstring>
 
 #pragma comment(lib, "mfplat.lib")
@@ -100,6 +101,7 @@ public:
         int unreadable = 0;
         double playbackStartMs = juce::Time::getMillisecondCounterHiRes();
         int samplesReceived = 0;
+        CameraStats stats;
 
         while (! threadShouldExit())
         {
@@ -157,14 +159,25 @@ public:
                 logDiagnostic ("first sample received from " + sourceDescription);
             ++samplesReceived;
 
+            const double copyStartMs = juce::Time::getMillisecondCounterHiRes();
+
             if (copySampleToFrameBuffer (sample.Get(), layout, frameBuffer))
-                owner.pushFrame (frameBuffer.data(), layout.width, layout.height);
+                owner.pushFrame (frameBuffer, layout.width, layout.height);
             else if (unreadable++ == 0)
                 logDiagnostic ("unreadable frame from " + sourceDescription + " (buffer smaller than " + layout.describe() + ")");
 
-            // Pace playback to the source's own timestamps (100ns units) -
-            // without this, ReadSample() would decode as fast as the CPU
-            // allows, playing the file back far faster than real time.
+            if (isCameraMode())
+            {
+                // Live: never wait. ReadSample() already blocks until the
+                // camera's next frame; any sleep here only lets frames queue
+                // up inside Media Foundation, and the picture falls behind.
+                stats.add (sample.Get(), juce::Time::getMillisecondCounterHiRes() - copyStartMs);
+                continue;
+            }
+
+            // Files: pace playback to the source's own timestamps (100ns
+            // units) - without this, ReadSample() would decode as fast as the
+            // CPU allows, playing the file back far faster than real time.
             auto targetMs = playbackStartMs + (double) timestamp / 10000.0;
             auto waitMs = targetMs - juce::Time::getMillisecondCounterHiRes();
 
@@ -182,7 +195,11 @@ private:
     bool openReader (ComPtr<IMFSourceReader>& reader)
     {
         ComPtr<IMFAttributes> attributes;
-        MFCreateAttributes (attributes.GetAddressOf(), 1);
+        MFCreateAttributes (attributes.GetAddressOf(), 2);
+
+        // Ask every transform in the chain (MJPEG decoder, colour converter)
+        // not to buffer frames ahead - by default they favour throughput.
+        attributes->SetUINT32 (MF_LOW_LATENCY, TRUE);
 
         // Without this, SetCurrentMediaType() below fails to convert most
         // compressed/YUV sources (H.264 files, or a webcam's native MJPEG/
@@ -251,19 +268,44 @@ private:
         return SUCCEEDED (hr);
     }
 
-    // Picks one of the capture device's own native media types - preferring
-    // the largest that's still <= 1280x720, falling back to the smallest
-    // available if the device has nothing that small - clones ALL of its
-    // attributes (frame size, frame rate, interlace mode, etc.) and only
-    // swaps MF_MT_SUBTYPE to RGB32. This is the standard robust pattern for
-    // capture devices; unlike file playback, an underspecified output type
-    // can silently negotiate to a resolution the device can't actually
-    // stream in real time.
+    // Picks one of the capture device's own native media types, clones ALL
+    // of its attributes (frame size, frame rate, interlace mode, etc.) and
+    // only swaps MF_MT_SUBTYPE to RGB32 - the standard robust pattern for
+    // capture devices; an underspecified output type can silently negotiate
+    // a mode the device can't actually stream in real time.
+    //
+    // Frame rate comes first: a laptop camera often offers 1280x720
+    // uncompressed (NV12/YUY2) at only 10-15 fps next to MJPEG at 30, and
+    // 10 fps reads as heavy lag. So, in order:
+    //   1. a smooth mode (>= 29 fps) over a slow one,
+    //   2. <= 1280x720 (the largest such; otherwise the smallest available),
+    //   3. the higher frame rate,
+    //   4. uncompressed (NV12, then YUY2) over MJPEG - no decode step.
     static bool chooseCameraOutputType (IMFSourceReader* reader, ComPtr<IMFMediaType>& outputType)
     {
-        ComPtr<IMFMediaType> chosenNative;
-        UINT64 chosenArea = 0;
-        constexpr UINT64 preferredMaxArea = 1280ull * 720ull;
+        struct Mode
+        {
+            ComPtr<IMFMediaType> type;
+            UINT64 area = 0;
+            double fps = 0.0;
+            int formatRank = 3;
+            DWORD index = 0;
+        };
+
+        static constexpr UINT64 preferredMaxArea = 1280ull * 720ull;
+
+        auto isBetter = [] (const Mode& a, const Mode& b)
+        {
+            const bool aSmooth = a.fps >= 29.0, bSmooth = b.fps >= 29.0;
+            if (aSmooth != bSmooth) return aSmooth;
+            const bool aFits = a.area <= preferredMaxArea, bFits = b.area <= preferredMaxArea;
+            if (aFits != bFits) return aFits;
+            if (a.area != b.area) return aFits ? a.area > b.area : a.area < b.area;
+            if (std::abs (a.fps - b.fps) > 0.5) return a.fps > b.fps;
+            return a.formatRank < b.formatRank;
+        };
+
+        Mode chosen;
 
         for (DWORD i = 0; ; ++i)
         {
@@ -277,29 +319,32 @@ private:
             if (FAILED (MFGetAttributeSize (nativeType.Get(), MF_MT_FRAME_SIZE, &w, &h)) || w == 0 || h == 0)
                 continue;
 
+            UINT32 rateNum = 0, rateDen = 0;
+            MFGetAttributeRatio (nativeType.Get(), MF_MT_FRAME_RATE, &rateNum, &rateDen);
+
             GUID subtype {};
             nativeType->GetGUID (MF_MT_SUBTYPE, &subtype);
+
+            Mode mode;
+            mode.type = nativeType;
+            mode.area = (UINT64) w * (UINT64) h;
+            mode.fps = rateDen > 0 ? (double) rateNum / (double) rateDen : 0.0;
+            mode.formatRank = subtype == MFVideoFormat_NV12 ? 0 : subtype == MFVideoFormat_YUY2 ? 1
+                            : subtype == MFVideoFormat_MJPG ? 2 : 3;
+            mode.index = i;
+
             logDiagnostic ("  native type " + juce::String ((int) i) + ": " + juce::String ((int) w) + "x" + juce::String ((int) h)
-                            + " subtype=" + subtypeToString (subtype));
+                            + " @" + juce::String (mode.fps, 1) + " fps subtype=" + subtypeToString (subtype));
 
-            UINT64 area = (UINT64) w * (UINT64) h;
-            bool withinPreferred = area <= preferredMaxArea;
-            bool chosenWithinPreferred = chosenArea != 0 && chosenArea <= preferredMaxArea;
-
-            bool takeIt = chosenNative == nullptr
-                        || (withinPreferred && ! chosenWithinPreferred)
-                        || (withinPreferred && chosenWithinPreferred && area > chosenArea)
-                        || (! withinPreferred && ! chosenWithinPreferred && area < chosenArea);
-
-            if (takeIt)
-            {
-                chosenNative = nativeType;
-                chosenArea = area;
-            }
+            if (chosen.type == nullptr || isBetter (mode, chosen))
+                chosen = mode;
         }
 
-        if (chosenNative == nullptr)
+        if (chosen.type == nullptr)
             return false;
+
+        logDiagnostic ("  -> camera mode: native type " + juce::String ((int) chosen.index) + " @" + juce::String (chosen.fps, 1) + " fps");
+        ComPtr<IMFMediaType> chosenNative = chosen.type;
 
         ComPtr<IMFMediaType> newType;
         if (FAILED (MFCreateMediaType (newType.GetAddressOf())))
@@ -404,6 +449,59 @@ private:
         return true;
     }
 
+    // Live camera health, logged every 5 s: the real frame rate, the copy
+    // cost, and how old each frame is when handed to the renderer - capture
+    // time (MFSampleExtension_DeviceTimestamp, QPC-based) against
+    // MFGetSystemTime (the same clock). That age plus about one render frame
+    // is the camera latency on screen.
+    struct CameraStats
+    {
+        void add (IMFSample* sample, double copyMs)
+        {
+            const double nowMs = juce::Time::getMillisecondCounterHiRes();
+            if (windowStartMs <= 0.0)
+                windowStartMs = nowMs;
+
+            ++frames;
+            copyTotalMs += copyMs;
+
+            UINT64 captured = 0;
+            if (SUCCEEDED (sample->GetUINT64 (MFSampleExtension_DeviceTimestamp, &captured)) && captured != 0)
+            {
+                const double ageMs = (double) (MFGetSystemTime() - (LONGLONG) captured) / 10000.0;
+                if (ageMs >= 0.0 && ageMs < 10000.0)
+                    agesMs.push_back (ageMs);
+            }
+
+            const double elapsedMs = nowMs - windowStartMs;
+            if (elapsedMs < 5000.0)
+                return;
+
+            juce::String line = "camera: " + juce::String (frames * 1000.0 / elapsedMs, 1) + " fps, copy "
+                              + juce::String (copyTotalMs / juce::jmax (1, frames), 1) + " ms/frame";
+            if (! agesMs.empty())
+            {
+                std::sort (agesMs.begin(), agesMs.end());
+                line << ", frame age at hand-off median " << juce::String (agesMs[agesMs.size() / 2], 0)
+                     << " ms / max " << juce::String (agesMs.back(), 0) << " ms";
+            }
+            else
+            {
+                line << ", frame age unknown (no device timestamps)";
+            }
+            logDiagnostic (line);
+
+            frames = 0;
+            copyTotalMs = 0.0;
+            agesMs.clear();
+            windowStartMs = nowMs;
+        }
+
+        double windowStartMs = 0.0, copyTotalMs = 0.0;
+        int frames = 0;
+        std::vector<double> agesMs;
+    };
+
     VideoPlayer& owner;
     juce::File file;
     int cameraDeviceIndex = -1;
@@ -440,32 +538,37 @@ void VideoPlayer::close()
     newFrameReady = false;
 }
 
-void VideoPlayer::pushFrame (const void* bgraBottomUp, int width, int height)
+void VideoPlayer::pushFrame (std::vector<uint8_t>& frame, int width, int height)
 {
+    // Swap, don't copy: the decode thread gets an older buffer back to fill
+    // next time - no 3.6 MB allocation + copy per 720p frame.
     const juce::ScopedLock sl (frameLock);
-    latestFrameRGBA.replaceAll (bgraBottomUp, (size_t) width * (size_t) height * 4);
-    latestFrameWidth = width;
-    latestFrameHeight = height;
+    std::swap (readyFrame, frame);
+    readyWidth = width;
+    readyHeight = height;
     newFrameReady = true;
     hasDecodedFrame = true;
 }
 
 void VideoPlayer::updateGLTexture()
 {
-    if (! newFrameReady.exchange (false))
+    if (! newFrameReady.load())
         return;
 
     int width = 0, height = 0;
-    juce::MemoryBlock localCopy;
 
     {
+        // Take the newest frame and clear the flag together, so a frame
+        // pushed in between is never mistaken for one already uploaded.
         const juce::ScopedLock sl (frameLock);
-        width = latestFrameWidth;
-        height = latestFrameHeight;
-        localCopy = latestFrameRGBA;
+        if (! newFrameReady.exchange (false))
+            return;
+        std::swap (readyFrame, uploadFrame);
+        width = readyWidth;
+        height = readyHeight;
     }
 
-    if (width <= 0 || height <= 0)
+    if (width <= 0 || height <= 0 || uploadFrame.size() < (size_t) width * (size_t) height * 4)
         return;
 
     if (textureId == 0)
@@ -487,13 +590,13 @@ void VideoPlayer::updateGLTexture()
     // GL_UNSIGNED_BYTE matches that memory layout exactly, no swizzle.
     if (width != textureWidth || height != textureHeight)
     {
-        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, localCopy.getData());
+        glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, uploadFrame.data());
         textureWidth = width;
         textureHeight = height;
     }
     else
     {
-        glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, localCopy.getData());
+        glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, uploadFrame.data());
     }
 
     glBindTexture (GL_TEXTURE_2D, 0);

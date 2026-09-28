@@ -18,7 +18,9 @@
 // Known scope limits (documented, not hidden):
 //  - no audio playback from the video file - visual-only use case.
 //  - no seek/scrub controls; always loops from the start.
-//  - decode pacing is driven by the decode thread's own clock (sleeping to
+//  - a camera frame is handed on the moment it arrives (never paced: any
+//    wait lets frames queue up = latency). File decode pacing is driven by
+//    the decode thread's own clock (sleeping to
 //    the source's frame duration), not genlocked to the render thread - the
 //    render thread always just uploads whatever the latest decoded frame is,
 //    so under heavy GPU load frames may repeat rather than blocking/tearing.
@@ -64,12 +66,16 @@ private:
     std::atomic<bool> hasDecodedFrame { false };
     std::atomic<bool> newFrameReady { false };
 
+    // Frames are B,G,R,X, bottom row first (GL order), tightly packed. Three
+    // buffers rotate by swapping, never copying: the decode thread's own,
+    // readyFrame (newest complete frame) and uploadFrame (GL thread only).
     juce::CriticalSection frameLock;
-    juce::MemoryBlock latestFrameRGBA; // B,G,R,X, bottom row first (GL order), tightly packed
-    int latestFrameWidth = 0, latestFrameHeight = 0;
+    std::vector<uint8_t> readyFrame, uploadFrame; // readyFrame guarded by frameLock
+    int readyWidth = 0, readyHeight = 0;          // guarded by frameLock
 
-    // Called from the decode thread to publish a freshly decoded frame.
-    void pushFrame (const void* bgraBottomUp, int width, int height);
+    // Called from the decode thread to publish a freshly decoded frame; the
+    // caller gets an older buffer back in `frame` to reuse.
+    void pushFrame (std::vector<uint8_t>& frame, int width, int height);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VideoPlayer)
 };
